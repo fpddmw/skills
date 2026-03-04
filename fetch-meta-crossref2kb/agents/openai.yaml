@@ -1,4 +1,0 @@
-interface:
-  display_name: "Fetch Meta Crossref2KB"
-  short_description: "Fetch Crossref metadata into journals"
-  default_prompt: "Use $fetch-meta-crossref2kb to fetch Crossref journal articles after a given date and insert them into PostgreSQL journals with DOI deduplication."

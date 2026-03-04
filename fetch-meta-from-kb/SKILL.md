@@ -17,7 +17,7 @@ Run:
 
 ```bash
 cd fetch-meta-from-kb
-python3 scripts/run_report.py --days 7 --output selected-abstract.json
+python3 scripts/fetch_meta_from_kb.py --days 7 --output selected-abstract.json
 ```
 
 Env example:
