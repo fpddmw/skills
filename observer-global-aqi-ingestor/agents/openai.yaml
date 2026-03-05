@@ -1,0 +1,4 @@
+interface:
+  display_name: "Observer Global AQI Ingestor"
+  short_description: "Ingest OpenAQ and summarize physical metrics"
+  default_prompt: "Use $observer-global-aqi-ingestor to ingest OpenAQ PM2.5/NO2/O3 by bbox/time, enrich with WHO/EPA variance, and idempotently upsert physical_metrics in SQLite."

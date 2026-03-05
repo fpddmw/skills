@@ -1,0 +1,4 @@
+interface:
+  display_name: "GDELT Environment Fetch"
+  short_description: "Pull and classify GDELT environment records"
+  default_prompt: "Use $gdelt-environment-fetch to fetch GDELT environment public-opinion records, store them in SQLite, and optionally classify relevance with LLM."

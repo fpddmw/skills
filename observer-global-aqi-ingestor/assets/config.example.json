@@ -1,0 +1,15 @@
+{
+  "db_path": "/absolute/path/to/workspace/observer_physical.db",
+  "bbox": "103.5,1.1,104.2,1.6",
+  "start_datetime": "2026-03-01T00:00:00Z",
+  "end_datetime": "2026-03-03T00:00:00Z",
+  "max_locations": 200,
+  "max_sensors_per_location": 10,
+  "standard_profile": "auto",
+  "group_limit": 200000,
+  "openaq_api_base_url": "https://api.openaq.org/v3",
+  "openaq_timeout_seconds": 20,
+  "openaq_page_limit": 100,
+  "openaq_max_pages": 20,
+  "openaq_sleep_ms": 1100
+}
