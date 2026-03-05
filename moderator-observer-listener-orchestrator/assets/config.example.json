@@ -1,0 +1,15 @@
+{
+  "db_path": "/absolute/path/to/workspace/gdelt_environment.db",
+  "query": "(climate OR pollution OR biodiversity) AND sourcecountry:CN",
+  "start_datetime": "20260301000000",
+  "end_datetime": "20260303235959",
+  "max_records": 250,
+  "classify_mode": "llm",
+  "summarize_only_relevant": true,
+  "summarize_limit": 2000,
+  "llm_api_base_url": "https://api.openai.com/v1",
+  "llm_model": "gpt-4o-mini",
+  "gdelt_api_base": "https://api.gdeltproject.org/api/v2/doc/doc",
+  "timeout_seconds": 20,
+  "llm_timeout_seconds": 25
+}

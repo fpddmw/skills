@@ -1,0 +1,4 @@
+interface:
+  display_name: "Moderator Observer-Listener Orchestrator"
+  short_description: "Coordinate observer/listener patrol and recon workflows"
+  default_prompt: "Use $moderator-observer-listener-orchestrator to produce strict JSON directives and runnable CLI command arrays for passive patrol, active reconnaissance, and escalation review over observer/listener skills."
