@@ -35,6 +35,16 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser_ingest.add_argument("--db", default=DEFAULT_DB_PATH, help="SQLite database path.")
     parser_ingest.add_argument("--query", required=True, help="GDELT DOC query expression.")
+    parser_ingest.add_argument(
+        "--themes",
+        default="",
+        help="Comma-separated GDELT theme filters appended as OR-clause, e.g. ENV_GREENHOUSE,ENV_POLLUTION.",
+    )
+    parser_ingest.add_argument(
+        "--disable-default-themes",
+        action="store_true",
+        help="Disable built-in environment themes when building the DOC query.",
+    )
     parser_ingest.add_argument("--start-datetime", required=True, help="UTC start datetime YYYYMMDDHHMMSS.")
     parser_ingest.add_argument("--end-datetime", required=True, help="UTC end datetime YYYYMMDDHHMMSS.")
     parser_ingest.add_argument(
@@ -55,6 +65,11 @@ def build_parser() -> argparse.ArgumentParser:
         type=float,
         default=DEFAULT_LLM_TIMEOUT,
         help="LLM API timeout seconds when classify-mode=llm.",
+    )
+    parser_ingest.add_argument(
+        "--articles-json",
+        default="",
+        help="Optional local fixture file. JSON list or {'articles':[...]} in GDELT article shape.",
     )
     parser_ingest.set_defaults(func=cmd_sync)
 

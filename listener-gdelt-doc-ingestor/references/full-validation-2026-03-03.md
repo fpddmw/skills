@@ -13,7 +13,7 @@ total 60
 ## 1) init-db (Verbatim)
 
 ```text
-$ python3 gdelt-environment-fetch/scripts/gdelt_fetch.py init-db --db /home/fpddmw/projects/skills/data/gdelt_environment.db
+$ python3 listener-gdelt-doc-ingestor/scripts/gdelt_fetch.py init-db --db /home/fpddmw/projects/skills/data/gdelt_environment.db
 GDELT_DB_OK path=/home/fpddmw/projects/skills/data/gdelt_environment.db table=gdelt_environment_events
 EXIT_CODE=0
 ```
@@ -21,7 +21,7 @@ EXIT_CODE=0
 ## 2) sync --classify-mode llm (Verbatim)
 
 ```text
-$ python3 gdelt-environment-fetch/scripts/gdelt_fetch.py sync --db /home/fpddmw/projects/skills/data/gdelt_environment.db --query climate --start-datetime 20260302000000 --end-datetime 20260303235959 --max-records 10 --timeout 60 --classify-mode llm --llm-timeout 45
+$ python3 listener-gdelt-doc-ingestor/scripts/gdelt_fetch.py sync --db /home/fpddmw/projects/skills/data/gdelt_environment.db --query climate --start-datetime 20260302000000 --end-datetime 20260303235959 --max-records 10 --timeout 60 --classify-mode llm --llm-timeout 45
 GDELT_SYNC_OK query='climate' start=20260302000000 end=20260303235959 fetched=10 upserted=10 classify_mode=llm rows=10 unique_urls=10
 EXIT_CODE=0
 ```
@@ -29,7 +29,7 @@ EXIT_CODE=0
 ## 3) enrich --classify-mode llm (Verbatim)
 
 ```text
-$ python3 gdelt-environment-fetch/scripts/gdelt_fetch.py enrich --db /home/fpddmw/projects/skills/data/gdelt_environment.db --classify-mode llm --limit 200 --llm-timeout 45
+$ python3 listener-gdelt-doc-ingestor/scripts/gdelt_fetch.py enrich --db /home/fpddmw/projects/skills/data/gdelt_environment.db --classify-mode llm --limit 200 --llm-timeout 45
 GDELT_ENRICH_OK processed=10 updated=10 classify_mode=llm
 EXIT_CODE=0
 ```
@@ -37,7 +37,7 @@ EXIT_CODE=0
 ## 4) summarize (Verbatim)
 
 ```text
-$ python3 gdelt-environment-fetch/scripts/gdelt_fetch.py summarize --db /home/fpddmw/projects/skills/data/gdelt_environment.db --only-relevant --limit 500
+$ python3 listener-gdelt-doc-ingestor/scripts/gdelt_fetch.py summarize --db /home/fpddmw/projects/skills/data/gdelt_environment.db --only-relevant --limit 500
 SOCIAL_SUMMARIZE_OK source_rows=10 processed=9 upserted=9 social_rows=9
 EXIT_CODE=0
 ```
@@ -45,7 +45,7 @@ EXIT_CODE=0
 ## 5) list-events (Verbatim)
 
 ```text
-$ python3 gdelt-environment-fetch/scripts/gdelt_fetch.py list-events --db /home/fpddmw/projects/skills/data/gdelt_environment.db --limit 20
+$ python3 listener-gdelt-doc-ingestor/scripts/gdelt_fetch.py list-events --db /home/fpddmw/projects/skills/data/gdelt_environment.db --limit 20
 id	seendate_utc	env_relevance	avg_tone	goldstein_scale	source_country	classifier	title	url
 2	20260303T080000Z	0			Nepal	llm:gpt-5	आगामी सरकारको दायित्व , हिमाली मुद्दा	https://www.annapurnapost.com/story/495052/
 1	20260303T073000Z	1			Sweden	llm:gpt-5	Klimatministern sågar KD : Noll trovärdighet	https://www.aftonbladet.se/nyheter/a/bOgw1A/klimatministern-sagar-kd-noll-trovardighet

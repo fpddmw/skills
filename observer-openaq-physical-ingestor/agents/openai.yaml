@@ -1,0 +1,4 @@
+interface:
+  display_name: "Observer OpenAQ Physical Ingestor"
+  short_description: "Ingest OpenAQ signals into physical observer metrics"
+  default_prompt: "Use $observer-openaq-physical-ingestor to ingest OpenAQ PM2.5/NO2/O3 by bbox/time, enrich variance metrics, and upsert physical_metrics in SQLite."

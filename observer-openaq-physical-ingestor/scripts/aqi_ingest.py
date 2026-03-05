@@ -27,7 +27,7 @@ DEFAULT_OPENAQ_MAX_PAGES = int(os.environ.get("OPENAQ_MAX_PAGES", "20"))
 DEFAULT_OPENAQ_SLEEP_MS = int(os.environ.get("OPENAQ_SLEEP_MS", "1100"))
 DEFAULT_OPENAQ_USER_AGENT = os.environ.get(
     "OPENAQ_USER_AGENT",
-    "observer-global-aqi-ingestor/1.0 (+https://github.com/tiangong-ai/skills)",
+    "observer-openaq-physical-ingestor/1.0 (+https://github.com/tiangong-ai/skills)",
 )
 LEGACY_ENTRYPOINT_NOTICE = (
     "PHYSICAL_WARN legacy_entrypoint=scripts/aqi_ingest.py "
@@ -214,6 +214,31 @@ def load_runtime_config(args: argparse.Namespace) -> RuntimeConfig:
         sleep_ms=max(int(args.sleep_ms), 0),
         user_agent=normalize_space(args.user_agent) or DEFAULT_OPENAQ_USER_AGENT,
     )
+
+
+def load_fixture_records(path: str) -> list[dict[str, Any]]:
+    file_path = Path(str(path or "").strip()).expanduser()
+    if not file_path.exists():
+        raise ValueError(f"--fixture-json not found: {file_path}")
+    try:
+        payload = json.loads(file_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"--fixture-json invalid json: {file_path}") from exc
+
+    records: Any
+    if isinstance(payload, dict):
+        records = payload.get("records")
+    elif isinstance(payload, list):
+        records = payload
+    else:
+        records = None
+    if not isinstance(records, list):
+        raise ValueError("--fixture-json must be a JSON list or an object with key 'records'")
+    normalized: list[dict[str, Any]] = []
+    for item in records:
+        if isinstance(item, dict):
+            normalized.append(item)
+    return normalized
 
 
 def openaq_get(config: RuntimeConfig, path: str, query: dict[str, Any]) -> dict[str, Any]:
@@ -498,78 +523,100 @@ def cmd_init_db(args: argparse.Namespace) -> int:
 
 
 def cmd_ingest(args: argparse.Namespace) -> int:
-    config = load_runtime_config(args)
     min_lon, min_lat, max_lon, max_lat = parse_bbox(args.bbox)
     start_utc = parse_iso_datetime(args.start_datetime, "--start-datetime")
     end_utc = parse_iso_datetime(args.end_datetime, "--end-datetime")
     if end_utc <= start_utc:
         raise ValueError("--end-datetime must be later than --start-datetime")
+    fixture_path = normalize_space(getattr(args, "fixture_json", ""))
+    config = load_runtime_config(args) if not fixture_path else None
 
     with connect_db(args.db) as conn:
         init_db(conn)
-        locations: list[dict[str, Any]] = []
-        for page in range(1, config.max_pages + 1):
-            payload = openaq_get(
-                config,
-                "/locations",
-                {
-                    "bbox": f"{min_lon},{min_lat},{max_lon},{max_lat}",
-                    "parameters_id": [TARGET_PARAMETER_IDS["pm25"], TARGET_PARAMETER_IDS["no2"], TARGET_PARAMETER_IDS["o3"]],
-                    "limit": config.limit,
-                    "page": page,
-                },
-            )
-            items = payload.get("results")
-            if not isinstance(items, list) or not items:
-                break
-            locations.extend([x for x in items if isinstance(x, dict)])
-            if len(items) < config.limit or len(locations) >= args.max_locations:
-                break
-            maybe_sleep_ms(config.sleep_ms)
-
-        locations = locations[: args.max_locations]
         raw_upserted = 0
         sensors_scanned = 0
         rows_fetched = 0
-        for location in locations:
-            location_id = location.get("id")
-            if location_id is None:
-                continue
-            sensors = fetch_location_sensors(config, int(location_id), max_pages=min(config.max_pages, 5))
-            kept: list[dict[str, Any]] = []
-            for sensor in sensors:
-                code = extract_parameter_code(sensor)
-                if code in TARGET_PARAMETER_IDS:
-                    kept.append(sensor)
-            kept = kept[: args.max_sensors_per_location]
-            for sensor in kept:
-                sensors_scanned += 1
-                code = extract_parameter_code(sensor)
-                if not code:
+        if fixture_path:
+            records = load_fixture_records(fixture_path)
+            locations = []
+            for rec in records:
+                location = rec.get("location")
+                sensor = rec.get("sensor")
+                row = rec.get("row")
+                parameter_code = normalize_space(rec.get("parameter_code") or "").lower()
+                if not isinstance(location, dict) or not isinstance(sensor, dict) or not isinstance(row, dict):
                     continue
-                try:
-                    values = fetch_sensor_rows(
-                        config,
-                        int(sensor["id"]),
-                        datetime_from=start_utc,
-                        datetime_to=end_utc,
-                        endpoint="hours",
-                    )
-                    if not values:
+                if parameter_code not in TARGET_PARAMETER_IDS:
+                    parameter_code = normalize_space(extract_parameter_code(sensor) or "").lower()
+                if parameter_code not in TARGET_PARAMETER_IDS:
+                    continue
+                locations.append(location)
+                sensors_scanned += 1
+                rows_fetched += 1
+                if upsert_raw_row(conn, location=location, sensor=sensor, parameter_code=parameter_code, row=row):
+                    raw_upserted += 1
+        else:
+            assert config is not None
+            locations = []
+            for page in range(1, config.max_pages + 1):
+                payload = openaq_get(
+                    config,
+                    "/locations",
+                    {
+                        "bbox": f"{min_lon},{min_lat},{max_lon},{max_lat}",
+                        "parameters_id": [TARGET_PARAMETER_IDS["pm25"], TARGET_PARAMETER_IDS["no2"], TARGET_PARAMETER_IDS["o3"]],
+                        "limit": config.limit,
+                        "page": page,
+                    },
+                )
+                items = payload.get("results")
+                if not isinstance(items, list) or not items:
+                    break
+                locations.extend([x for x in items if isinstance(x, dict)])
+                if len(items) < config.limit or len(locations) >= args.max_locations:
+                    break
+                maybe_sleep_ms(config.sleep_ms)
+
+            locations = locations[: args.max_locations]
+            for location in locations:
+                location_id = location.get("id")
+                if location_id is None:
+                    continue
+                sensors = fetch_location_sensors(config, int(location_id), max_pages=min(config.max_pages, 5))
+                kept: list[dict[str, Any]] = []
+                for sensor in sensors:
+                    code = extract_parameter_code(sensor)
+                    if code in TARGET_PARAMETER_IDS:
+                        kept.append(sensor)
+                kept = kept[: args.max_sensors_per_location]
+                for sensor in kept:
+                    sensors_scanned += 1
+                    code = extract_parameter_code(sensor)
+                    if not code:
+                        continue
+                    try:
                         values = fetch_sensor_rows(
                             config,
                             int(sensor["id"]),
                             datetime_from=start_utc,
                             datetime_to=end_utc,
-                            endpoint="measurements",
+                            endpoint="hours",
                         )
-                except RuntimeError:
-                    continue
-                rows_fetched += len(values)
-                for row in values:
-                    if upsert_raw_row(conn, location=location, sensor=sensor, parameter_code=code, row=row):
-                        raw_upserted += 1
-                maybe_sleep_ms(config.sleep_ms)
+                        if not values:
+                            values = fetch_sensor_rows(
+                                config,
+                                int(sensor["id"]),
+                                datetime_from=start_utc,
+                                datetime_to=end_utc,
+                                endpoint="measurements",
+                            )
+                    except RuntimeError:
+                        continue
+                    rows_fetched += len(values)
+                    for row in values:
+                        if upsert_raw_row(conn, location=location, sensor=sensor, parameter_code=code, row=row):
+                            raw_upserted += 1
+                    maybe_sleep_ms(config.sleep_ms)
 
         conn.commit()
         raw_total = int(conn.execute("SELECT COUNT(1) AS c FROM aq_raw_observations").fetchone()["c"])
@@ -582,6 +629,7 @@ def cmd_ingest(args: argparse.Namespace) -> int:
         "PHYSICAL_INGEST_OK "
         f"bbox={min_lon},{min_lat},{max_lon},{max_lat} "
         f"start={start_utc} end={end_utc} "
+        f"fixture={fixture_path or 'none'} "
         f"locations={len(locations)} sensors={sensors_scanned} fetched={rows_fetched} "
         f"upserted={raw_upserted} raw_total={raw_total} countries={country_count}"
     )
@@ -844,6 +892,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser_ingest.add_argument("--max-pages", type=int, default=DEFAULT_OPENAQ_MAX_PAGES)
     parser_ingest.add_argument("--sleep-ms", type=int, default=DEFAULT_OPENAQ_SLEEP_MS)
     parser_ingest.add_argument("--user-agent", default=DEFAULT_OPENAQ_USER_AGENT)
+    parser_ingest.add_argument(
+        "--fixture-json",
+        default="",
+        help="Optional local fixture file. JSON list or {'records':[...]} with location/sensor/row fields.",
+    )
     parser_ingest.set_defaults(func=cmd_ingest)
 
     parser_enrich = subparsers.add_parser(

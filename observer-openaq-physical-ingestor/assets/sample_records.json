@@ -1,0 +1,58 @@
+{
+  "records": [
+    {
+      "location": {
+        "id": 1001,
+        "name": "Test Station SG-1",
+        "country": {"code": "SG"},
+        "coordinates": {"latitude": 1.31, "longitude": 103.82}
+      },
+      "sensor": {
+        "id": 2001,
+        "parameter": {"name": "pm25"}
+      },
+      "parameter_code": "pm25",
+      "row": {
+        "datetime": {"utc": "2026-03-01T00:00:00Z"},
+        "value": 28.0,
+        "unit": "ug/m3"
+      }
+    },
+    {
+      "location": {
+        "id": 1001,
+        "name": "Test Station SG-1",
+        "country": {"code": "SG"},
+        "coordinates": {"latitude": 1.31, "longitude": 103.82}
+      },
+      "sensor": {
+        "id": 2002,
+        "parameter": {"name": "no2"}
+      },
+      "parameter_code": "no2",
+      "row": {
+        "datetime": {"utc": "2026-03-01T00:00:00Z"},
+        "value": 35.0,
+        "unit": "ppb"
+      }
+    },
+    {
+      "location": {
+        "id": 1002,
+        "name": "Test Station US-1",
+        "country": {"code": "US"},
+        "coordinates": {"latitude": 37.77, "longitude": -122.42}
+      },
+      "sensor": {
+        "id": 2003,
+        "parameter": {"name": "o3"}
+      },
+      "parameter_code": "o3",
+      "row": {
+        "datetime": {"utc": "2026-03-01T00:00:00Z"},
+        "value": 0.08,
+        "unit": "ppm"
+      }
+    }
+  ]
+}

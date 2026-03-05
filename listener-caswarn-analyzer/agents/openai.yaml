@@ -1,0 +1,4 @@
+interface:
+  display_name: "Listener CASWARN Analyzer"
+  short_description: "Analyze NIMBY/SARF risk from local social_events"
+  default_prompt: "Use $listener-caswarn-analyzer to read unanalyzed social_events rows from SQLite, run semantic/emotion analysis, and write SARF risk outputs back."

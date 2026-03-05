@@ -52,6 +52,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser_ingest.add_argument("--max-pages", type=int, default=DEFAULT_OPENAQ_MAX_PAGES)
     parser_ingest.add_argument("--sleep-ms", type=int, default=DEFAULT_OPENAQ_SLEEP_MS)
     parser_ingest.add_argument("--user-agent", default=DEFAULT_OPENAQ_USER_AGENT)
+    parser_ingest.add_argument(
+        "--fixture-json",
+        default="",
+        help="Optional local fixture file. JSON list or {'records':[...]} with location/sensor/row fields.",
+    )
     parser_ingest.set_defaults(func=cmd_ingest)
 
     return parser

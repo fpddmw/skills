@@ -1,0 +1,4 @@
+interface:
+  display_name: "Listener GDELT DOC Ingestor"
+  short_description: "Ingest GDELT DOC news into listener social_events"
+  default_prompt: "Use $listener-gdelt-doc-ingestor to ingest GDELT DOC API news with query/theme/time parameters, enrich signals, and upsert social_events for downstream analyzers."

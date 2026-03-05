@@ -1,0 +1,27 @@
+{
+  "articles": [
+    {
+      "title": "Residents protest landfill expansion near river",
+      "url": "https://example.org/news/landfill-protest?utm_source=test",
+      "domain": "example.org",
+      "sourcecountry": "US",
+      "language": "English",
+      "seendate": "20260301003000",
+      "socialimage": "https://example.org/img/1.jpg",
+      "avgtone": -5.2,
+      "goldsteinscale": -6.0,
+      "summary": "Community groups fear groundwater contamination from landfill expansion."
+    },
+    {
+      "title": "City announces stricter emissions policy after hearings",
+      "url": "https://example.org/news/emissions-policy",
+      "domain": "example.org",
+      "sourcecountry": "US",
+      "language": "English",
+      "seendate": "20260301004500",
+      "avgtone": -0.6,
+      "goldsteinscale": -1.5,
+      "summary": "The city council approved tighter controls after weeks of public consultation."
+    }
+  ]
+}

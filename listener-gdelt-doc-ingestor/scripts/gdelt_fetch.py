@@ -23,8 +23,15 @@ DEFAULT_DB_FILENAME = "gdelt_environment.db"
 DEFAULT_DB_PATH = os.environ.get("GDELT_ENV_DB_PATH", DEFAULT_DB_FILENAME)
 DEFAULT_GDELT_API_BASE = "https://api.gdeltproject.org/api/v2/doc/doc"
 DEFAULT_TIMEOUT = 20.0
-DEFAULT_USER_AGENT = "gdelt-environment-fetch/1.0 (+https://github.com/tiangong-ai/skills)"
+DEFAULT_USER_AGENT = "listener-gdelt-doc-ingestor/1.0 (+https://github.com/tiangong-ai/skills)"
 DEFAULT_LLM_TIMEOUT = 25.0
+DEFAULT_GDELT_THEME_FILTERS = (
+    "ENV_CLIMATECHANGE",
+    "ENV_GREENHOUSE",
+    "ENV_POLLUTION",
+    "ENV_AIRPOLLUTION",
+    "ENV_WATERPOLLUTION",
+)
 LEGACY_ENTRYPOINT_NOTICE = (
     "GDELT_ENV_WARN legacy_entrypoint=scripts/gdelt_fetch.py "
     "recommended=scripts/gdelt_ingest.py,scripts/gdelt_enrich.py,scripts/gdelt_summarize.py"
@@ -123,6 +130,16 @@ CREATE TABLE IF NOT EXISTS social_events (
     env_label TEXT,
     env_reason TEXT,
     classifier TEXT,
+    article_summary TEXT,
+    article_text TEXT,
+    is_analyzed INTEGER NOT NULL DEFAULT 0 CHECK (is_analyzed IN (0, 1)),
+    analyzed_at TEXT,
+    analysis_model TEXT,
+    sarf_label TEXT,
+    sarf_reason TEXT,
+    dominant_emotion TEXT,
+    nimby_risk_score REAL,
+    risk_frame TEXT,
     raw_event_count INTEGER NOT NULL DEFAULT 1,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
@@ -250,6 +267,25 @@ def ensure_schema_migrations(conn: sqlite3.Connection) -> None:
             (url_key, int(row["id"])),
         )
 
+    social_columns: tuple[tuple[str, str], ...] = (
+        ("article_summary", "TEXT"),
+        ("article_text", "TEXT"),
+        ("is_analyzed", "INTEGER NOT NULL DEFAULT 0"),
+        ("analyzed_at", "TEXT"),
+        ("analysis_model", "TEXT"),
+        ("sarf_label", "TEXT"),
+        ("sarf_reason", "TEXT"),
+        ("dominant_emotion", "TEXT"),
+        ("nimby_risk_score", "REAL"),
+        ("risk_frame", "TEXT"),
+    )
+    for column_name, column_type in social_columns:
+        if not table_has_column(conn, "social_events", column_name):
+            conn.execute(f"ALTER TABLE social_events ADD COLUMN {column_name} {column_type}")
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_social_events_analyzed ON social_events(is_analyzed, seendate_utc DESC)"
+    )
+
 
 def build_event_key(query_text: str, article: dict[str, Any]) -> str:
     title = normalize_space(article.get("title") or "")
@@ -309,6 +345,76 @@ def parse_mode(raw: str) -> str:
     if mode not in ALLOWED_CLASSIFY_MODES:
         raise ValueError(f"classify mode must be one of {sorted(ALLOWED_CLASSIFY_MODES)}")
     return mode
+
+
+def parse_themes(raw: str) -> list[str]:
+    parts = [normalize_space(item) for item in str(raw or "").replace(";", ",").split(",")]
+    deduped: list[str] = []
+    seen: set[str] = set()
+    for part in parts:
+        value = part.lower()
+        if value.startswith("theme:"):
+            value = value.split(":", 1)[1]
+        normalized = normalize_space(value).upper()
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        deduped.append(normalized)
+    return deduped
+
+
+def merge_theme_filters(raw_themes: str, disable_defaults: bool) -> list[str]:
+    merged: list[str] = []
+    seen: set[str] = set()
+    if not disable_defaults:
+        for theme in DEFAULT_GDELT_THEME_FILTERS:
+            if theme in seen:
+                continue
+            merged.append(theme)
+            seen.add(theme)
+    for theme in parse_themes(raw_themes):
+        if theme in seen:
+            continue
+        merged.append(theme)
+        seen.add(theme)
+    return merged
+
+
+def build_query_with_themes(base_query: str, themes: list[str]) -> str:
+    query = normalize_space(base_query)
+    if not themes:
+        return query
+    theme_clause = " OR ".join([f"theme:{theme}" for theme in themes])
+    return f"({query}) AND ({theme_clause})"
+
+
+def pick_article_value(article: dict[str, Any], *keys: str) -> str:
+    for key in keys:
+        value = normalize_space(article.get(key) or "")
+        if value:
+            return value
+    return ""
+
+
+def extract_article_summary(article: dict[str, Any], fallback_title: str) -> str:
+    summary = pick_article_value(
+        article,
+        "summary",
+        "snippet",
+        "snippetText",
+        "description",
+        "socialtitle",
+        "social_title",
+    )
+    return summary or normalize_space(fallback_title)
+
+
+def extract_article_text(article: dict[str, Any], fallback_title: str) -> str:
+    title = normalize_space(fallback_title) or pick_article_value(article, "title")
+    summary = extract_article_summary(article, fallback_title)
+    content = pick_article_value(article, "content", "body", "text")
+    merged = " ".join([part for part in (title, summary, content) if part])
+    return normalize_space(merged)
 
 
 def call_json_api(
@@ -377,6 +483,27 @@ def fetch_gdelt_articles(
         if isinstance(item, dict):
             normalized.append(item)
     return normalized
+
+
+def load_articles_from_fixture(path: str) -> list[dict[str, Any]]:
+    file_path = Path(str(path or "").strip()).expanduser()
+    if not file_path.exists():
+        raise ValueError(f"--articles-json not found: {file_path}")
+    try:
+        payload = json.loads(file_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"--articles-json invalid json: {file_path}") from exc
+
+    if isinstance(payload, dict):
+        raw_articles = payload.get("articles")
+    elif isinstance(payload, list):
+        raw_articles = payload
+    else:
+        raw_articles = None
+
+    if not isinstance(raw_articles, list):
+        raise ValueError("--articles-json must be a JSON list or an object with key 'articles'")
+    return [item for item in raw_articles if isinstance(item, dict)]
 
 
 def classify_rule(article: dict[str, Any]) -> Classification:
@@ -665,9 +792,11 @@ def cmd_init_db(args: argparse.Namespace) -> int:
 
 
 def cmd_sync(args: argparse.Namespace) -> int:
-    query_text = normalize_space(args.query)
-    if not query_text:
+    base_query = normalize_space(args.query)
+    if not base_query:
         raise ValueError("--query is required")
+    themes = merge_theme_filters(args.themes, args.disable_default_themes)
+    query_text = build_query_with_themes(base_query, themes)
     start_datetime = require_gdelt_datetime(args.start_datetime, "--start-datetime")
     end_datetime = require_gdelt_datetime(args.end_datetime, "--end-datetime")
     if end_datetime <= start_datetime:
@@ -678,14 +807,18 @@ def cmd_sync(args: argparse.Namespace) -> int:
 
     with connect_db(args.db) as conn:
         init_db(conn)
-        articles = fetch_gdelt_articles(
-            query_text=query_text,
-            start_datetime=start_datetime,
-            end_datetime=end_datetime,
-            max_records=args.max_records,
-            gdelt_api_base=normalize_space(args.gdelt_api_base) or DEFAULT_GDELT_API_BASE,
-            timeout=args.timeout,
-        )
+        fixture_path = normalize_space(getattr(args, "articles_json", ""))
+        if fixture_path:
+            articles = load_articles_from_fixture(fixture_path)
+        else:
+            articles = fetch_gdelt_articles(
+                query_text=query_text,
+                start_datetime=start_datetime,
+                end_datetime=end_datetime,
+                max_records=args.max_records,
+                gdelt_api_base=normalize_space(args.gdelt_api_base) or DEFAULT_GDELT_API_BASE,
+                timeout=args.timeout,
+            )
         inserted = 0
         for article in articles:
             if upsert_event(
@@ -712,6 +845,8 @@ def cmd_sync(args: argparse.Namespace) -> int:
         "GDELT_SYNC_OK "
         f"query={query_text!r} "
         f"start={start_datetime} end={end_datetime} "
+        f"themes={themes} "
+        f"fixture={fixture_path or 'none'} "
         f"fetched={len(articles)} upserted={inserted} classify_mode={classify_mode} "
         f"rows={total_rows} unique_urls={unique_urls}"
     )
@@ -819,14 +954,21 @@ def cmd_summarize(args: argparse.Namespace) -> int:
             processed += 1
             before_changes = conn.total_changes
             now = now_utc_iso()
+            try:
+                parsed = json.loads(row["raw_json"] or "{}")
+                article = parsed if isinstance(parsed, dict) else {}
+            except Exception:
+                article = {}
+            article_summary = extract_article_summary(article, row["title"] or "")
+            article_text = extract_article_text(article, row["title"] or "")
             conn.execute(
                 """
                 INSERT INTO social_events (
                     url_key, event_key, title, url, source_domain, source_country, language, seendate_utc,
                     avg_tone, goldstein_scale, tone_bucket, conflict_bucket, env_relevance, env_label,
-                    env_reason, classifier, raw_event_count, created_at, updated_at
+                    env_reason, classifier, article_summary, article_text, raw_event_count, created_at, updated_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
                 ON CONFLICT(url_key) DO UPDATE SET
                     event_key=excluded.event_key,
                     title=excluded.title,
@@ -843,7 +985,9 @@ def cmd_summarize(args: argparse.Namespace) -> int:
                     env_label=COALESCE(excluded.env_label, social_events.env_label),
                     env_reason=COALESCE(excluded.env_reason, social_events.env_reason),
                     classifier=COALESCE(excluded.classifier, social_events.classifier),
-                    raw_event_count=COALESCE(excluded.raw_event_count, social_events.raw_event_count),
+                    article_summary=COALESCE(excluded.article_summary, social_events.article_summary),
+                    article_text=COALESCE(excluded.article_text, social_events.article_text),
+                    raw_event_count=COALESCE(social_events.raw_event_count, 0) + 1,
                     updated_at=excluded.updated_at
                 """,
                 (
@@ -863,6 +1007,8 @@ def cmd_summarize(args: argparse.Namespace) -> int:
                     row["env_label"],
                     row["env_reason"],
                     row["classifier"],
+                    article_summary or None,
+                    article_text or None,
                     now,
                     now,
                 ),
@@ -914,6 +1060,16 @@ def build_parser() -> argparse.ArgumentParser:
     parser_sync = subparsers.add_parser("sync", help="Fetch GDELT records and upsert into table.")
     parser_sync.add_argument("--db", default=DEFAULT_DB_PATH, help="SQLite database path.")
     parser_sync.add_argument("--query", required=True, help="GDELT DOC query expression.")
+    parser_sync.add_argument(
+        "--themes",
+        default="",
+        help="Comma-separated GDELT theme filters appended as OR-clause, e.g. ENV_GREENHOUSE,ENV_POLLUTION.",
+    )
+    parser_sync.add_argument(
+        "--disable-default-themes",
+        action="store_true",
+        help="Disable built-in environment themes when building the DOC query.",
+    )
     parser_sync.add_argument("--start-datetime", required=True, help="UTC start datetime YYYYMMDDHHMMSS.")
     parser_sync.add_argument("--end-datetime", required=True, help="UTC end datetime YYYYMMDDHHMMSS.")
     parser_sync.add_argument(
@@ -923,6 +1079,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Classification mode: none, rule, llm.",
     )
     parser_sync.add_argument("--max-records", type=int, default=100, help="Max records [1,250].")
+    parser_sync.add_argument(
+        "--articles-json",
+        default="",
+        help="Optional local fixture file. JSON list or {'articles':[...]} in GDELT article shape.",
+    )
     parser_sync.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT, help="HTTP timeout seconds.")
     parser_sync.add_argument(
         "--gdelt-api-base",

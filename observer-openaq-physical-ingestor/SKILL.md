@@ -1,5 +1,5 @@
 ---
-name: observer-global-aqi-ingestor
+name: observer-openaq-physical-ingestor
 description: Ingest global air-quality observations (PM2.5/NO2/O3) from OpenAQ by bounding box and time window, enrich with WHO/EPA threshold variance, and idempotently upsert daily aggregates into SQLite physical_metrics. Use when building objective observer-layer baselines for environmental monitoring.
 ---
 
@@ -9,6 +9,14 @@ description: Ingest global air-quality observations (PM2.5/NO2/O3) from OpenAQ b
 - This skill is the "Observer" data foundation: capture objective physical-world signals.
 - Primary source: OpenAQ API (global ground-station measurements).
 - Optional fallback strategy notes: CAMS (Copernicus gridded atmospheric datasets).
+
+## Execution Contract
+- Keep this skill mode-agnostic.
+- Accept only explicit command parameters (`--bbox`, `--start-datetime`, `--end-datetime`, limits, profile flags).
+- Let upper-layer orchestration decide scenario:
+  - rolling short windows => near-real-time hotspot monitoring
+  - specified historical windows => retrospective event analysis
+- Do not embed "realtime vs backfill" branching logic inside this skill.
 
 ## Skill Boundary: One Skill vs Three Skills
 - Current recommendation: keep `ingest -> enrich -> summarize` in one skill.
@@ -38,6 +46,17 @@ python3 scripts/observer_ingest.py ingest \
   --bbox 103.5,1.1,104.2,1.6 \
   --start-datetime 2026-03-01T00:00:00Z \
   --end-datetime 2026-03-03T00:00:00Z
+```
+
+Offline E2E (no external network):
+
+```bash
+python3 scripts/observer_ingest.py ingest \
+  --db "$OBSERVER_DB_PATH" \
+  --bbox 103.5,1.1,104.2,1.6 \
+  --start-datetime 2026-03-01T00:00:00Z \
+  --end-datetime 2026-03-01T01:00:00Z \
+  --fixture-json assets/sample_records.json
 ```
 
 3. Enrich and flatten rows (unit normalization + threshold variance).
