@@ -23,6 +23,7 @@ DEFAULT_LISTENER_INGEST = "listener-gdelt-doc-ingestor/scripts/gdelt_ingest.py"
 DEFAULT_LISTENER_ENRICH = "listener-gdelt-doc-ingestor/scripts/gdelt_enrich.py"
 DEFAULT_LISTENER_SUMMARIZE = "listener-gdelt-doc-ingestor/scripts/gdelt_summarize.py"
 DEFAULT_CASWARN = "listener-caswarn-analyzer/scripts/caswarn_analyzer.py"
+DEFAULT_ECO_COUNCIL = "skill-eco-council-reviewer/scripts/eco_council_report.py"
 DEFAULT_TIMEOUT = 30.0
 DEFAULT_CONFIG_ENV = "moderator-observer-listener-orchestrator/assets/config.env"
 DEFAULT_CONFIG_JSON = "moderator-observer-listener-orchestrator/assets/config.json"
@@ -268,8 +269,7 @@ def build_observer_commands(
         "ingest",
         "--db",
         db,
-        "--bbox",
-        bbox,
+        f"--bbox={bbox}",
         "--start-datetime",
         start_iso,
         "--end-datetime",
@@ -416,6 +416,93 @@ def build_caswarn_command(*, db: str, hours: int, limit: int, mode: str) -> dict
         ),
         "expect_status_prefix": "[SUCCESS]",
     }
+
+
+def build_eco_council_commands(
+    *,
+    event_id: str,
+    observer_db: str,
+    listener_db: str,
+    start_iso: str,
+    end_iso: str,
+    provider: str,
+    timeout: float,
+    output_dir: str,
+    config_env: str,
+    config_json: str,
+) -> tuple[list[dict[str, Any]], dict[str, str]]:
+    base_dir = Path(output_dir).expanduser()
+    artifacts = {
+        "ingest_json": str(base_dir / f"{event_id}.ingest.json"),
+        "enrich_json": str(base_dir / f"{event_id}.enrich.json"),
+        "summary_md": str(base_dir / f"{event_id}.brief.md"),
+    }
+    commands = [
+        {
+            "id": "eco_council_ingest",
+            "argv": shell_safe_argv(
+                [
+                    "python3",
+                    DEFAULT_ECO_COUNCIL,
+                    "ingest",
+                    "--event-id",
+                    event_id,
+                    "--observer-db",
+                    observer_db,
+                    "--listener-db",
+                    listener_db,
+                    "--start-datetime",
+                    start_iso,
+                    "--end-datetime",
+                    end_iso,
+                    "--output-json",
+                    artifacts["ingest_json"],
+                ]
+            ),
+            "expect_status_prefix": "ECO_COUNCIL_INGEST_OK",
+        },
+        {
+            "id": "eco_council_enrich",
+            "argv": shell_safe_argv(
+                [
+                    "python3",
+                    DEFAULT_ECO_COUNCIL,
+                    "enrich",
+                    "--ingest-json",
+                    artifacts["ingest_json"],
+                    "--provider",
+                    provider,
+                    "--timeout",
+                    str(timeout),
+                    "--config-env",
+                    config_env,
+                    "--config-json",
+                    config_json,
+                    "--output-json",
+                    artifacts["enrich_json"],
+                ]
+            ),
+            "expect_status_prefix": "ECO_COUNCIL_ENRICH_OK",
+        },
+        {
+            "id": "eco_council_summarize",
+            "argv": shell_safe_argv(
+                [
+                    "python3",
+                    DEFAULT_ECO_COUNCIL,
+                    "summarize",
+                    "--ingest-json",
+                    artifacts["ingest_json"],
+                    "--enrich-json",
+                    artifacts["enrich_json"],
+                    "--output-md",
+                    artifacts["summary_md"],
+                ]
+            ),
+            "expect_status_prefix": "ECO_COUNCIL_SUMMARY_OK",
+        },
+    ]
+    return commands, artifacts
 
 
 def extract_status_line(stdout: str, stderr: str, expected_prefix: str) -> str:
@@ -971,6 +1058,25 @@ def cmd_orchestrate(args: argparse.Namespace) -> int:
             scenario=plan["scenario"],
             now_utc=now_utc,
         )
+        cycle_event_id = f"eco-{cycle_idx:02d}-{to_gdelt_utc(now_utc)}"
+        eco_commands, eco_artifacts = build_eco_council_commands(
+            event_id=cycle_event_id,
+            observer_db=args.observer_db,
+            listener_db=args.listener_db,
+            start_iso=directive["window"]["start_iso_utc"],
+            end_iso=directive["window"]["end_iso_utc"],
+            provider=args.eco_provider,
+            timeout=args.llm_timeout,
+            output_dir=args.eco_output_dir,
+            config_env=args.config_env,
+            config_json=args.config_json,
+        )
+        directive["eco_council"] = {
+            "event_id": cycle_event_id,
+            "provider": args.eco_provider,
+            "commands": eco_commands,
+            "artifacts": eco_artifacts,
+        }
 
         observer_exec = [run_command(c, dry_run=args.dry_run, timeout=args.command_timeout) for c in directive["observer"]["commands"]]
         listener_exec = [run_command(c, dry_run=args.dry_run, timeout=args.command_timeout) for c in directive["listener"]["commands"]]
@@ -980,6 +1086,12 @@ def cmd_orchestrate(args: argparse.Namespace) -> int:
             analyzer_exec = [
                 run_command(c, dry_run=args.dry_run, timeout=args.command_timeout)
                 for c in directive.get("analyzer", {}).get("commands", [])
+            ]
+        eco_exec: list[dict[str, Any]] = []
+        if not args.skip_eco_council:
+            eco_exec = [
+                run_command(c, dry_run=args.dry_run, timeout=args.command_timeout)
+                for c in directive.get("eco_council", {}).get("commands", [])
             ]
 
         observer_status = _collect_primary_status(observer_exec, "observer_enrich")
@@ -1011,6 +1123,7 @@ def cmd_orchestrate(args: argparse.Namespace) -> int:
                 "observer": observer_exec,
                 "listener": listener_exec,
                 "analyzer": analyzer_exec,
+                "eco_council": eco_exec,
             },
             "review": review,
             "report": report,
@@ -1140,6 +1253,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     orchestrate.add_argument("--llm-timeout", type=float, default=DEFAULT_TIMEOUT)
     orchestrate.add_argument("--command-timeout", type=int, default=180)
+    orchestrate.add_argument("--eco-provider", choices=("auto", "openai", "claude", "rule"), default="auto")
+    orchestrate.add_argument("--eco-output-dir", default="/tmp/eco_council_reports")
+    orchestrate.add_argument("--skip-eco-council", action="store_true")
     orchestrate.add_argument("--dry-run", action="store_true")
     orchestrate.set_defaults(func=cmd_orchestrate)
 

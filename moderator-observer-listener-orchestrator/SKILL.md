@@ -17,6 +17,7 @@ description: "Act as the direct supervisor of observer and listener skills: gene
 - `plan-llm`: Call LLM and return normalized task plan JSON.
 - `review`: Analyze child status lines and return escalation decision JSON.
 - `orchestrate`: End-to-end closed loop (LLM planning -> execute observer/listener/analyzer -> review -> optional next cycle).
+  - Also runs eco-council terminal report (`ingest -> enrich -> summarize`) per cycle unless `--skip-eco-council`.
 
 ## OpenClaw Recommended Entry
 Use `orchestrate` as the default method so OpenClaw only needs to invoke moderator.
@@ -80,6 +81,7 @@ python3 scripts/moderator_router.py orchestrate \
   - parsed status metrics (`upserted`, `exceeded`, `nimby_risk_score`, etc.)
   - SQLite snapshots from observer/listener DBs (`physical_metrics_count`, `social_events_count`, pending analysis)
 - This ensures moderator receives both process reports and data-level summaries before next-cycle planning.
+- `orchestrate` also returns `execution.eco_council` status lines and report artifact paths under `directive.eco_council.artifacts`.
 
 ## Child Skills and Status Contracts
 - Observer:
@@ -93,6 +95,9 @@ python3 scripts/moderator_router.py orchestrate \
 - Analyzer:
   - `listener-caswarn-analyzer/scripts/caswarn_analyzer.py`
   - status: `[SUCCESS] ... {"nimby_risk_score":...}`
+- Eco Council Reviewer:
+  - `skill-eco-council-reviewer/scripts/eco_council_report.py`
+  - status: `ECO_COUNCIL_INGEST_OK`, `ECO_COUNCIL_ENRICH_OK`, `ECO_COUNCIL_SUMMARY_OK`
 
 ## References
 - `references/moderator-json-contract.md`

@@ -75,7 +75,8 @@
       "execution": {
         "observer": [{"id": "observer_ingest", "returncode": 0, "status_line": "PHYSICAL_INGEST_OK ..."}],
         "listener": [{"id": "listener_summarize", "returncode": 0, "status_line": "SOCIAL_SUMMARIZE_OK ..."}],
-        "analyzer": [{"id": "caswarn_analyze", "returncode": 0, "status_line": "[SUCCESS] ..."}]
+        "analyzer": [{"id": "caswarn_analyze", "returncode": 0, "status_line": "[SUCCESS] ..."}],
+        "eco_council": [{"id": "eco_council_summarize", "returncode": 0, "status_line": "ECO_COUNCIL_SUMMARY_OK ..."}]
       },
       "review": {"decision": "switch_to_active_recon"},
       "report": {
@@ -94,6 +95,7 @@
 - Listener: `SOCIAL_SUMMARIZE_OK ... upserted=...`
 - Analyzer: `[SUCCESS] ... {"nimby_risk_score":...}`
 - Any line containing `ERR` leads to `retry_or_manual_check`.
+- Eco council report status is returned for terminal briefing traceability, but does not currently affect escalation thresholds.
 
 ## LLM config
 - `plan-llm` / `orchestrate --planner llm` load config in this order:

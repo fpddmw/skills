@@ -1,0 +1,4 @@
+interface:
+  display_name: "Eco Council Reviewer"
+  short_description: "Generate event-level eco council consensus terminal brief"
+  default_prompt: "Use $skill-eco-council-reviewer to ingest observer/listener SQLite state, run OpenAI/Claude reasoning alignment, and output a complete markdown briefing for moderator review."
