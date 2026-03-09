@@ -18,6 +18,7 @@ description: "Act as the direct supervisor of observer and listener skills: gene
 - `review`: Analyze child status lines and return escalation decision JSON.
 - `orchestrate`: End-to-end closed loop (LLM planning -> execute observer/listener/analyzer -> review -> optional next cycle).
   - Also runs eco-council terminal report (`ingest -> enrich -> summarize`) per cycle unless `--skip-eco-council`.
+  - Gate rule: only run eco-council `enrich/summarize` when ingest alignment status reports `ready_for_summary=true`; otherwise force decision `collect_more_data` and continue cycles when allowed.
 
 ## OpenClaw Recommended Entry
 Use `orchestrate` as the default method so OpenClaw only needs to invoke moderator.
@@ -82,12 +83,19 @@ python3 scripts/moderator_router.py orchestrate \
   - SQLite snapshots from observer/listener DBs (`physical_metrics_count`, `social_events_count`, pending analysis)
 - This ensures moderator receives both process reports and data-level summaries before next-cycle planning.
 - `orchestrate` also returns `execution.eco_council` status lines and report artifact paths under `directive.eco_council.artifacts`.
+- `orchestrate` includes `report.eco_readiness` (geographic/category alignment + sufficiency counts/reasons) for next-cycle replanning context.
 
 ## Child Skills and Status Contracts
 - Observer:
   - `observer-openaq-physical-ingestor/scripts/aqi_ingest.py` (source=`openaq_realtime`)
   - `observer-openmeteo-physical-ingestor/scripts/openmeteo_ingest.py` (source=`openmeteo_grid`)
   - `observer-openaq-historical-query/scripts/historical_query.py` (source=`openaq_archive`)
+  - capability label (current): all three provide `domain=air`, `types=[pm25,no2,o3]`
+  - moderator plan fields:
+    - `expected_env_type` (`air|water|soil|radiation|waste|general|multi`)
+    - `target_country` (for geo alignment checks)
+  - dispatch guard:
+    - if `expected_env_type` is specific but unsupported by chosen observer capability, moderator emits `PHYSICAL_SKIP reason=unsupported_env_type` instead of calling wrong-domain APIs
   - status: `PHYSICAL_INGEST_OK`, `PHYSICAL_ENRICH_OK`, `PHYSICAL_SUMMARY_OK`
 - Listener:
   - `listener-gdelt-doc-ingestor/scripts/gdelt_ingest.py`

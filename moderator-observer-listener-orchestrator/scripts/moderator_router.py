@@ -157,7 +157,9 @@ def find_preset(context: str) -> ScenarioPreset | None:
 
 
 def infer_expected_env_type(*, objective: str, context: str, query: str, themes: str) -> str:
-    text = f"{objective} {context} {query} {themes}".lower()
+    # Prefer objective/context/query over themes; default theme packs often contain
+    # broad tags (e.g. ENV_WATER) that would bias inference incorrectly.
+    text = f"{objective} {context} {query}".lower()
     for env_type in ("water", "radiation", "soil", "waste", "air"):
         keywords = ENV_TYPE_KEYWORDS.get(env_type, ())
         if any(token in text for token in keywords):
@@ -389,6 +391,46 @@ def build_observer_commands(
     ]
 
 
+def observer_supports_expected_env(*, observer_source: str, expected_env_type: str) -> bool:
+    expected = normalize_space(expected_env_type).lower()
+    if expected in {"", "general", "multi"}:
+        return True
+    capability = OBSERVER_SOURCE_CAPABILITIES.get(normalize_space(observer_source).lower(), {})
+    domain = normalize_space(capability.get("domain")).lower()
+    return bool(domain) and expected == domain
+
+
+def build_observer_skip_commands(
+    *,
+    observer_source: str,
+    expected_env_type: str,
+    capability_domain: str,
+) -> list[dict[str, Any]]:
+    reason_line = (
+        "PHYSICAL_SKIP "
+        f"reason=unsupported_env_type source={observer_source} "
+        f"expected={expected_env_type or 'unknown'} capability={capability_domain or 'unknown'} "
+        "fetched=0 upserted=0 exceeded=0"
+    )
+    return [
+        {
+            "id": "observer_ingest",
+            "argv": ["python3", "-c", f"print({reason_line!r})"],
+            "expect_status_prefix": "PHYSICAL_SKIP",
+        },
+        {
+            "id": "observer_enrich",
+            "argv": ["python3", "-c", f"print({reason_line!r})"],
+            "expect_status_prefix": "PHYSICAL_SKIP",
+        },
+        {
+            "id": "observer_summarize",
+            "argv": ["python3", "-c", f"print({reason_line!r})"],
+            "expect_status_prefix": "PHYSICAL_SKIP",
+        },
+    ]
+
+
 def build_listener_commands(
     *,
     db: str,
@@ -511,40 +553,38 @@ def build_eco_council_commands(
         "enrich_json": str(base_dir / f"{event_id}.enrich.json"),
         "summary_md": str(base_dir / f"{event_id}.brief.md"),
     }
+    ingest_argv = [
+        "python3",
+        DEFAULT_ECO_COUNCIL,
+        "ingest",
+        "--event-id",
+        event_id,
+        "--observer-db",
+        observer_db,
+        "--listener-db",
+        listener_db,
+        "--observer-source",
+        observer_source,
+        "--expected-env-type",
+        expected_env_type,
+        f"--target-bbox={target_bbox}",
+        "--min-physical-rows",
+        str(min_physical_rows),
+        "--min-social-rows",
+        str(min_social_rows),
+        "--start-datetime",
+        start_iso,
+        "--end-datetime",
+        end_iso,
+        "--output-json",
+        artifacts["ingest_json"],
+    ]
+    if normalize_space(target_country):
+        ingest_argv.extend(["--target-country", target_country])
     commands = [
         {
             "id": "eco_council_ingest",
-            "argv": shell_safe_argv(
-                [
-                    "python3",
-                    DEFAULT_ECO_COUNCIL,
-                    "ingest",
-                    "--event-id",
-                    event_id,
-                    "--observer-db",
-                    observer_db,
-                    "--listener-db",
-                    listener_db,
-                    "--observer-source",
-                    observer_source,
-                    "--expected-env-type",
-                    expected_env_type,
-                    "--target-bbox",
-                    target_bbox,
-                    "--target-country",
-                    target_country,
-                    "--min-physical-rows",
-                    str(min_physical_rows),
-                    "--min-social-rows",
-                    str(min_social_rows),
-                    "--start-datetime",
-                    start_iso,
-                    "--end-datetime",
-                    end_iso,
-                    "--output-json",
-                    artifacts["ingest_json"],
-                ]
-            ),
+            "argv": shell_safe_argv(ingest_argv),
             "expect_status_prefix": "ECO_COUNCIL_INGEST_OK",
         },
         {
@@ -840,6 +880,30 @@ def build_directive(
     start_gdelt = to_gdelt_utc(start_utc)
     end_gdelt = to_gdelt_utc(now_utc)
 
+    observer_capability = OBSERVER_SOURCE_CAPABILITIES.get(observer_source, {})
+    capability_domain = normalize_space(observer_capability.get("domain"))
+    observer_supported = observer_supports_expected_env(
+        observer_source=observer_source,
+        expected_env_type=expected_env_type,
+    )
+    observer_commands = (
+        build_observer_commands(
+            db=observer_db,
+            archive_db=observer_archive_db,
+            bbox=bbox,
+            start_iso=start_iso,
+            end_iso=end_iso,
+            fixture_json=observer_fixture_json,
+            observer_source=observer_source,
+        )
+        if observer_supported
+        else build_observer_skip_commands(
+            observer_source=observer_source,
+            expected_env_type=expected_env_type,
+            capability_domain=capability_domain,
+        )
+    )
+
     payload = {
         "mode": mode,
         "context": context,
@@ -854,21 +918,15 @@ def build_directive(
         "observer": {
             "params": {
                 "source": observer_source,
-                "domain_capability": OBSERVER_SOURCE_CAPABILITIES.get(observer_source, {}),
+                "domain_capability": observer_capability,
                 "expected_env_type": expected_env_type,
                 "target_country": target_country,
                 "bbox": bbox,
                 "pollutant_type": pollutant_type,
+                "dispatch": "enabled" if observer_supported else "skipped",
+                "skip_reason": "" if observer_supported else "unsupported_env_type",
             },
-            "commands": build_observer_commands(
-                db=observer_db,
-                archive_db=observer_archive_db,
-                bbox=bbox,
-                start_iso=start_iso,
-                end_iso=end_iso,
-                fixture_json=observer_fixture_json,
-                observer_source=observer_source,
-            ),
+            "commands": observer_commands,
         },
         "listener": {
             "params": {
@@ -1288,10 +1346,14 @@ def cmd_orchestrate(args: argparse.Namespace) -> int:
             category_status = normalize_space((eco_readiness.get("category_alignment") or {}).get("status"))
             if args.require_geo_alignment and geo_status == "mismatch":
                 eco_readiness["ready_for_summary"] = False
-                eco_readiness.setdefault("reasons", []).append("geographic_mismatch")
+                reasons = eco_readiness.setdefault("reasons", [])
+                if "geographic_mismatch" not in reasons:
+                    reasons.append("geographic_mismatch")
             if args.require_category_alignment and category_status == "mismatch":
                 eco_readiness["ready_for_summary"] = False
-                eco_readiness.setdefault("reasons", []).append("category_mismatch")
+                reasons = eco_readiness.setdefault("reasons", [])
+                if "category_mismatch" not in reasons:
+                    reasons.append("category_mismatch")
 
             if eco_readiness.get("ready_for_summary"):
                 eco_exec.extend(
