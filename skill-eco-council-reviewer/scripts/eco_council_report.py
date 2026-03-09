@@ -4,10 +4,12 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 import os
 import sqlite3
 import sys
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -19,6 +21,20 @@ DEFAULT_USER_AGENT = "skill-eco-council-reviewer/1.0"
 DEFAULT_CONFIG_ENV = "moderator-observer-listener-orchestrator/assets/config.env"
 DEFAULT_CONFIG_JSON = "moderator-observer-listener-orchestrator/assets/config.json"
 DEFAULT_LISTENER_ENV = "listener-gdelt-doc-ingestor/assets/config.env"
+COUNTRY_ALIASES = {
+    "US": {"US", "USA", "UNITED STATES", "UNITED STATES OF AMERICA", "AMERICA"},
+    "CN": {"CN", "CHINA", "PRC", "PEOPLE'S REPUBLIC OF CHINA"},
+    "JP": {"JP", "JAPAN"},
+    "TH": {"TH", "THAILAND"},
+    "IN": {"IN", "INDIA"},
+}
+SOCIAL_DOMAIN_KEYWORDS = {
+    "air": ("air", "smog", "pm2.5", "ozone", "no2"),
+    "water": ("water", "wastewater", "river", "sewage", "ocean", "marine"),
+    "soil": ("soil", "landfill", "contaminated land", "ground"),
+    "radiation": ("radiation", "radioactive", "nuclear"),
+    "waste": ("waste", "garbage", "incinerator", "dump"),
+}
 
 
 def now_iso() -> str:
@@ -271,13 +287,18 @@ def fetch_social_snapshot(
 
         where = []
         params: list[Any] = []
+        seen_norm = (
+            "substr("
+            "replace(replace(replace(replace(COALESCE(seendate_utc, ''), 'T', ''), 'Z', ''), '-', ''), ':', ''),"
+            "1, 14)"
+        )
         start_utc = parse_utc_compact(start_datetime)
         end_utc = parse_utc_compact(end_datetime)
         if start_utc:
-            where.append("COALESCE(seendate_utc, '') >= ?")
+            where.append(f"{seen_norm} >= ?")
             params.append(start_utc)
         if end_utc:
-            where.append("COALESCE(seendate_utc, '') <= ?")
+            where.append(f"{seen_norm} <= ?")
             params.append(end_utc)
         where_sql = ("WHERE " + " AND ".join(where)) if where else ""
 
@@ -392,6 +413,21 @@ def build_prompt(ingest_payload: dict[str, Any]) -> str:
         "- report_markdown: string (完整 markdown 简报正文，不含 ``` 代码块)\n\n"
         f"输入 JSON:\n{payload_text}\n"
     )
+
+
+def compact_ingest_payload(ingest_payload: dict[str, Any]) -> dict[str, Any]:
+    compact = copy.deepcopy(ingest_payload)
+    physical = compact.get("physical_facts")
+    if isinstance(physical, dict):
+        recent = physical.get("recent_metrics")
+        if isinstance(recent, list):
+            physical["recent_metrics"] = recent[:12]
+    social = compact.get("social_opinion")
+    if isinstance(social, dict):
+        recent = social.get("recent_events")
+        if isinstance(recent, list):
+            social["recent_events"] = recent[:12]
+    return compact
 
 
 def api_json(
@@ -549,6 +585,23 @@ def call_claude(prompt: str, *, timeout: float) -> dict[str, Any]:
     return payload
 
 
+def run_llm_with_retry(provider: str, prompt: str, *, timeout: float, max_attempts: int) -> dict[str, Any]:
+    last_error: Exception | None = None
+    for attempt in range(1, max(1, max_attempts) + 1):
+        try:
+            if provider == "openai":
+                return call_openai(prompt, timeout=timeout)
+            if provider == "claude":
+                return call_claude(prompt, timeout=timeout)
+            raise RuntimeError(f"unsupported_provider:{provider}")
+        except Exception as exc:  # pylint: disable=broad-except
+            last_error = exc
+            if attempt >= max_attempts:
+                break
+            time.sleep(min(8.0, 1.5 * attempt))
+    raise RuntimeError(f"llm_retry_exhausted detail={last_error}")
+
+
 def fallback_rule_analysis(ingest_payload: dict[str, Any]) -> dict[str, Any]:
     physical = ingest_payload.get("physical_facts") or {}
     social = ingest_payload.get("social_opinion") or {}
@@ -601,6 +654,8 @@ def render_markdown(
 
     social = ingest_payload.get("social_opinion") if isinstance(ingest_payload, dict) else {}
     physical = ingest_payload.get("physical_facts") if isinstance(ingest_payload, dict) else {}
+    task_profile = ingest_payload.get("task_profile") if isinstance(ingest_payload, dict) else {}
+    alignment = ingest_payload.get("alignment_status") if isinstance(ingest_payload, dict) else {}
 
     executive_summary = normalize_text(enrich_payload.get("executive_summary") or "")
     report_markdown = str(enrich_payload.get("report_markdown") or "").strip()
@@ -617,6 +672,17 @@ def render_markdown(
         "1. `Ingest`: 聚合 Observer/Listener SQLite 状态，形成事件级结构化输入。",
         "2. `Enrich`: 调用大模型进行证据对齐、风险辨析与建议生成。",
         "3. `Summarize`: 产出终端可读 Markdown，供 moderator 与人工快速复核。",
+        "",
+        "## 任务画像",
+        f"- Observer Source: `{(task_profile or {}).get('observer_source', 'unknown')}`",
+        f"- 目标区域 bbox: `{(task_profile or {}).get('target_bbox', '') or 'n/a'}`",
+        f"- 目标国家: `{(task_profile or {}).get('target_country', '') or 'n/a'}`",
+        f"- 期望环境类别: `{(task_profile or {}).get('expected_env_type', '') or 'general'}`",
+        "",
+        "## 对齐状态",
+        f"- 地域对齐: `{((alignment or {}).get('geographic_alignment') or {}).get('status', 'unknown')}` - {((alignment or {}).get('geographic_alignment') or {}).get('reason', '')}",
+        f"- 类别对齐: `{((alignment or {}).get('category_alignment') or {}).get('status', 'unknown')}` - {((alignment or {}).get('category_alignment') or {}).get('reason', '')}",
+        f"- 数据充足: `{((alignment or {}).get('data_sufficiency') or {}).get('status', 'unknown')}` - {json.dumps(((alignment or {}).get('data_sufficiency') or {}).get('reasons', []), ensure_ascii=False)}",
         "",
         "## 执行摘要",
         executive_summary or "（无）",
@@ -681,25 +747,76 @@ def render_markdown(
 
 
 def cmd_ingest(args: argparse.Namespace) -> int:
+    physical_facts = fetch_physical_snapshot(
+        args.observer_db,
+        start_datetime=args.start_datetime,
+        end_datetime=args.end_datetime,
+        metric_limit=max(1, args.metric_limit),
+    )
+    social_opinion = fetch_social_snapshot(
+        args.listener_db,
+        start_datetime=args.start_datetime,
+        end_datetime=args.end_datetime,
+        event_limit=max(1, args.event_limit),
+    )
+
+    physical_rows = int(physical_facts.get("rows_in_scope") or 0)
+    social_rows = int(social_opinion.get("rows_in_scope") or 0)
+    physical_countries = sorted(
+        {
+            normalize_country_token(str(item.get("country_code") or ""))
+            for item in (physical_facts.get("top_country_exceedance") or [])
+            if normalize_country_token(str(item.get("country_code") or ""))
+        }
+    )
+    social_countries = sorted(
+        {
+            normalize_country_token(str(item.get("source_country") or ""))
+            for item in (social_opinion.get("recent_events") or [])
+            if normalize_country_token(str(item.get("source_country") or ""))
+        }
+    )
+    social_domains = infer_social_domains(social_opinion.get("recent_events") or [])
+    alignment_status = compute_alignment_status(
+        physical_rows=physical_rows,
+        social_rows=social_rows,
+        physical_countries=physical_countries,
+        social_countries=social_countries,
+        social_domains=social_domains,
+        target_country=args.target_country,
+        target_bbox=args.target_bbox,
+        expected_env_type=args.expected_env_type,
+        min_physical_rows=max(0, args.min_physical_rows),
+        min_social_rows=max(0, args.min_social_rows),
+    )
+
     payload = {
         "event_id": normalize_text(args.event_id) or "unknown-event",
         "generated_at": now_iso(),
+        "task_profile": {
+            "observer_source": normalize_text(args.observer_source) or "unknown",
+            "target_bbox": normalize_text(args.target_bbox),
+            "target_country": normalize_text(args.target_country),
+            "expected_env_type": normalize_text(args.expected_env_type) or "general",
+        },
         "window": {
             "start_datetime": normalize_text(args.start_datetime),
             "end_datetime": normalize_text(args.end_datetime),
         },
-        "physical_facts": fetch_physical_snapshot(
-            args.observer_db,
-            start_datetime=args.start_datetime,
-            end_datetime=args.end_datetime,
-            metric_limit=max(1, args.metric_limit),
-        ),
-        "social_opinion": fetch_social_snapshot(
-            args.listener_db,
-            start_datetime=args.start_datetime,
-            end_datetime=args.end_datetime,
-            event_limit=max(1, args.event_limit),
-        ),
+        "physical_facts": physical_facts,
+        "social_opinion": social_opinion,
+        "data_labels": {
+            "physical": {
+                "domain": "air",
+                "data_types": ["pm25", "no2", "o3"],
+                "countries": physical_countries,
+            },
+            "social": {
+                "domains_detected": social_domains,
+                "countries": social_countries,
+            },
+        },
+        "alignment_status": alignment_status,
         "historical_experience": {
             "status": "pending_skill",
             "note": "历史经验技能尚未接入。",
@@ -713,7 +830,8 @@ def cmd_ingest(args: argparse.Namespace) -> int:
     print(
         f"ECO_COUNCIL_INGEST_OK event_id={payload['event_id']} output={args.output_json} "
         f"physical_rows={payload['physical_facts']['rows_in_scope']} "
-        f"social_rows={payload['social_opinion']['rows_in_scope']}"
+        f"social_rows={payload['social_opinion']['rows_in_scope']} "
+        f"ready_for_summary={payload['alignment_status']['data_sufficiency']['ready_for_summary']}"
     )
     return 0
 
@@ -731,16 +849,147 @@ def resolve_provider(provider: str) -> str:
     return "rule"
 
 
+def should_skip_llm(ingest_payload: dict[str, Any]) -> bool:
+    physical = ingest_payload.get("physical_facts")
+    social = ingest_payload.get("social_opinion")
+    physical_rows = 0
+    social_rows = 0
+    if isinstance(physical, dict):
+        try:
+            physical_rows = int(physical.get("rows_in_scope") or 0)
+        except Exception:
+            physical_rows = 0
+    if isinstance(social, dict):
+        try:
+            social_rows = int(social.get("rows_in_scope") or 0)
+        except Exception:
+            social_rows = 0
+    return physical_rows <= 0 and social_rows <= 0
+
+
+def normalize_country_token(raw: str) -> str:
+    text = normalize_text(raw).upper()
+    if not text:
+        return ""
+    for code, aliases in COUNTRY_ALIASES.items():
+        if text in aliases:
+            return code
+    return text
+
+
+def infer_social_domains(events: list[dict[str, Any]]) -> list[str]:
+    detected: set[str] = set()
+    for event in events:
+        if not isinstance(event, dict):
+            continue
+        text = " ".join(
+            [
+                normalize_text(event.get("title") or ""),
+                normalize_text(event.get("risk_frame") or ""),
+            ]
+        ).lower()
+        for domain, keywords in SOCIAL_DOMAIN_KEYWORDS.items():
+            if any(word in text for word in keywords):
+                detected.add(domain)
+    return sorted(detected)
+
+
+def compute_alignment_status(
+    *,
+    physical_rows: int,
+    social_rows: int,
+    physical_countries: list[str],
+    social_countries: list[str],
+    social_domains: list[str],
+    target_country: str,
+    target_bbox: str,
+    expected_env_type: str,
+    min_physical_rows: int,
+    min_social_rows: int,
+) -> dict[str, Any]:
+    physical_domain = "air"
+    expected = normalize_text(expected_env_type).lower() or "general"
+    target_country_norm = normalize_country_token(target_country)
+
+    geo_status = "unknown"
+    geo_reason = "country labels missing"
+    if target_country_norm:
+        if target_country_norm in social_countries and physical_rows > 0 and normalize_text(target_bbox):
+            geo_status = "aligned"
+            geo_reason = "social countries include target country and physical bbox sampling exists"
+        elif social_countries and target_country_norm not in social_countries:
+            geo_status = "mismatch"
+            geo_reason = "social countries do not include target country"
+        elif physical_rows > 0 and normalize_text(target_bbox):
+            geo_status = "partial"
+            geo_reason = "physical bbox exists but social country evidence is weak"
+    elif physical_countries and social_countries:
+        overlap = sorted(set(physical_countries).intersection(social_countries))
+        if overlap:
+            geo_status = "aligned"
+            geo_reason = f"country overlap={overlap}"
+        else:
+            geo_status = "mismatch"
+            geo_reason = "no overlap between physical and social countries"
+
+    category_status = "unknown"
+    category_reason = "expected environment type not provided"
+    if expected in {"air", "water", "soil", "radiation", "waste"}:
+        if expected != physical_domain:
+            category_status = "mismatch"
+            category_reason = f"observer currently provides {physical_domain} data only"
+        elif social_domains and expected not in social_domains:
+            category_status = "partial"
+            category_reason = f"social domains={social_domains}, expected={expected}"
+        else:
+            category_status = "aligned"
+            category_reason = f"observer domain={physical_domain}, expected={expected}"
+    elif expected in {"general", "multi"}:
+        category_status = "partial" if social_domains else "unknown"
+        category_reason = "general/multi objective requires manual domain confirmation"
+
+    ready = True
+    reasons: list[str] = []
+    if physical_rows < min_physical_rows:
+        ready = False
+        reasons.append(f"physical_rows<{min_physical_rows}")
+    if social_rows < min_social_rows:
+        ready = False
+        reasons.append(f"social_rows<{min_social_rows}")
+    if category_status == "mismatch":
+        ready = False
+        reasons.append("category_mismatch")
+    if geo_status == "mismatch":
+        ready = False
+        reasons.append("geographic_mismatch")
+
+    return {
+        "geographic_alignment": {"status": geo_status, "reason": geo_reason},
+        "category_alignment": {"status": category_status, "reason": category_reason},
+        "data_sufficiency": {
+            "ready_for_summary": ready,
+            "status": "ready" if ready else "insufficient",
+            "reasons": reasons,
+            "counts": {"physical_rows": physical_rows, "social_rows": social_rows},
+            "thresholds": {"min_physical_rows": min_physical_rows, "min_social_rows": min_social_rows},
+        },
+    }
+
+
 def cmd_enrich(args: argparse.Namespace) -> int:
     load_runtime_config(args.config_env, args.config_json)
     ingest_payload = load_json(args.ingest_json)
-    prompt = build_prompt(ingest_payload)
+    prompt_payload = compact_ingest_payload(ingest_payload) if args.compact_prompt else ingest_payload
+    prompt = build_prompt(prompt_payload)
     provider = resolve_provider(args.provider)
 
-    if provider == "openai":
-        result = call_openai(prompt, timeout=args.timeout)
+    if args.skip_llm_when_empty and should_skip_llm(ingest_payload):
+        result = fallback_rule_analysis(ingest_payload)
+        result["skip_llm_reason"] = "empty_input_rows"
+    elif provider == "openai":
+        result = run_llm_with_retry("openai", prompt, timeout=args.timeout, max_attempts=args.retry)
     elif provider == "claude":
-        result = call_claude(prompt, timeout=args.timeout)
+        result = run_llm_with_retry("claude", prompt, timeout=args.timeout, max_attempts=args.retry)
     else:
         result = fallback_rule_analysis(ingest_payload)
 
@@ -777,6 +1026,12 @@ def build_parser() -> argparse.ArgumentParser:
     p_ingest.add_argument("--listener-db", required=True, help="Path to listener/analyzer SQLite DB.")
     p_ingest.add_argument("--start-datetime", default="", help="Optional UTC lower bound (ISO-8601).")
     p_ingest.add_argument("--end-datetime", default="", help="Optional UTC upper bound (ISO-8601).")
+    p_ingest.add_argument("--observer-source", default="unknown", help="Observer source selected by moderator.")
+    p_ingest.add_argument("--target-bbox", default="", help="Target bbox expected for event localization.")
+    p_ingest.add_argument("--target-country", default="", help="Target country code/name expected by scenario.")
+    p_ingest.add_argument("--expected-env-type", default="general", help="Expected env type: air/water/soil/radiation/waste/general.")
+    p_ingest.add_argument("--min-physical-rows", type=int, default=6, help="Minimum physical rows required for summary.")
+    p_ingest.add_argument("--min-social-rows", type=int, default=4, help="Minimum social rows required for summary.")
     p_ingest.add_argument("--metric-limit", type=int, default=20, help="Recent physical metrics to include.")
     p_ingest.add_argument("--event-limit", type=int, default=20, help="Recent social events to include.")
     p_ingest.add_argument("--output-json", required=True, help="Output path for ingest JSON.")
@@ -792,6 +1047,19 @@ def build_parser() -> argparse.ArgumentParser:
     p_enrich.add_argument("--config-env", default=DEFAULT_CONFIG_ENV, help="Path to .env config file.")
     p_enrich.add_argument("--config-json", default=DEFAULT_CONFIG_JSON, help="Path to JSON config file.")
     p_enrich.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT, help="HTTP timeout seconds.")
+    p_enrich.add_argument("--retry", type=int, default=3, help="LLM retry attempts on transient failures.")
+    p_enrich.add_argument(
+        "--compact-prompt",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Trim large recent arrays before building LLM prompt.",
+    )
+    p_enrich.add_argument(
+        "--skip-llm-when-empty",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Skip external LLM call when both physical/social rows are zero.",
+    )
     p_enrich.add_argument("--output-json", required=True, help="Output path for enrich JSON.")
     p_enrich.set_defaults(func=cmd_enrich)
 

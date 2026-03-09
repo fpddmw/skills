@@ -1,0 +1,4 @@
+interface:
+  display_name: "Observer OpenAQ Historical Query"
+  short_description: "Load historical physical rows from archive DB for deep analysis"
+  default_prompt: "Use $observer-openaq-historical-query to query archived OpenAQ physical rows from SQLite and upsert targeted windows into the active observer database for retrospective investigations."

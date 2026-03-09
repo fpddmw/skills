@@ -85,7 +85,9 @@ python3 scripts/moderator_router.py orchestrate \
 
 ## Child Skills and Status Contracts
 - Observer:
-  - `observer-openaq-physical-ingestor/scripts/aqi_ingest.py`
+  - `observer-openaq-physical-ingestor/scripts/aqi_ingest.py` (source=`openaq_realtime`)
+  - `observer-openmeteo-physical-ingestor/scripts/openmeteo_ingest.py` (source=`openmeteo_grid`)
+  - `observer-openaq-historical-query/scripts/historical_query.py` (source=`openaq_archive`)
   - status: `PHYSICAL_INGEST_OK`, `PHYSICAL_ENRICH_OK`, `PHYSICAL_SUMMARY_OK`
 - Listener:
   - `listener-gdelt-doc-ingestor/scripts/gdelt_ingest.py`

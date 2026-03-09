@@ -19,6 +19,8 @@ from urllib.request import Request, urlopen
 
 
 DEFAULT_OBSERVER_ENTRYPOINT = "observer-openaq-physical-ingestor/scripts/aqi_ingest.py"
+DEFAULT_OBSERVER_OPENMETEO = "observer-openmeteo-physical-ingestor/scripts/openmeteo_ingest.py"
+DEFAULT_OBSERVER_ARCHIVE = "observer-openaq-historical-query/scripts/historical_query.py"
 DEFAULT_LISTENER_INGEST = "listener-gdelt-doc-ingestor/scripts/gdelt_ingest.py"
 DEFAULT_LISTENER_ENRICH = "listener-gdelt-doc-ingestor/scripts/gdelt_enrich.py"
 DEFAULT_LISTENER_SUMMARIZE = "listener-gdelt-doc-ingestor/scripts/gdelt_summarize.py"
@@ -28,6 +30,7 @@ DEFAULT_TIMEOUT = 30.0
 DEFAULT_CONFIG_ENV = "moderator-observer-listener-orchestrator/assets/config.env"
 DEFAULT_CONFIG_JSON = "moderator-observer-listener-orchestrator/assets/config.json"
 DEFAULT_LISTENER_ENV = "listener-gdelt-doc-ingestor/assets/config.env"
+DEFAULT_OBSERVER_ENV = "observer-openaq-physical-ingestor/assets/config.env"
 
 
 @dataclass(frozen=True)
@@ -37,6 +40,7 @@ class ScenarioPreset:
     query: str
     themes: str
     pollutant_type: str
+    country_code: str
 
 
 PRESETS: tuple[tuple[re.Pattern[str], ScenarioPreset], ...] = (
@@ -48,6 +52,7 @@ PRESETS: tuple[tuple[re.Pattern[str], ScenarioPreset], ...] = (
             query="(east palestine OR ohio OR derailment OR toxic plume OR evacuation)",
             themes="ENV_POLLUTION,ENV_CHEMICAL,WB_2167_POLLUTION,CRISISLEX_C07_SAFETY",
             pollutant_type="pm25,no2,o3",
+            country_code="US",
         ),
     ),
     (
@@ -58,9 +63,22 @@ PRESETS: tuple[tuple[re.Pattern[str], ScenarioPreset], ...] = (
             query="(fukushima OR wastewater OR discharge OR fishing ban OR radiation)",
             themes="ENV_POLLUTION,ENV_WATER,WB_2167_POLLUTION,TAX_FNCACT_RADIATION",
             pollutant_type="pm25,o3",
+            country_code="JP",
         ),
     ),
 )
+OBSERVER_SOURCE_CAPABILITIES = {
+    "openaq_realtime": {"domain": "air", "types": ["pm25", "no2", "o3"]},
+    "openmeteo_grid": {"domain": "air", "types": ["pm25", "no2", "o3"]},
+    "openaq_archive": {"domain": "air", "types": ["pm25", "no2", "o3"]},
+}
+ENV_TYPE_KEYWORDS = {
+    "water": ("water", "wastewater", "river", "marine", "ocean", "sewage"),
+    "radiation": ("radiation", "radioactive", "nuclear"),
+    "soil": ("soil", "landfill", "ground contamination"),
+    "waste": ("waste", "garbage", "incinerator", "dump"),
+    "air": ("air", "smog", "pm2.5", "ozone", "no2"),
+}
 
 
 def normalize_space(value: Any) -> str:
@@ -138,6 +156,15 @@ def find_preset(context: str) -> ScenarioPreset | None:
     return None
 
 
+def infer_expected_env_type(*, objective: str, context: str, query: str, themes: str) -> str:
+    text = f"{objective} {context} {query} {themes}".lower()
+    for env_type in ("water", "radiation", "soil", "waste", "air"):
+        keywords = ENV_TYPE_KEYWORDS.get(env_type, ())
+        if any(token in text for token in keywords):
+            return env_type
+    return "general"
+
+
 def _parse_env_line(line: str) -> tuple[str, str] | None:
     raw = normalize_space(line)
     if not raw or raw.startswith("#") or "=" not in raw:
@@ -181,6 +208,8 @@ def load_runtime_config(args: argparse.Namespace) -> dict[str, Any]:
     config_json = normalize_space(getattr(args, "config_json", "")) or DEFAULT_CONFIG_JSON
     # Load listener env first so moderator can reuse the same LLM key/model defaults.
     load_env_file(DEFAULT_LISTENER_ENV)
+    # Load observer env so OPENAQ_API_KEY and related settings are available to child observer commands.
+    load_env_file(DEFAULT_OBSERVER_ENV)
     load_env_file(config_env)
     return load_json_config(config_json)
 
@@ -258,25 +287,63 @@ def extract_chat_json(payload: dict[str, Any]) -> dict[str, Any]:
 def build_observer_commands(
     *,
     db: str,
+    archive_db: str,
     bbox: str,
     start_iso: str,
     end_iso: str,
     fixture_json: str,
+    observer_source: str,
 ) -> list[dict[str, Any]]:
-    ingest = [
-        "python3",
-        DEFAULT_OBSERVER_ENTRYPOINT,
-        "ingest",
-        "--db",
-        db,
-        f"--bbox={bbox}",
-        "--start-datetime",
-        start_iso,
-        "--end-datetime",
-        end_iso,
-    ]
-    if normalize_space(fixture_json):
-        ingest.extend(["--fixture-json", fixture_json])
+    source = normalize_space(observer_source).lower() or "openaq_realtime"
+    if source == "openmeteo_grid":
+        ingest = [
+            "python3",
+            DEFAULT_OBSERVER_OPENMETEO,
+            "ingest",
+            "--db",
+            db,
+            f"--bbox={bbox}",
+            "--start-datetime",
+            start_iso,
+            "--end-datetime",
+            end_iso,
+            "--max-locations",
+            "9",
+        ]
+    elif source == "openaq_archive":
+        ingest = [
+            "python3",
+            DEFAULT_OBSERVER_ARCHIVE,
+            "ingest",
+            "--db",
+            db,
+            "--archive-db",
+            archive_db,
+            f"--bbox={bbox}",
+            "--start-datetime",
+            start_iso,
+            "--end-datetime",
+            end_iso,
+            "--limit",
+            "10000",
+        ]
+    else:
+        ingest = [
+            "python3",
+            DEFAULT_OBSERVER_ENTRYPOINT,
+            "ingest",
+            "--db",
+            db,
+            f"--bbox={bbox}",
+            "--start-datetime",
+            start_iso,
+            "--end-datetime",
+            end_iso,
+            "--provider",
+            "openaq",
+        ]
+        if normalize_space(fixture_json):
+            ingest.extend(["--fixture-json", fixture_json])
     return [
         {
             "id": "observer_ingest",
@@ -343,6 +410,7 @@ def build_listener_commands(
         query,
         "--themes",
         themes,
+        "--disable-default-themes",
         "--start-datetime",
         start_gdelt,
         "--end-datetime",
@@ -427,6 +495,12 @@ def build_eco_council_commands(
     end_iso: str,
     provider: str,
     timeout: float,
+    observer_source: str,
+    expected_env_type: str,
+    target_bbox: str,
+    target_country: str,
+    min_physical_rows: int,
+    min_social_rows: int,
     output_dir: str,
     config_env: str,
     config_json: str,
@@ -451,6 +525,18 @@ def build_eco_council_commands(
                     observer_db,
                     "--listener-db",
                     listener_db,
+                    "--observer-source",
+                    observer_source,
+                    "--expected-env-type",
+                    expected_env_type,
+                    "--target-bbox",
+                    target_bbox,
+                    "--target-country",
+                    target_country,
+                    "--min-physical-rows",
+                    str(min_physical_rows),
+                    "--min-social-rows",
+                    str(min_social_rows),
                     "--start-datetime",
                     start_iso,
                     "--end-datetime",
@@ -538,6 +624,34 @@ def run_command(command: dict[str, Any], *, dry_run: bool, timeout: int) -> dict
         "stderr": proc.stderr,
         "status_line": status_line,
         "ok": ok,
+    }
+
+
+def load_eco_readiness(ingest_json_path: str) -> dict[str, Any]:
+    file_path = Path(ingest_json_path).expanduser()
+    if not file_path.exists():
+        return {"ready_for_summary": False, "status": "missing_ingest_json", "reasons": ["missing_ingest_json"]}
+    try:
+        payload = json.loads(file_path.read_text(encoding="utf-8"))
+    except Exception:
+        return {"ready_for_summary": False, "status": "invalid_ingest_json", "reasons": ["invalid_ingest_json"]}
+    if not isinstance(payload, dict):
+        return {"ready_for_summary": False, "status": "invalid_ingest_shape", "reasons": ["invalid_ingest_shape"]}
+    alignment = payload.get("alignment_status")
+    if not isinstance(alignment, dict):
+        return {"ready_for_summary": False, "status": "missing_alignment_status", "reasons": ["missing_alignment_status"]}
+    suff = alignment.get("data_sufficiency")
+    if not isinstance(suff, dict):
+        return {"ready_for_summary": False, "status": "missing_data_sufficiency", "reasons": ["missing_data_sufficiency"]}
+    ready = bool(suff.get("ready_for_summary"))
+    return {
+        "ready_for_summary": ready,
+        "status": normalize_space(suff.get("status") or ("ready" if ready else "insufficient")),
+        "reasons": suff.get("reasons") if isinstance(suff.get("reasons"), list) else [],
+        "counts": suff.get("counts") if isinstance(suff.get("counts"), dict) else {},
+        "thresholds": suff.get("thresholds") if isinstance(suff.get("thresholds"), dict) else {},
+        "geographic_alignment": alignment.get("geographic_alignment") if isinstance(alignment.get("geographic_alignment"), dict) else {},
+        "category_alignment": alignment.get("category_alignment") if isinstance(alignment.get("category_alignment"), dict) else {},
     }
 
 
@@ -655,6 +769,7 @@ def build_cycle_report(
     observer_status: str,
     listener_status: str,
     caswarn_status: str,
+    eco_readiness: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     observer_status_kv = parse_kv_line(observer_status)
     listener_status_kv = parse_kv_line(listener_status)
@@ -691,12 +806,16 @@ def build_cycle_report(
             "observer": observer_db_snapshot,
             "listener": listener_db_snapshot,
         },
+        "eco_readiness": eco_readiness or {},
     }
 
 
 def build_directive(
     *,
     mode: str,
+    observer_source: str,
+    expected_env_type: str,
+    target_country: str,
     bbox: str,
     pollutant_type: str,
     query: str,
@@ -704,6 +823,7 @@ def build_directive(
     hours: int,
     max_records: int,
     observer_db: str,
+    observer_archive_db: str,
     listener_db: str,
     classify_mode: str,
     analyzer_mode: str,
@@ -733,21 +853,29 @@ def build_directive(
         },
         "observer": {
             "params": {
+                "source": observer_source,
+                "domain_capability": OBSERVER_SOURCE_CAPABILITIES.get(observer_source, {}),
+                "expected_env_type": expected_env_type,
+                "target_country": target_country,
                 "bbox": bbox,
                 "pollutant_type": pollutant_type,
             },
             "commands": build_observer_commands(
                 db=observer_db,
+                archive_db=observer_archive_db,
                 bbox=bbox,
                 start_iso=start_iso,
                 end_iso=end_iso,
                 fixture_json=observer_fixture_json,
+                observer_source=observer_source,
             ),
         },
         "listener": {
             "params": {
                 "query": query,
                 "theme": themes,
+                "expected_env_type": expected_env_type,
+                "target_country": target_country,
                 "timespan": f"last_{int(max(hours, 1))}h",
             },
             "commands": build_listener_commands(
@@ -794,8 +922,12 @@ def llm_plan(
                 "role": "system",
                 "content": (
                     "You are a strict moderator planner. Return JSON only with keys: "
-                    "mode,bbox,pollutant_type,query,theme,timespan_hours,max_records,analyzer_mode,analyzer_limit,reason. "
+                    "mode,observer_source,expected_env_type,target_country,bbox,pollutant_type,query,theme,timespan_hours,max_records,analyzer_mode,analyzer_limit,reason. "
                     "mode must be passive_patrol or active_reconnaissance. "
+                    "observer_source must be one of: openaq_realtime, openmeteo_grid, openaq_archive. "
+                    "expected_env_type must be one of: air,water,soil,radiation,waste,general,multi. "
+                    "Use openaq_realtime for near-real-time station polling; use openmeteo_grid for global coverage or key/network instability; "
+                    "use openaq_archive for retrospective investigations over archive database. "
                     "bbox must be min_lon,min_lat,max_lon,max_lat. "
                     "timespan_hours integer 1..72. max_records integer 20..250. "
                     "analyzer_mode is rule or llm."
@@ -836,11 +968,6 @@ def normalize_plan(
     if mode not in {"passive_patrol", "active_reconnaissance"}:
         mode = "active_reconnaissance" if mode_hint == "recon" else "passive_patrol"
 
-    bbox_candidate = normalize_space((raw or {}).get("bbox") if raw else "")
-    if not bbox_candidate:
-        bbox_candidate = preset.bbox if preset else fallback_bbox
-    bbox = parse_bbox(bbox_candidate)
-
     query = normalize_space((raw or {}).get("query") if raw else "")
     if not query:
         query = preset.query if preset else fallback_query
@@ -849,11 +976,48 @@ def normalize_plan(
     if not themes:
         themes = preset.themes if preset else fallback_themes
 
+    expected_env_type = normalize_space((raw or {}).get("expected_env_type") if raw else "").lower()
+    if expected_env_type not in {"air", "water", "soil", "radiation", "waste", "general", "multi"}:
+        expected_env_type = infer_expected_env_type(
+            objective=objective,
+            context=context,
+            query=query,
+            themes=themes,
+        )
+
+    context_lower = f"{objective} {context}".lower()
+    hinted_source = ""
+    match_hint = re.search(r"observer_source_hint=([a-z_]+)", context_lower)
+    if match_hint:
+        hinted_source = normalize_space(match_hint.group(1)).lower()
+
+    observer_source = normalize_space((raw or {}).get("observer_source") if raw else "").lower()
+    if observer_source not in {"openaq_realtime", "openmeteo_grid", "openaq_archive"}:
+        if hinted_source in {"openaq_realtime", "openmeteo_grid", "openaq_archive"}:
+            observer_source = hinted_source
+        elif any(k in context_lower for k in ("history", "historical", "retrospective", "backfill", "回溯", "历史")):
+            observer_source = "openaq_archive"
+        elif expected_env_type in {"water", "soil", "radiation", "waste"}:
+            observer_source = "openmeteo_grid"
+        elif mode == "passive_patrol":
+            observer_source = "openmeteo_grid"
+        else:
+            observer_source = "openaq_realtime"
+
+    bbox_candidate = normalize_space((raw or {}).get("bbox") if raw else "")
+    if not bbox_candidate:
+        bbox_candidate = preset.bbox if preset else fallback_bbox
+    bbox = parse_bbox(bbox_candidate)
+
     pollutant_type = normalize_space((raw or {}).get("pollutant_type") if raw else "")
     if not pollutant_type:
         pollutant_type = preset.pollutant_type if preset else "pm25,no2,o3"
 
-    timespan_hours = _safe_int((raw or {}).get("timespan_hours") if raw else 4, 4)
+    target_country = normalize_space((raw or {}).get("target_country") if raw else "")
+    if not target_country:
+        target_country = preset.country_code if preset else ""
+
+    timespan_hours = _safe_int((raw or {}).get("timespan_hours") if raw else 24, 24)
     timespan_hours = max(1, min(72, timespan_hours))
 
     max_records = _safe_int((raw or {}).get("max_records") if raw else 120, 120)
@@ -870,6 +1034,9 @@ def normalize_plan(
 
     return {
         "mode": mode,
+        "observer_source": observer_source,
+        "expected_env_type": expected_env_type,
+        "target_country": target_country,
         "bbox": bbox,
         "query": query,
         "theme": themes,
@@ -892,6 +1059,9 @@ def cmd_patrol(args: argparse.Namespace) -> int:
     now_utc = parse_iso_utc(args.now_utc, "--now-utc")
     directive = build_directive(
         mode="passive_patrol",
+        observer_source=args.observer_source,
+        expected_env_type=args.expected_env_type,
+        target_country=args.target_country,
         bbox=parse_bbox(args.bbox),
         pollutant_type=args.pollutant_type,
         query=args.query,
@@ -899,6 +1069,7 @@ def cmd_patrol(args: argparse.Namespace) -> int:
         hours=max(args.hours, 1),
         max_records=max(args.max_records, 20),
         observer_db=args.observer_db,
+        observer_archive_db=args.observer_archive_db,
         listener_db=args.listener_db,
         classify_mode=args.classify_mode,
         analyzer_mode=args.analyzer_mode,
@@ -929,6 +1100,9 @@ def cmd_recon(args: argparse.Namespace) -> int:
 
     directive = build_directive(
         mode="active_reconnaissance",
+        observer_source=args.observer_source,
+        expected_env_type=args.expected_env_type,
+        target_country=args.target_country,
         bbox=bbox,
         pollutant_type=pollutant_type,
         query=query,
@@ -936,6 +1110,7 @@ def cmd_recon(args: argparse.Namespace) -> int:
         hours=max(args.hours, 1),
         max_records=max(args.max_records, 20),
         observer_db=args.observer_db,
+        observer_archive_db=args.observer_archive_db,
         listener_db=args.listener_db,
         classify_mode=args.classify_mode,
         analyzer_mode=args.analyzer_mode,
@@ -1041,6 +1216,9 @@ def cmd_orchestrate(args: argparse.Namespace) -> int:
 
         directive = build_directive(
             mode=plan["mode"],
+            observer_source=plan["observer_source"],
+            expected_env_type=plan["expected_env_type"],
+            target_country=plan["target_country"],
             bbox=plan["bbox"],
             pollutant_type=plan["pollutant_type"],
             query=plan["query"],
@@ -1048,6 +1226,7 @@ def cmd_orchestrate(args: argparse.Namespace) -> int:
             hours=plan["timespan_hours"],
             max_records=plan["max_records"],
             observer_db=args.observer_db,
+            observer_archive_db=args.observer_archive_db,
             listener_db=args.listener_db,
             classify_mode=args.classify_mode,
             analyzer_mode=plan["analyzer_mode"],
@@ -1067,6 +1246,12 @@ def cmd_orchestrate(args: argparse.Namespace) -> int:
             end_iso=directive["window"]["end_iso_utc"],
             provider=args.eco_provider,
             timeout=args.llm_timeout,
+            observer_source=plan["observer_source"],
+            expected_env_type=plan["expected_env_type"],
+            target_bbox=plan["bbox"],
+            target_country=plan["target_country"],
+            min_physical_rows=args.report_min_physical_rows,
+            min_social_rows=args.report_min_social_rows,
             output_dir=args.eco_output_dir,
             config_env=args.config_env,
             config_json=args.config_json,
@@ -1088,11 +1273,57 @@ def cmd_orchestrate(args: argparse.Namespace) -> int:
                 for c in directive.get("analyzer", {}).get("commands", [])
             ]
         eco_exec: list[dict[str, Any]] = []
+        eco_readiness: dict[str, Any] = {"ready_for_summary": False, "status": "skipped", "reasons": ["skip_eco_council"]}
         if not args.skip_eco_council:
-            eco_exec = [
-                run_command(c, dry_run=args.dry_run, timeout=args.command_timeout)
-                for c in directive.get("eco_council", {}).get("commands", [])
-            ]
+            eco_ingest_record = run_command(directive["eco_council"]["commands"][0], dry_run=args.dry_run, timeout=args.command_timeout)
+            eco_exec.append(eco_ingest_record)
+            if args.dry_run:
+                eco_readiness = {"ready_for_summary": True, "status": "dry_run", "reasons": []}
+            elif eco_ingest_record.get("ok"):
+                eco_readiness = load_eco_readiness(eco_artifacts["ingest_json"])
+            else:
+                eco_readiness = {"ready_for_summary": False, "status": "ingest_failed", "reasons": ["eco_ingest_failed"]}
+
+            geo_status = normalize_space((eco_readiness.get("geographic_alignment") or {}).get("status"))
+            category_status = normalize_space((eco_readiness.get("category_alignment") or {}).get("status"))
+            if args.require_geo_alignment and geo_status == "mismatch":
+                eco_readiness["ready_for_summary"] = False
+                eco_readiness.setdefault("reasons", []).append("geographic_mismatch")
+            if args.require_category_alignment and category_status == "mismatch":
+                eco_readiness["ready_for_summary"] = False
+                eco_readiness.setdefault("reasons", []).append("category_mismatch")
+
+            if eco_readiness.get("ready_for_summary"):
+                eco_exec.extend(
+                    [
+                        run_command(c, dry_run=args.dry_run, timeout=args.command_timeout)
+                        for c in directive["eco_council"]["commands"][1:]
+                    ]
+                )
+            else:
+                skip_reason = ",".join([str(x) for x in eco_readiness.get("reasons", [])]) or str(eco_readiness.get("status"))
+                eco_exec.extend(
+                    [
+                        {
+                            "id": "eco_council_enrich",
+                            "argv": directive["eco_council"]["commands"][1]["argv"],
+                            "returncode": 0,
+                            "stdout": "",
+                            "stderr": "",
+                            "status_line": f"ECO_COUNCIL_SKIP reason={skip_reason}",
+                            "ok": True,
+                        },
+                        {
+                            "id": "eco_council_summarize",
+                            "argv": directive["eco_council"]["commands"][2]["argv"],
+                            "returncode": 0,
+                            "stdout": "",
+                            "stderr": "",
+                            "status_line": f"ECO_COUNCIL_SKIP reason={skip_reason}",
+                            "ok": True,
+                        },
+                    ]
+                )
 
         observer_status = _collect_primary_status(observer_exec, "observer_enrich")
         listener_status = _collect_primary_status(listener_exec, "listener_summarize")
@@ -1107,12 +1338,18 @@ def cmd_orchestrate(args: argparse.Namespace) -> int:
             social_upsert_threshold=args.social_upsert_threshold,
             analyzer_risk_threshold=args.analyzer_risk_threshold,
         )
+        if not args.skip_eco_council and not bool(eco_readiness.get("ready_for_summary")):
+            review["decision"] = "collect_more_data"
+            review["reason"] = "insufficient_aligned_data"
+            review["next"] = {"method": "recon", "run_at": "immediate"}
+            review["readiness"] = eco_readiness
         report = build_cycle_report(
             observer_db=args.observer_db,
             listener_db=args.listener_db,
             observer_status=observer_status,
             listener_status=listener_status,
             caswarn_status=caswarn_status,
+            eco_readiness=eco_readiness,
         )
 
         cycle = {
@@ -1130,10 +1367,25 @@ def cmd_orchestrate(args: argparse.Namespace) -> int:
         }
         cycles.append(cycle)
 
-        if review["decision"] == "switch_to_active_recon" and cycle_idx < args.max_cycles:
+        if (
+            (review["decision"] in {"switch_to_active_recon", "collect_more_data"})
+            and cycle_idx < args.max_cycles
+        ):
             current_mode_hint = "recon"
+            observer_fields = parse_kv_line(observer_status)
+            observer_hint = ""
+            if (
+                plan["observer_source"] == "openaq_realtime"
+                and _safe_int(observer_fields.get("fetched"), 0) == 0
+            ):
+                observer_hint = "observer_source_hint=openmeteo_grid"
+            readiness_reason = ",".join(str(x) for x in eco_readiness.get("reasons", []))
             current_context = normalize_space(
-                f"{current_context} observer_status={observer_status} listener_status={listener_status} caswarn_status={caswarn_status}"
+                (
+                    f"{current_context} observer_status={observer_status} listener_status={listener_status} "
+                    f"caswarn_status={caswarn_status} data_sufficiency={eco_readiness.get('status')} "
+                    f"readiness_reasons={readiness_reason} {observer_hint}"
+                )
             )
             continue
         break
@@ -1152,6 +1404,18 @@ def cmd_orchestrate(args: argparse.Namespace) -> int:
 
 def add_common_dispatch_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--observer-db", default="observer_physical.db", help="Observer SQLite path.")
+    parser.add_argument("--observer-archive-db", default="observer_archive.db", help="Observer historical archive SQLite path.")
+    parser.add_argument(
+        "--observer-source",
+        choices=("openaq_realtime", "openmeteo_grid", "openaq_archive"),
+        default="openmeteo_grid",
+    )
+    parser.add_argument(
+        "--expected-env-type",
+        choices=("air", "water", "soil", "radiation", "waste", "general", "multi"),
+        default="general",
+    )
+    parser.add_argument("--target-country", default="", help="Expected country code for geo alignment checks.")
     parser.add_argument("--listener-db", default="gdelt_environment.db", help="Listener SQLite path.")
     parser.add_argument("--classify-mode", choices=("rule", "llm", "none"), default="rule")
     parser.add_argument("--analyzer-mode", choices=("rule", "llm"), default="llm")
@@ -1253,6 +1517,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     orchestrate.add_argument("--llm-timeout", type=float, default=DEFAULT_TIMEOUT)
     orchestrate.add_argument("--command-timeout", type=int, default=180)
+    orchestrate.add_argument("--report-min-physical-rows", type=int, default=6)
+    orchestrate.add_argument("--report-min-social-rows", type=int, default=4)
+    orchestrate.add_argument("--require-geo-alignment", action=argparse.BooleanOptionalAction, default=True)
+    orchestrate.add_argument("--require-category-alignment", action=argparse.BooleanOptionalAction, default=True)
     orchestrate.add_argument("--eco-provider", choices=("auto", "openai", "claude", "rule"), default="auto")
     orchestrate.add_argument("--eco-output-dir", default="/tmp/eco_council_reports")
     orchestrate.add_argument("--skip-eco-council", action="store_true")

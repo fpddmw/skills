@@ -10,6 +10,7 @@ import os
 import re
 import sqlite3
 import sys
+import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -44,6 +45,10 @@ TRACKING_QUERY_PARAMS = {
     "mc_cid",
     "mc_eid",
 }
+DEFAULT_GDELT_RETRY_WAIT_SECONDS = 8.0
+DEFAULT_GDELT_MAX_ATTEMPTS = 5
+GDELT_MIN_INTERVAL_SECONDS = 5.2
+_LAST_GDELT_REQUEST_TS = 0.0
 
 ALLOWED_CLASSIFY_MODES = {"none", "rule", "llm"}
 RULE_KEYWORDS = (
@@ -382,10 +387,21 @@ def merge_theme_filters(raw_themes: str, disable_defaults: bool) -> list[str]:
 
 def build_query_with_themes(base_query: str, themes: list[str]) -> str:
     query = normalize_space(base_query)
+    if " OR " in query.upper() and not (query.startswith("(") and query.endswith(")")):
+        query = f"({query})"
     if not themes:
         return query
     theme_clause = " OR ".join([f"theme:{theme}" for theme in themes])
-    return f"({query}) AND ({theme_clause})"
+    return f"{query} AND ({theme_clause})"
+
+
+def _respect_gdelt_rate_limit() -> None:
+    global _LAST_GDELT_REQUEST_TS  # pylint: disable=global-statement
+    now = time.monotonic()
+    elapsed = now - _LAST_GDELT_REQUEST_TS
+    if elapsed < GDELT_MIN_INTERVAL_SECONDS:
+        time.sleep(GDELT_MIN_INTERVAL_SECONDS - elapsed)
+    _LAST_GDELT_REQUEST_TS = time.monotonic()
 
 
 def pick_article_value(article: dict[str, Any], *keys: str) -> str:
@@ -446,7 +462,8 @@ def call_json_api(
     try:
         data = json.loads(text)
     except json.JSONDecodeError as exc:
-        raise RuntimeError("invalid_json_response") from exc
+        preview = normalize_space(text)[:240]
+        raise RuntimeError(f"invalid_json_response detail={preview}") from exc
     if not isinstance(data, dict):
         raise RuntimeError("unexpected_response_shape")
     return data
@@ -470,7 +487,28 @@ def fetch_gdelt_articles(
         "enddatetime": end_datetime,
     }
     url = gdelt_api_base + "?" + urlencode(params)
-    payload = call_json_api(url=url, timeout=timeout)
+    payload: dict[str, Any] | None = None
+    last_error: Exception | None = None
+    for attempt in range(1, DEFAULT_GDELT_MAX_ATTEMPTS + 1):
+        try:
+            _respect_gdelt_rate_limit()
+            payload = call_json_api(url=url, timeout=timeout)
+            break
+        except RuntimeError as exc:
+            last_error = exc
+            message = str(exc)
+            # GDELT occasionally replies with plain text rate-limit messages instead of JSON.
+            should_retry = (
+                "invalid_json_response" in message
+                or "http_error status=429" in message
+                or "Temporary failure in name resolution" in message
+            )
+            if should_retry and attempt < DEFAULT_GDELT_MAX_ATTEMPTS:
+                time.sleep(DEFAULT_GDELT_RETRY_WAIT_SECONDS * attempt)
+                continue
+            raise
+    if payload is None:
+        raise RuntimeError(f"gdelt_fetch_failed detail={last_error}")
 
     # GDELT DOC API commonly returns {"articles":[...]}.
     articles = payload.get("articles")

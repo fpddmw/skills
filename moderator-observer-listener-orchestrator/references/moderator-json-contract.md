@@ -9,6 +9,7 @@
   "context": "...",
   "plan": {
     "mode": "active_reconnaissance",
+    "observer_source": "openaq_realtime",
     "bbox": "-80.62,40.79,-80.42,40.91",
     "query": "(east palestine OR derailment OR evacuation)",
     "theme": "ENV_POLLUTION,ENV_CHEMICAL",
@@ -26,6 +27,7 @@
 ## 2) patrol/recon directive output
 - Both return strict JSON with:
   - `mode`
+  - `observer.params.source`
   - `window`
   - `observer.params`
   - `observer.commands[*].argv`

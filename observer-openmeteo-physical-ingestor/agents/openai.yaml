@@ -1,0 +1,4 @@
+interface:
+  display_name: "Observer Open-Meteo Ingestor"
+  short_description: "Grid-based physical observer ingest via Open-Meteo API"
+  default_prompt: "Use $observer-openmeteo-physical-ingestor to ingest gridded PM2.5/NO2/O3 observations from Open-Meteo into observer SQLite for global coverage patrol tasks."

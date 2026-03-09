@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import sqlite3
 import sys
@@ -21,6 +22,7 @@ from urllib.request import Request, urlopen
 DEFAULT_DB_FILENAME = "observer_physical.db"
 DEFAULT_DB_PATH = os.environ.get("OBSERVER_DB_PATH", DEFAULT_DB_FILENAME)
 DEFAULT_OPENAQ_BASE_URL = os.environ.get("OPENAQ_API_BASE_URL", "https://api.openaq.org/v3")
+DEFAULT_OPENMETEO_BASE_URL = os.environ.get("OPENMETEO_AQ_API_BASE_URL", "https://air-quality-api.open-meteo.com/v1/air-quality")
 DEFAULT_OPENAQ_TIMEOUT = float(os.environ.get("OPENAQ_TIMEOUT_SECONDS", "20"))
 DEFAULT_OPENAQ_LIMIT = int(os.environ.get("OPENAQ_PAGE_LIMIT", "100"))
 DEFAULT_OPENAQ_MAX_PAGES = int(os.environ.get("OPENAQ_MAX_PAGES", "20"))
@@ -129,8 +131,10 @@ CREATE INDEX IF NOT EXISTS idx_physical_metrics_country ON physical_metrics(coun
 
 @dataclass(frozen=True)
 class RuntimeConfig:
+    provider: str
     openaq_base_url: str
     openaq_api_key: str
+    openmeteo_base_url: str
     timeout: float
     limit: int
     max_pages: int
@@ -202,12 +206,20 @@ def parse_bbox(raw: str) -> tuple[float, float, float, float]:
 
 
 def load_runtime_config(args: argparse.Namespace) -> RuntimeConfig:
+    requested_provider = normalize_space(getattr(args, "provider", "auto")).lower() or "auto"
+    if requested_provider not in {"auto", "openaq", "openmeteo"}:
+        raise ValueError("--provider must be one of auto,openaq,openmeteo")
     api_key = normalize_space(args.openaq_api_key or os.environ.get("OPENAQ_API_KEY") or "")
-    if not api_key:
-        raise ValueError("OPENAQ_API_KEY is required (env or --openaq-api-key)")
+    provider = requested_provider
+    if provider == "auto":
+        provider = "openaq" if api_key else "openmeteo"
+    if provider == "openaq" and not api_key:
+        raise ValueError("OPENAQ_API_KEY is required when provider=openaq")
     return RuntimeConfig(
+        provider=provider,
         openaq_base_url=normalize_space(args.openaq_base_url) or DEFAULT_OPENAQ_BASE_URL,
         openaq_api_key=api_key,
+        openmeteo_base_url=normalize_space(getattr(args, "openmeteo_base_url", "")) or DEFAULT_OPENMETEO_BASE_URL,
         timeout=float(args.timeout),
         limit=int(args.limit),
         max_pages=int(args.max_pages),
@@ -271,9 +283,225 @@ def openaq_get(config: RuntimeConfig, path: str, query: dict[str, Any]) -> dict[
     return payload
 
 
+def openmeteo_get(config: RuntimeConfig, query: dict[str, Any]) -> dict[str, Any]:
+    cleaned = {k: v for k, v in query.items() if v is not None and str(v) != ""}
+    url = config.openmeteo_base_url.rstrip("/") + "?" + urlencode(cleaned, doseq=True)
+    req = Request(
+        url=url,
+        method="GET",
+        headers={
+            "User-Agent": config.user_agent,
+            "Accept": "application/json",
+        },
+    )
+    try:
+        with urlopen(req, timeout=config.timeout) as resp:
+            body = resp.read().decode("utf-8", errors="replace")
+    except HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"openmeteo_http_error status={exc.code} detail={detail[:300]}") from exc
+    except URLError as exc:
+        raise RuntimeError(f"openmeteo_network_error detail={exc.reason}") from exc
+
+    try:
+        payload = json.loads(body)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError("openmeteo_invalid_json") from exc
+    if not isinstance(payload, dict):
+        raise RuntimeError("openmeteo_invalid_shape")
+    return payload
+
+
 def maybe_sleep_ms(ms: int) -> None:
     if ms > 0:
         time.sleep(ms / 1000.0)
+
+
+def synth_location_id(lat: float, lon: float) -> int:
+    lat_key = int(round((lat + 90.0) * 1000))
+    lon_key = int(round((lon + 180.0) * 1000))
+    return lat_key * 1_000_000 + lon_key
+
+
+def build_bbox_grid(
+    *,
+    min_lon: float,
+    min_lat: float,
+    max_lon: float,
+    max_lat: float,
+    max_points: int,
+) -> list[tuple[float, float]]:
+    points = max(1, min(max_points, 25))
+    if points == 1:
+        return [((min_lat + max_lat) / 2.0, (min_lon + max_lon) / 2.0)]
+    side = int(math.ceil(math.sqrt(points)))
+    lat_step = (max_lat - min_lat) / max(side - 1, 1)
+    lon_step = (max_lon - min_lon) / max(side - 1, 1)
+    grid: list[tuple[float, float]] = []
+    for i in range(side):
+        for j in range(side):
+            if len(grid) >= points:
+                return grid
+            lat = min_lat + lat_step * i
+            lon = min_lon + lon_step * j
+            grid.append((lat, lon))
+    return grid
+
+
+def upsert_openmeteo_row(
+    conn: sqlite3.Connection,
+    *,
+    lat: float,
+    lon: float,
+    observed_utc: str,
+    parameter_code: str,
+    value_raw: float | None,
+    payload: dict[str, Any],
+) -> bool:
+    location_id = synth_location_id(lat, lon)
+    sensor_offsets = {"pm25": 2, "no2": 7, "o3": 10}
+    sensor_id = location_id * 100 + sensor_offsets[parameter_code]
+    now = now_utc_iso()
+    before = conn.total_changes
+    conn.execute(
+        """
+        INSERT INTO aq_raw_observations (
+            source_name, location_id, location_name, sensor_id, parameter_code, country_code,
+            latitude, longitude, observed_utc, value_raw, unit_raw, payload_json, created_at, updated_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(source_name, sensor_id, parameter_code, observed_utc) DO UPDATE SET
+            location_name=excluded.location_name,
+            latitude=excluded.latitude,
+            longitude=excluded.longitude,
+            value_raw=excluded.value_raw,
+            unit_raw=excluded.unit_raw,
+            payload_json=excluded.payload_json,
+            updated_at=excluded.updated_at
+        """,
+        (
+            "openmeteo",
+            location_id,
+            f"grid({lat:.3f},{lon:.3f})",
+            sensor_id,
+            parameter_code,
+            None,
+            lat,
+            lon,
+            observed_utc,
+            value_raw,
+            "ug/m3",
+            json.dumps(payload, ensure_ascii=False, separators=(",", ":")),
+            now,
+            now,
+        ),
+    )
+    return conn.total_changes > before
+
+
+def fetch_openmeteo_rows(
+    conn: sqlite3.Connection,
+    config: RuntimeConfig,
+    *,
+    min_lon: float,
+    min_lat: float,
+    max_lon: float,
+    max_lat: float,
+    start_utc: str,
+    end_utc: str,
+    max_points: int,
+) -> tuple[int, int, int]:
+    points = build_bbox_grid(
+        min_lon=min_lon,
+        min_lat=min_lat,
+        max_lon=max_lon,
+        max_lat=max_lat,
+        max_points=max_points,
+    )
+    start_date = start_utc[:10]
+    end_date = end_utc[:10]
+    param_map = {
+        "pm2_5": "pm25",
+        "nitrogen_dioxide": "no2",
+        "ozone": "o3",
+    }
+
+    rows_fetched = 0
+    rows_upserted = 0
+    for lat, lon in points:
+        payload = None
+        last_error: Exception | None = None
+        for attempt in range(1, 4):
+            try:
+                payload = openmeteo_get(
+                    config,
+                    {
+                        "latitude": f"{lat:.4f}",
+                        "longitude": f"{lon:.4f}",
+                        "hourly": "pm2_5,nitrogen_dioxide,ozone",
+                        "timezone": "UTC",
+                        "start_date": start_date,
+                        "end_date": end_date,
+                    },
+                )
+                break
+            except Exception as exc:
+                last_error = exc
+                if attempt < 3:
+                    time.sleep(1.5 * attempt)
+        if payload is None:
+            if last_error is not None:
+                raise RuntimeError(f"openmeteo_fetch_failed detail={last_error}") from last_error
+            raise RuntimeError("openmeteo_fetch_failed")
+
+        hourly = payload.get("hourly")
+        if not isinstance(hourly, dict):
+            continue
+        times = hourly.get("time")
+        if not isinstance(times, list):
+            continue
+
+        columns: dict[str, list[Any]] = {}
+        for source_key in param_map:
+            values = hourly.get(source_key)
+            if isinstance(values, list):
+                columns[source_key] = values
+
+        for idx, t in enumerate(times):
+            if not isinstance(t, str):
+                continue
+            observed_utc = parse_iso_datetime(f"{t}:00Z" if len(t) == 16 else t, "openmeteo.time")
+            if observed_utc < start_utc or observed_utc > end_utc:
+                continue
+            for source_key, parameter_code in param_map.items():
+                values = columns.get(source_key)
+                if values is None or idx >= len(values):
+                    continue
+                raw_value = values[idx]
+                try:
+                    value = float(raw_value) if raw_value is not None else None
+                except Exception:
+                    value = None
+                rows_fetched += 1
+                if upsert_openmeteo_row(
+                    conn,
+                    lat=lat,
+                    lon=lon,
+                    observed_utc=observed_utc,
+                    parameter_code=parameter_code,
+                    value_raw=value,
+                    payload={
+                        "provider": "openmeteo",
+                        "latitude": lat,
+                        "longitude": lon,
+                        "time": t,
+                        "source_metric": source_key,
+                        "value": raw_value,
+                    },
+                ):
+                    rows_upserted += 1
+        maybe_sleep_ms(config.sleep_ms)
+    return len(points), rows_fetched, rows_upserted
 
 
 def extract_country_code(location: dict[str, Any]) -> str | None:
@@ -530,15 +758,16 @@ def cmd_ingest(args: argparse.Namespace) -> int:
         raise ValueError("--end-datetime must be later than --start-datetime")
     fixture_path = normalize_space(getattr(args, "fixture_json", ""))
     config = load_runtime_config(args) if not fixture_path else None
+    provider_used = "fixture" if fixture_path else (config.provider if config else "openaq")
 
     with connect_db(args.db) as conn:
         init_db(conn)
         raw_upserted = 0
         sensors_scanned = 0
         rows_fetched = 0
+        locations: list[dict[str, Any]] = []
         if fixture_path:
             records = load_fixture_records(fixture_path)
-            locations = []
             for rec in records:
                 location = rec.get("location")
                 sensor = rec.get("sensor")
@@ -557,66 +786,129 @@ def cmd_ingest(args: argparse.Namespace) -> int:
                     raw_upserted += 1
         else:
             assert config is not None
-            locations = []
-            for page in range(1, config.max_pages + 1):
-                payload = openaq_get(
-                    config,
-                    "/locations",
-                    {
-                        "bbox": f"{min_lon},{min_lat},{max_lon},{max_lat}",
-                        "parameters_id": [TARGET_PARAMETER_IDS["pm25"], TARGET_PARAMETER_IDS["no2"], TARGET_PARAMETER_IDS["o3"]],
-                        "limit": config.limit,
-                        "page": page,
-                    },
-                )
-                items = payload.get("results")
-                if not isinstance(items, list) or not items:
-                    break
-                locations.extend([x for x in items if isinstance(x, dict)])
-                if len(items) < config.limit or len(locations) >= args.max_locations:
-                    break
-                maybe_sleep_ms(config.sleep_ms)
+            requested_provider = normalize_space(getattr(args, "provider", "auto")).lower() or "auto"
 
-            locations = locations[: args.max_locations]
-            for location in locations:
-                location_id = location.get("id")
-                if location_id is None:
-                    continue
-                sensors = fetch_location_sensors(config, int(location_id), max_pages=min(config.max_pages, 5))
-                kept: list[dict[str, Any]] = []
-                for sensor in sensors:
-                    code = extract_parameter_code(sensor)
-                    if code in TARGET_PARAMETER_IDS:
-                        kept.append(sensor)
-                kept = kept[: args.max_sensors_per_location]
-                for sensor in kept:
-                    sensors_scanned += 1
-                    code = extract_parameter_code(sensor)
-                    if not code:
+            def run_openaq_ingest() -> tuple[int, int, int]:
+                local_rows_fetched = 0
+                local_upserted = 0
+                local_sensors = 0
+                local_locations: list[dict[str, Any]] = []
+                for page in range(1, config.max_pages + 1):
+                    payload = openaq_get(
+                        config,
+                        "/locations",
+                        {
+                            "bbox": f"{min_lon},{min_lat},{max_lon},{max_lat}",
+                            "parameters_id": [TARGET_PARAMETER_IDS["pm25"], TARGET_PARAMETER_IDS["no2"], TARGET_PARAMETER_IDS["o3"]],
+                            "limit": config.limit,
+                            "page": page,
+                        },
+                    )
+                    items = payload.get("results")
+                    if not isinstance(items, list) or not items:
+                        break
+                    local_locations.extend([x for x in items if isinstance(x, dict)])
+                    if len(items) < config.limit or len(local_locations) >= args.max_locations:
+                        break
+                    maybe_sleep_ms(config.sleep_ms)
+
+                local_locations = local_locations[: args.max_locations]
+                locations.extend(local_locations)
+                for location in local_locations:
+                    location_id = location.get("id")
+                    if location_id is None:
                         continue
-                    try:
-                        values = fetch_sensor_rows(
-                            config,
-                            int(sensor["id"]),
-                            datetime_from=start_utc,
-                            datetime_to=end_utc,
-                            endpoint="hours",
-                        )
-                        if not values:
+                    sensors = fetch_location_sensors(config, int(location_id), max_pages=min(config.max_pages, 5))
+                    kept: list[dict[str, Any]] = []
+                    for sensor in sensors:
+                        code = extract_parameter_code(sensor)
+                        if code in TARGET_PARAMETER_IDS:
+                            kept.append(sensor)
+                    kept = kept[: args.max_sensors_per_location]
+                    for sensor in kept:
+                        local_sensors += 1
+                        code = extract_parameter_code(sensor)
+                        if not code:
+                            continue
+                        try:
                             values = fetch_sensor_rows(
                                 config,
                                 int(sensor["id"]),
                                 datetime_from=start_utc,
                                 datetime_to=end_utc,
-                                endpoint="measurements",
+                                endpoint="hours",
                             )
-                    except RuntimeError:
-                        continue
-                    rows_fetched += len(values)
-                    for row in values:
-                        if upsert_raw_row(conn, location=location, sensor=sensor, parameter_code=code, row=row):
-                            raw_upserted += 1
-                    maybe_sleep_ms(config.sleep_ms)
+                            if not values:
+                                values = fetch_sensor_rows(
+                                    config,
+                                    int(sensor["id"]),
+                                    datetime_from=start_utc,
+                                    datetime_to=end_utc,
+                                    endpoint="measurements",
+                                )
+                        except RuntimeError:
+                            continue
+                        local_rows_fetched += len(values)
+                        for row in values:
+                            if upsert_raw_row(conn, location=location, sensor=sensor, parameter_code=code, row=row):
+                                local_upserted += 1
+                        maybe_sleep_ms(config.sleep_ms)
+                return local_sensors, local_rows_fetched, local_upserted
+
+            if config.provider == "openmeteo":
+                points, local_rows_fetched, local_upserted = fetch_openmeteo_rows(
+                    conn,
+                    config,
+                    min_lon=min_lon,
+                    min_lat=min_lat,
+                    max_lon=max_lon,
+                    max_lat=max_lat,
+                    start_utc=start_utc,
+                    end_utc=end_utc,
+                    max_points=args.max_locations,
+                )
+                sensors_scanned = points * 3
+                rows_fetched = local_rows_fetched
+                raw_upserted = local_upserted
+                locations = [{"source": "openmeteo"}] * points
+                provider_used = "openmeteo"
+            else:
+                try:
+                    sensors_scanned, rows_fetched, raw_upserted = run_openaq_ingest()
+                    provider_used = "openaq"
+                    if requested_provider == "auto" and rows_fetched == 0:
+                        points, rows_fetched, raw_upserted = fetch_openmeteo_rows(
+                            conn,
+                            config,
+                            min_lon=min_lon,
+                            min_lat=min_lat,
+                            max_lon=max_lon,
+                            max_lat=max_lat,
+                            start_utc=start_utc,
+                            end_utc=end_utc,
+                            max_points=args.max_locations,
+                        )
+                        sensors_scanned = points * 3
+                        locations = [{"source": "openmeteo"}] * points
+                        provider_used = "openmeteo_fallback_from_openaq_empty"
+                except RuntimeError as exc:
+                    if requested_provider == "auto":
+                        points, rows_fetched, raw_upserted = fetch_openmeteo_rows(
+                            conn,
+                            config,
+                            min_lon=min_lon,
+                            min_lat=min_lat,
+                            max_lon=max_lon,
+                            max_lat=max_lat,
+                            start_utc=start_utc,
+                            end_utc=end_utc,
+                            max_points=args.max_locations,
+                        )
+                        sensors_scanned = points * 3
+                        locations = [{"source": "openmeteo"}] * points
+                        provider_used = f"openmeteo_fallback_from_openaq:{exc}"
+                    else:
+                        raise
 
         conn.commit()
         raw_total = int(conn.execute("SELECT COUNT(1) AS c FROM aq_raw_observations").fetchone()["c"])
@@ -629,6 +921,7 @@ def cmd_ingest(args: argparse.Namespace) -> int:
         "PHYSICAL_INGEST_OK "
         f"bbox={min_lon},{min_lat},{max_lon},{max_lat} "
         f"start={start_utc} end={end_utc} "
+        f"source={provider_used} "
         f"fixture={fixture_path or 'none'} "
         f"locations={len(locations)} sensors={sensors_scanned} fetched={rows_fetched} "
         f"upserted={raw_upserted} raw_total={raw_total} countries={country_count}"
@@ -887,6 +1180,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser_ingest.add_argument("--openaq-api-base", dest="openaq_base_url", default=DEFAULT_OPENAQ_BASE_URL)
     parser_ingest.add_argument("--openaq-api-key", default="")
+    parser_ingest.add_argument(
+        "--provider",
+        default="auto",
+        choices=("auto", "openaq", "openmeteo"),
+        help="Data source provider. auto prefers OpenAQ when key exists, else uses Open-Meteo.",
+    )
+    parser_ingest.add_argument("--openmeteo-api-base", dest="openmeteo_base_url", default=DEFAULT_OPENMETEO_BASE_URL)
     parser_ingest.add_argument("--timeout", type=float, default=DEFAULT_OPENAQ_TIMEOUT)
     parser_ingest.add_argument("--limit", type=int, default=DEFAULT_OPENAQ_LIMIT)
     parser_ingest.add_argument("--max-pages", type=int, default=DEFAULT_OPENAQ_MAX_PAGES)

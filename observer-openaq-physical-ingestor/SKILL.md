@@ -1,6 +1,6 @@
 ---
 name: observer-openaq-physical-ingestor
-description: Ingest global air-quality observations (PM2.5/NO2/O3) from OpenAQ by bounding box and time window, enrich with WHO/EPA threshold variance, and idempotently upsert daily aggregates into SQLite physical_metrics. Use when building objective observer-layer baselines for environmental monitoring.
+description: Ingest global air-quality observations (PM2.5/NO2/O3) from OpenAQ API by bounding box and time window, enrich with WHO/EPA threshold variance, and idempotently upsert daily aggregates into SQLite physical_metrics. Use for station-based near-real-time observer polling; use observer-openmeteo-physical-ingestor for grid coverage fallback and observer-openaq-historical-query for retrospective archive extraction.
 ---
 
 # Observer Global AQI Ingestor
