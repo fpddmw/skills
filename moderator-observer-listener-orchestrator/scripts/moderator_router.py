@@ -25,6 +25,7 @@ from common.human_log import HumanLogger, default_skill_log_root
 
 
 DEFAULT_OBSERVER_ENTRYPOINT = "observer-openaq-physical-ingestor/scripts/aqi_ingest.py"
+DEFAULT_OBSERVER_PLANNER = "observer-openaq-physical-ingestor/scripts/observer_plan.py"
 DEFAULT_OBSERVER_OPENMETEO = "observer-openmeteo-physical-ingestor/scripts/openmeteo_ingest.py"
 DEFAULT_OBSERVER_ARCHIVE = "observer-openaq-historical-query/scripts/historical_query.py"
 DEFAULT_LISTENER_INGEST = "listener-gdelt-doc-ingestor/scripts/gdelt_ingest.py"
@@ -87,6 +88,32 @@ ENV_TYPE_KEYWORDS = {
     "waste": ("waste", "garbage", "incinerator", "dump"),
     "air": ("air", "smog", "pm2.5", "ozone", "no2"),
 }
+SUPPORTED_ENV_TYPES = ("air", "water", "soil", "radiation", "waste")
+DOMAIN_TYPE_DEFAULTS: dict[str, tuple[str, ...]] = {
+    "air": ("pm25", "no2", "o3"),
+    "water": ("ph", "do", "cod", "nh3n", "tp"),
+    "soil": ("heavy_metals", "organic_pollutants", "ph"),
+    "radiation": ("gamma_dose_rate", "cs137", "i131"),
+    "waste": ("landfill_volume", "incineration_emission", "wastewater_discharge"),
+}
+PHYSICAL_INTENT_KEYWORDS = (
+    "aqi",
+    "pm2.5",
+    "pm25",
+    "no2",
+    "o3",
+    "air quality",
+    "pollutant",
+    "physical signal",
+    "physical metric",
+    "water quality",
+    "soil contamination",
+    "辐射",
+    "水质",
+    "土壤",
+    "大气",
+    "物理数据",
+)
 
 
 def normalize_space(value: Any) -> str:
@@ -178,6 +205,95 @@ def infer_expected_env_type(*, objective: str, context: str, query: str, themes:
         if any(token in text for token in keywords):
             return env_type
     return "general"
+
+
+def _parse_boolish(raw: Any) -> bool | None:
+    if isinstance(raw, bool):
+        return raw
+    text = normalize_space(raw).lower()
+    if text in {"1", "true", "yes", "y", "required"}:
+        return True
+    if text in {"0", "false", "no", "n", "skip", "optional"}:
+        return False
+    return None
+
+
+def infer_observer_requirement(
+    *,
+    objective: str,
+    context: str,
+    query: str,
+    themes: str,
+    mode: str,
+    expected_env_type: str,
+    bbox_source: str,
+    target_country: str,
+) -> tuple[bool, str]:
+    text = " ".join([objective, context, query, themes]).lower()
+    has_physical_signal = any(token in text for token in PHYSICAL_INTENT_KEYWORDS)
+    if has_physical_signal:
+        return True, "explicit_physical_signal_in_objective_or_query"
+    if expected_env_type in {"air", "water", "soil", "radiation", "waste"} and mode == "active_reconnaissance":
+        return True, "specific_environment_type_under_recon"
+    if mode == "passive_patrol" and expected_env_type in {"general", "multi"}:
+        return False, "listener_first_patrol_general_scope"
+    if bbox_source == "fallback_bbox" and not normalize_space(target_country):
+        return False, "no_geo_target_for_observer_sampling"
+    return False, "default_listener_first_policy"
+
+
+def _parse_csv_tokens(raw: str) -> list[str]:
+    out: list[str] = []
+    seen: set[str] = set()
+    for item in str(raw or "").replace(";", ",").split(","):
+        token = normalize_space(item).lower()
+        if not token or token in seen:
+            continue
+        seen.add(token)
+        out.append(token)
+    return out
+
+
+def infer_observer_data_plan(
+    *,
+    objective: str,
+    context: str,
+    query: str,
+    themes: str,
+    expected_env_type: str,
+    bbox_source: str,
+    raw_domains: str,
+    raw_types: str,
+) -> tuple[list[str], list[str], str]:
+    domains = [d for d in _parse_csv_tokens(raw_domains) if d in SUPPORTED_ENV_TYPES]
+    if not domains:
+        expected = normalize_space(expected_env_type).lower()
+        if expected in SUPPORTED_ENV_TYPES:
+            domains = [expected]
+        else:
+            text = f"{objective} {context} {query} {themes}".lower()
+            inferred = [d for d in SUPPORTED_ENV_TYPES if any(k in text for k in ENV_TYPE_KEYWORDS.get(d, ()))]
+            domains = inferred or ["air"]
+
+    types = _parse_csv_tokens(raw_types)
+    if not types:
+        expanded: list[str] = []
+        seen: set[str] = set()
+        for domain in domains:
+            for token in DOMAIN_TYPE_DEFAULTS.get(domain, ()):
+                if token in seen:
+                    continue
+                seen.add(token)
+                expanded.append(token)
+        types = expanded
+
+    if bbox_source == "raw_plan":
+        geo_strategy = "llm_or_manual_bbox"
+    elif bbox_source == "preset":
+        geo_strategy = "scenario_preset_bbox"
+    else:
+        geo_strategy = "fallback_bbox_global_scan"
+    return domains, types, geo_strategy
 
 
 def _parse_env_line(line: str) -> tuple[str, str] | None:
@@ -428,10 +544,11 @@ def build_observer_skip_commands(
     observer_source: str,
     expected_env_type: str,
     capability_domain: str,
+    skip_reason: str = "unsupported_env_type",
 ) -> list[dict[str, Any]]:
     reason_line = (
         "PHYSICAL_SKIP "
-        f"reason=unsupported_env_type source={observer_source} "
+        f"reason={skip_reason} source={observer_source} "
         f"expected={expected_env_type or 'unknown'} capability={capability_domain or 'unknown'} "
         "fetched=0 upserted=0 exceeded=0"
     )
@@ -566,6 +683,7 @@ def build_eco_council_commands(
     target_country: str,
     min_physical_rows: int,
     min_social_rows: int,
+    physical_optional: bool,
     output_dir: str,
     config_env: str,
     config_json: str,
@@ -576,6 +694,7 @@ def build_eco_council_commands(
         "enrich_json": str(base_dir / f"{event_id}.enrich.json"),
         "summary_md": str(base_dir / f"{event_id}.brief.md"),
     }
+    effective_min_physical_rows = 0 if physical_optional else int(max(min_physical_rows, 0))
     ingest_argv = [
         "python3",
         DEFAULT_ECO_COUNCIL,
@@ -592,7 +711,7 @@ def build_eco_council_commands(
         expected_env_type,
         f"--target-bbox={target_bbox}",
         "--min-physical-rows",
-        str(min_physical_rows),
+        str(effective_min_physical_rows),
         "--min-social-rows",
         str(min_social_rows),
         "--start-datetime",
@@ -725,6 +844,97 @@ def load_eco_readiness(ingest_json_path: str) -> dict[str, Any]:
         "geographic_alignment": alignment.get("geographic_alignment") if isinstance(alignment.get("geographic_alignment"), dict) else {},
         "category_alignment": alignment.get("category_alignment") if isinstance(alignment.get("category_alignment"), dict) else {},
     }
+
+
+def infer_country_hint_from_eco_ingest(ingest_json_path: str) -> str:
+    file_path = Path(ingest_json_path).expanduser()
+    if not file_path.exists():
+        return ""
+    try:
+        payload = json.loads(file_path.read_text(encoding="utf-8"))
+    except Exception:
+        return ""
+    if not isinstance(payload, dict):
+        return ""
+    labels = payload.get("data_labels")
+    if not isinstance(labels, dict):
+        return ""
+    social = labels.get("social")
+    if not isinstance(social, dict):
+        return ""
+    countries = social.get("countries")
+    if not isinstance(countries, list) or not countries:
+        return ""
+    for item in countries:
+        token = normalize_space(item).upper()
+        if token:
+            return token
+    return ""
+
+
+def run_observer_planner(
+    *,
+    objective: str,
+    context: str,
+    query: str,
+    themes: str,
+    mode: str,
+    expected_env_type: str,
+    bbox_source: str,
+    geo_strategy: str,
+    target_country: str,
+    raw_data_domains: list[str],
+    raw_data_types: list[str],
+    planner: str,
+    timeout: float,
+) -> dict[str, Any]:
+    argv = [
+        "python3",
+        DEFAULT_OBSERVER_PLANNER,
+        "plan",
+        "--objective",
+        objective,
+        "--context",
+        context,
+        "--query",
+        query,
+        "--themes",
+        themes,
+        "--mode",
+        mode,
+        "--expected-env-type",
+        expected_env_type,
+        "--bbox-source",
+        bbox_source,
+        "--geo-strategy",
+        geo_strategy,
+        "--planner",
+        planner,
+        "--timeout",
+        str(timeout),
+    ]
+    target_country_norm = normalize_space(target_country)
+    if target_country_norm:
+        argv.extend(["--target-country", target_country_norm])
+    raw_domains_norm = ",".join([x for x in raw_data_domains if normalize_space(x)])
+    if raw_domains_norm:
+        argv.extend(["--raw-data-domains", raw_domains_norm])
+    raw_types_norm = ",".join([x for x in raw_data_types if normalize_space(x)])
+    if raw_types_norm:
+        argv.extend(["--raw-data-types", raw_types_norm])
+    argv = shell_safe_argv(argv)
+    log_event("skill_dispatch", "Dispatch observer planner skill", {"argv": argv})
+    proc = subprocess.run(argv, capture_output=True, text=True, timeout=max(int(timeout) + 15, 30), check=False)
+    if proc.returncode != 0:
+        raise RuntimeError(f"observer_planner_failed rc={proc.returncode} stderr={normalize_space(proc.stderr)[:500]}")
+    content = normalize_space(proc.stdout)
+    if not content:
+        raise RuntimeError("observer_planner_empty_output")
+    parsed = json.loads(content)
+    if not isinstance(parsed, dict):
+        raise RuntimeError("observer_planner_invalid_output")
+    log_event("skill_result", "Observer planner skill completed", {"plan": parsed})
+    return parsed
 
 
 def evaluate_review(
@@ -895,6 +1105,11 @@ def build_directive(
     *,
     mode: str,
     observer_source: str,
+    observer_required: bool,
+    observer_requirement_reason: str,
+    observer_data_domains: list[str],
+    observer_data_types: list[str],
+    observer_geo_strategy: str,
     expected_env_type: str,
     target_country: str,
     bbox: str,
@@ -927,8 +1142,19 @@ def build_directive(
         observer_source=observer_source,
         expected_env_type=expected_env_type,
     )
-    observer_commands = (
-        build_observer_commands(
+    if not observer_required:
+        observer_dispatch = "skipped"
+        observer_skip_reason = f"observer_not_required:{observer_requirement_reason}"
+        observer_commands = build_observer_skip_commands(
+            observer_source=observer_source,
+            expected_env_type=expected_env_type,
+            capability_domain=capability_domain,
+            skip_reason=observer_skip_reason,
+        )
+    elif observer_supported:
+        observer_dispatch = "enabled"
+        observer_skip_reason = ""
+        observer_commands = build_observer_commands(
             db=observer_db,
             archive_db=observer_archive_db,
             bbox=bbox,
@@ -937,13 +1163,15 @@ def build_directive(
             fixture_json=observer_fixture_json,
             observer_source=observer_source,
         )
-        if observer_supported
-        else build_observer_skip_commands(
+    else:
+        observer_dispatch = "skipped"
+        observer_skip_reason = "unsupported_env_type"
+        observer_commands = build_observer_skip_commands(
             observer_source=observer_source,
             expected_env_type=expected_env_type,
             capability_domain=capability_domain,
+            skip_reason=observer_skip_reason,
         )
-    )
 
     payload = {
         "mode": mode,
@@ -964,8 +1192,13 @@ def build_directive(
                 "target_country": target_country,
                 "bbox": bbox,
                 "pollutant_type": pollutant_type,
-                "dispatch": "enabled" if observer_supported else "skipped",
-                "skip_reason": "" if observer_supported else "unsupported_env_type",
+                "data_domains": observer_data_domains,
+                "data_types": observer_data_types,
+                "geo_strategy": observer_geo_strategy,
+                "required": bool(observer_required),
+                "required_reason": observer_requirement_reason,
+                "dispatch": observer_dispatch,
+                "skip_reason": observer_skip_reason,
             },
             "commands": observer_commands,
         },
@@ -1021,8 +1254,12 @@ def llm_plan(
                 "role": "system",
                 "content": (
                 "You are a strict moderator planner. Return JSON only with keys: "
-                    "mode,observer_source,expected_env_type,target_country,bbox,pollutant_type,query,theme,timespan_hours,max_records,analyzer_mode,analyzer_limit,reason,reasoning_text. "
+                    "mode,observer_required,observer_source,observer_data_domains,observer_data_types,expected_env_type,target_country,bbox,pollutant_type,query,theme,timespan_hours,max_records,analyzer_mode,analyzer_limit,reason,reasoning_text. "
                     "mode must be passive_patrol or active_reconnaissance. "
+                    "observer_required must be true or false. "
+                    "Prefer observer_required=false when objective is mainly public-opinion monitoring and physical evidence is not essential yet. "
+                    "observer_data_domains is a comma-separated list from air,water,soil,radiation,waste. "
+                    "observer_data_types is a comma-separated list of target indicators (e.g. pm25,no2,o3). "
                     "observer_source must be one of: openaq_realtime, openmeteo_grid, openaq_archive. "
                     "expected_env_type must be one of: air,water,soil,radiation,waste,general,multi. "
                     "Use openaq_realtime for near-real-time station polling; use openmeteo_grid for global coverage or key/network instability; "
@@ -1030,7 +1267,7 @@ def llm_plan(
                     "bbox must be min_lon,min_lat,max_lon,max_lat. "
                     "timespan_hours integer 1..72. max_records integer 20..250. "
                     "analyzer_mode is rule or llm. "
-                    "reasoning_text must be a human-readable short paragraph explaining why you chose these dispatch settings."
+                    "reasoning_text must be a human-readable short paragraph explaining why you chose these dispatch settings, especially when observer_required=false."
                 ),
             },
             {
@@ -1111,6 +1348,10 @@ def normalize_plan(
     match_hint = re.search(r"observer_source_hint=([a-z_]+)", context_lower)
     if match_hint:
         hinted_source = normalize_space(match_hint.group(1)).lower()
+    hinted_country = ""
+    match_country_hint = re.search(r"target_country_hint=([a-zA-Z]{2,12})", context)
+    if match_country_hint:
+        hinted_country = normalize_space(match_country_hint.group(1)).upper()
 
     observer_source = normalize_space(raw.get("observer_source")).lower()
     observer_source_origin = "raw_plan"
@@ -1149,8 +1390,12 @@ def normalize_plan(
 
     target_country = normalize_space(raw.get("target_country"))
     if not target_country:
-        target_country = preset.country_code if preset else ""
-        trace_steps.append(f"target_country fallback -> {'preset' if preset else 'empty'}")
+        if hinted_country:
+            target_country = hinted_country
+            trace_steps.append("target_country fallback -> context_hint")
+        else:
+            target_country = preset.country_code if preset else ""
+            trace_steps.append(f"target_country fallback -> {'preset' if preset else 'empty'}")
     else:
         trace_steps.append("target_country from raw_plan")
 
@@ -1171,6 +1416,38 @@ def normalize_plan(
     analyzer_limit = max(1, min(500, analyzer_limit))
     trace_steps.append(f"analyzer_limit normalized -> {analyzer_limit}")
 
+    observer_required_raw = _parse_boolish(raw.get("observer_required"))
+    if observer_required_raw is None:
+        observer_required, observer_requirement_reason = infer_observer_requirement(
+            objective=objective,
+            context=context,
+            query=query,
+            themes=themes,
+            mode=mode,
+            expected_env_type=expected_env_type,
+            bbox_source=bbox_source,
+            target_country=target_country,
+        )
+        trace_steps.append(f"observer_required inferred -> {observer_required} ({observer_requirement_reason})")
+    else:
+        observer_required = observer_required_raw
+        observer_requirement_reason = "raw_plan"
+        trace_steps.append(f"observer_required from raw_plan -> {observer_required}")
+
+    observer_data_domains, observer_data_types, observer_geo_strategy = infer_observer_data_plan(
+        objective=objective,
+        context=context,
+        query=query,
+        themes=themes,
+        expected_env_type=expected_env_type,
+        bbox_source=bbox_source,
+        raw_domains=normalize_space(raw.get("observer_data_domains")),
+        raw_types=normalize_space(raw.get("observer_data_types")),
+    )
+    trace_steps.append(f"observer_data_domains -> {observer_data_domains}")
+    trace_steps.append(f"observer_data_types -> {observer_data_types}")
+    trace_steps.append(f"observer_geo_strategy -> {observer_geo_strategy}")
+
     reason = normalize_space(raw.get("reason"))
     reasoning_text = normalize_space(raw.get("reasoning_text"))
     if not reasoning_text:
@@ -1185,9 +1462,21 @@ def normalize_plan(
             reasoning_text
             + " No geographic signal was extracted from objective/context/LLM plan, so fallback_bbox was used."
         )
+    if not observer_required:
+        reasoning_text = reasoning_text + f" Observer dispatch skipped ({observer_requirement_reason})."
+    else:
+        reasoning_text = (
+            reasoning_text
+            + f" Observer plan: domains={observer_data_domains}, types={observer_data_types}, geo_strategy={observer_geo_strategy}."
+        )
 
     return {
         "mode": mode,
+        "observer_required": bool(observer_required),
+        "observer_requirement_reason": observer_requirement_reason,
+        "observer_data_domains": observer_data_domains,
+        "observer_data_types": observer_data_types,
+        "observer_geo_strategy": observer_geo_strategy,
         "observer_source": observer_source,
         "expected_env_type": expected_env_type,
         "target_country": target_country,
@@ -1204,8 +1493,14 @@ def normalize_plan(
         "decision_trace": {
             "bbox_source": bbox_source,
             "observer_source_origin": observer_source_origin,
+            "observer_required": bool(observer_required),
+            "observer_requirement_reason": observer_requirement_reason,
+            "observer_data_domains": observer_data_domains,
+            "observer_data_types": observer_data_types,
+            "observer_geo_strategy": observer_geo_strategy,
             "preset_used": preset.name if preset else "",
             "context_hint_observer_source": hinted_source,
+            "context_hint_target_country": hinted_country,
             "trace_steps": trace_steps,
         },
         "scenario": preset.name if preset else "custom",
@@ -1222,6 +1517,11 @@ def cmd_patrol(args: argparse.Namespace) -> int:
     directive = build_directive(
         mode="passive_patrol",
         observer_source=args.observer_source,
+        observer_required=True,
+        observer_requirement_reason="manual_patrol_command",
+        observer_data_domains=[args.expected_env_type] if args.expected_env_type in SUPPORTED_ENV_TYPES else ["air"],
+        observer_data_types=_parse_csv_tokens(args.pollutant_type) or ["pm25", "no2", "o3"],
+        observer_geo_strategy="manual_bbox",
         expected_env_type=args.expected_env_type,
         target_country=args.target_country,
         bbox=parse_bbox(args.bbox),
@@ -1263,6 +1563,11 @@ def cmd_recon(args: argparse.Namespace) -> int:
     directive = build_directive(
         mode="active_reconnaissance",
         observer_source=args.observer_source,
+        observer_required=True,
+        observer_requirement_reason="manual_recon_command",
+        observer_data_domains=[args.expected_env_type] if args.expected_env_type in SUPPORTED_ENV_TYPES else ["air"],
+        observer_data_types=_parse_csv_tokens(pollutant_type) or ["pm25", "no2", "o3"],
+        observer_geo_strategy="manual_or_preset_bbox",
         expected_env_type=args.expected_env_type,
         target_country=args.target_country,
         bbox=bbox,
@@ -1383,6 +1688,52 @@ def cmd_orchestrate(args: argparse.Namespace) -> int:
             fallback_query=args.fallback_query,
             fallback_themes=args.fallback_themes,
         )
+        try:
+            observer_plan = run_observer_planner(
+                objective=args.objective,
+                context=current_context,
+                query=plan["query"],
+                themes=plan["theme"],
+                mode=plan["mode"],
+                expected_env_type=plan["expected_env_type"],
+                bbox_source=str((plan.get("decision_trace") or {}).get("bbox_source") or "fallback_bbox"),
+                geo_strategy=str((plan.get("observer_geo_strategy") or "fallback_bbox_global_scan")),
+                target_country=plan["target_country"],
+                raw_data_domains=[str(x) for x in plan.get("observer_data_domains", [])],
+                raw_data_types=[str(x) for x in plan.get("observer_data_types", [])],
+                planner=args.observer_planner,
+                timeout=args.llm_timeout,
+            )
+            plan["observer_required"] = bool(observer_plan.get("required"))
+            plan["observer_requirement_reason"] = normalize_space(
+                observer_plan.get("requirement_reason") or plan.get("observer_requirement_reason") or "observer_planner"
+            )
+            plan["observer_data_domains"] = [
+                str(x) for x in observer_plan.get("data_domains", []) if normalize_space(x)
+            ] or [str(x) for x in plan.get("observer_data_domains", []) if normalize_space(x)]
+            plan["observer_data_types"] = [
+                str(x) for x in observer_plan.get("data_types", []) if normalize_space(x)
+            ] or [str(x) for x in plan.get("observer_data_types", []) if normalize_space(x)]
+            plan["observer_geo_strategy"] = normalize_space(
+                observer_plan.get("geo_strategy") or plan.get("observer_geo_strategy") or "fallback_bbox_global_scan"
+            )
+            preferred_source = normalize_space(observer_plan.get("source_preference") or "").lower()
+            if preferred_source in {"openaq_realtime", "openmeteo_grid", "openaq_archive"}:
+                plan["observer_source"] = preferred_source
+            if not normalize_space(plan.get("target_country")):
+                hint_country = normalize_space(observer_plan.get("target_country_hint") or "")
+                if hint_country:
+                    plan["target_country"] = hint_country
+            plan["reasoning_text"] = normalize_space(
+                f"{plan.get('reasoning_text', '')} observer_planner={observer_plan.get('planner_used', 'unknown')}; "
+                f"{normalize_space(observer_plan.get('reasoning_text') or '')}"
+            )
+            decision_trace = plan.setdefault("decision_trace", {})
+            if isinstance(decision_trace, dict):
+                decision_trace["observer_planner_used"] = normalize_space(observer_plan.get("planner_used") or "")
+                decision_trace["observer_planner_reasoning"] = normalize_space(observer_plan.get("reasoning_text") or "")
+        except Exception as exc:
+            log_event("skill_error", "Observer planner failed, fallback to inline plan", {"detail": str(exc)})
         log_event(
             "reasoning_trace",
             "Planner reasoning text",
@@ -1408,6 +1759,11 @@ def cmd_orchestrate(args: argparse.Namespace) -> int:
         directive = build_directive(
             mode=plan["mode"],
             observer_source=plan["observer_source"],
+            observer_required=bool(plan.get("observer_required", True)),
+            observer_requirement_reason=normalize_space(plan.get("observer_requirement_reason") or "plan_default"),
+            observer_data_domains=[str(x) for x in plan.get("observer_data_domains", []) if normalize_space(x)],
+            observer_data_types=[str(x) for x in plan.get("observer_data_types", []) if normalize_space(x)],
+            observer_geo_strategy=normalize_space(plan.get("observer_geo_strategy") or "llm_or_manual_bbox"),
             expected_env_type=plan["expected_env_type"],
             target_country=plan["target_country"],
             bbox=plan["bbox"],
@@ -1443,6 +1799,7 @@ def cmd_orchestrate(args: argparse.Namespace) -> int:
             target_country=plan["target_country"],
             min_physical_rows=args.report_min_physical_rows,
             min_social_rows=args.report_min_social_rows,
+            physical_optional=directive.get("observer", {}).get("params", {}).get("dispatch") != "enabled",
             output_dir=args.eco_output_dir,
             config_env=args.config_env,
             config_json=args.config_json,
@@ -1586,11 +1943,15 @@ def cmd_orchestrate(args: argparse.Namespace) -> int:
             ):
                 observer_hint = "observer_source_hint=openmeteo_grid"
             readiness_reason = ",".join(str(x) for x in eco_readiness.get("reasons", []))
+            geo_country_hint = ""
+            if "geographic_mismatch" in {str(x) for x in eco_readiness.get("reasons", [])}:
+                geo_country_hint = infer_country_hint_from_eco_ingest(eco_artifacts.get("ingest_json", ""))
+            target_country_hint = f"target_country_hint={geo_country_hint}" if geo_country_hint else ""
             current_context = normalize_space(
                 (
                     f"{current_context} observer_status={observer_status} listener_status={listener_status} "
                     f"caswarn_status={caswarn_status} data_sufficiency={eco_readiness.get('status')} "
-                    f"readiness_reasons={readiness_reason} {observer_hint}"
+                    f"readiness_reasons={readiness_reason} {observer_hint} {target_country_hint}"
                 )
             )
             continue
@@ -1714,6 +2075,7 @@ def build_parser() -> argparse.ArgumentParser:
     orchestrate.add_argument("--objective", required=True)
     orchestrate.add_argument("--context", default="")
     orchestrate.add_argument("--planner", choices=("llm", "preset"), default="llm")
+    orchestrate.add_argument("--observer-planner", choices=("auto", "rule", "llm"), default="auto")
     orchestrate.add_argument("--initial-mode", choices=("patrol", "recon"), default="patrol")
     orchestrate.add_argument("--max-cycles", type=int, default=2)
     orchestrate.add_argument("--run-analyzer-always", action="store_true")

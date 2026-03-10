@@ -122,3 +122,4 @@ python3 scripts/observer_summarize.py list-metrics --db "$OBSERVER_DB_PATH" --li
 - `scripts/observer_enrich.py` (stage-2 enrich)
 - `scripts/observer_summarize.py` (stage-3 summarize/list)
 - `scripts/aqi_ingest.py` (compatibility entrypoint)
+- `scripts/observer_plan.py` (observer-side requirement planner for moderator: decide whether physical fetch is needed, which domains/types to request, and which source to prefer)

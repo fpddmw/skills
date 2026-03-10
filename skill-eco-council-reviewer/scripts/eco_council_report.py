@@ -34,6 +34,7 @@ COUNTRY_ALIASES = {
     "TH": {"TH", "THAILAND"},
     "IN": {"IN", "INDIA"},
 }
+GLOBAL_SCOPE_TOKENS = {"GLOBAL", "WORLD", "ALL", "INTERNATIONAL", "MULTI"}
 SOCIAL_DOMAIN_KEYWORDS = {
     "air": ("air", "smog", "pm2.5", "ozone", "no2"),
     "water": ("water", "wastewater", "river", "sewage", "ocean", "marine"),
@@ -960,9 +961,11 @@ def compute_alignment_status(
     physical_domain = "air"
     expected = normalize_text(expected_env_type).lower() or "general"
     target_country_norm = normalize_country_token(target_country)
+    if target_country_norm in GLOBAL_SCOPE_TOKENS:
+        target_country_norm = ""
 
     geo_status = "unknown"
-    geo_reason = "country labels missing"
+    geo_reason = "country labels missing or global scope"
     if target_country_norm:
         if target_country_norm in social_countries and physical_rows > 0 and normalize_text(target_bbox):
             geo_status = "aligned"
