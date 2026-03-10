@@ -16,6 +16,12 @@ from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.append(str(REPO_ROOT))
+
+from common.human_log import HumanLogger, default_skill_log_root
+
 DEFAULT_TIMEOUT = 30.0
 DEFAULT_USER_AGENT = "skill-eco-council-reviewer/1.0"
 DEFAULT_CONFIG_ENV = "moderator-observer-listener-orchestrator/assets/config.env"
@@ -35,6 +41,8 @@ SOCIAL_DOMAIN_KEYWORDS = {
     "radiation": ("radiation", "radioactive", "nuclear"),
     "waste": ("waste", "garbage", "incinerator", "dump"),
 }
+SKILL_NAME = "skill-eco-council-reviewer"
+LOGGER: HumanLogger | None = None
 
 
 def now_iso() -> str:
@@ -43,6 +51,17 @@ def now_iso() -> str:
 
 def normalize_text(value: Any) -> str:
     return " ".join(str(value or "").split())
+
+
+def ensure_logger() -> None:
+    global LOGGER  # pylint: disable=global-statement
+    if LOGGER is None:
+        LOGGER = HumanLogger(skill_name=SKILL_NAME, root_dir=default_skill_log_root(__file__))
+
+
+def log_event(category: str, summary: str, details: dict[str, Any] | None = None) -> None:
+    if LOGGER is not None:
+        LOGGER.log(category=category, summary=summary, details=details or {})
 
 
 def ensure_parent(path: Path) -> None:
@@ -437,6 +456,11 @@ def api_json(
     body: dict[str, Any],
     timeout: float,
 ) -> dict[str, Any]:
+    log_event(
+        "api_request",
+        "Eco council API request",
+        {"url": url, "timeout_seconds": timeout, "headers": headers, "body": body},
+    )
     req = Request(
         url=url,
         method="POST",
@@ -457,6 +481,7 @@ def api_json(
         raise RuntimeError("invalid_json_response") from exc
     if not isinstance(payload, dict):
         raise RuntimeError("unexpected_response_shape")
+    log_event("api_response", "Eco council API response", {"url": url, "payload": payload})
     return payload
 
 
@@ -506,6 +531,11 @@ def call_openai(prompt: str, *, timeout: float) -> dict[str, Any]:
     model = normalize_text(os.environ.get("OPENAI_MODEL") or os.environ.get("LLM_MODEL") or "gpt-4.1-mini")
     if not api_key:
         raise RuntimeError("missing OPENAI_API_KEY")
+    log_event(
+        "llm_prompt",
+        "Eco council OpenAI prompt",
+        {"provider": "openai", "model": model, "base_url": base_url, "prompt": prompt},
+    )
 
     try:
         response = api_json(
@@ -546,6 +576,7 @@ def call_openai(prompt: str, *, timeout: float) -> dict[str, Any]:
         payload = parse_json_string(extract_responses_text(response))
     payload["provider"] = "openai"
     payload["model"] = model
+    log_event("llm_response", "Eco council OpenAI response parsed", {"provider": "openai", "model": model, "payload": payload})
     return payload
 
 
@@ -555,6 +586,11 @@ def call_claude(prompt: str, *, timeout: float) -> dict[str, Any]:
     model = normalize_text(os.environ.get("ANTHROPIC_MODEL") or "claude-3-5-sonnet-latest")
     if not api_key:
         raise RuntimeError("missing ANTHROPIC_API_KEY")
+    log_event(
+        "llm_prompt",
+        "Eco council Claude prompt",
+        {"provider": "claude", "model": model, "base_url": base_url, "prompt": prompt},
+    )
 
     response = api_json(
         f"{base_url}/messages",
@@ -582,6 +618,7 @@ def call_claude(prompt: str, *, timeout: float) -> dict[str, Any]:
     payload = parse_json_string(merged)
     payload["provider"] = "claude"
     payload["model"] = model
+    log_event("llm_response", "Eco council Claude response parsed", {"provider": "claude", "model": model, "payload": payload})
     return payload
 
 
@@ -747,6 +784,8 @@ def render_markdown(
 
 
 def cmd_ingest(args: argparse.Namespace) -> int:
+    ensure_logger()
+    log_event("workflow_start", "Run eco-council ingest", {"args": vars(args)})
     physical_facts = fetch_physical_snapshot(
         args.observer_db,
         start_datetime=args.start_datetime,
@@ -832,6 +871,17 @@ def cmd_ingest(args: argparse.Namespace) -> int:
         f"physical_rows={payload['physical_facts']['rows_in_scope']} "
         f"social_rows={payload['social_opinion']['rows_in_scope']} "
         f"ready_for_summary={payload['alignment_status']['data_sufficiency']['ready_for_summary']}"
+    )
+    log_event(
+        "workflow_end",
+        "Run eco-council ingest completed",
+        {
+            "event_id": payload["event_id"],
+            "output": args.output_json,
+            "physical_rows": payload["physical_facts"]["rows_in_scope"],
+            "social_rows": payload["social_opinion"]["rows_in_scope"],
+            "ready_for_summary": payload["alignment_status"]["data_sufficiency"]["ready_for_summary"],
+        },
     )
     return 0
 
@@ -977,6 +1027,8 @@ def compute_alignment_status(
 
 
 def cmd_enrich(args: argparse.Namespace) -> int:
+    ensure_logger()
+    log_event("workflow_start", "Run eco-council enrich", {"args": vars(args)})
     load_runtime_config(args.config_env, args.config_json)
     ingest_payload = load_json(args.ingest_json)
     prompt_payload = compact_ingest_payload(ingest_payload) if args.compact_prompt else ingest_payload
@@ -998,10 +1050,17 @@ def cmd_enrich(args: argparse.Namespace) -> int:
     result["input_file"] = args.ingest_json
     dump_json(args.output_json, result)
     print(f"ECO_COUNCIL_ENRICH_OK provider={result.get('provider')} output={args.output_json}")
+    log_event(
+        "workflow_end",
+        "Run eco-council enrich completed",
+        {"provider": result.get("provider"), "model": result.get("model"), "output": args.output_json},
+    )
     return 0
 
 
 def cmd_summarize(args: argparse.Namespace) -> int:
+    ensure_logger()
+    log_event("workflow_start", "Run eco-council summarize", {"args": vars(args)})
     ingest_payload = load_json(args.ingest_json)
     enrich_payload = load_json(args.enrich_json)
     markdown = render_markdown(ingest_payload, enrich_payload, title=args.title)
@@ -1011,6 +1070,7 @@ def cmd_summarize(args: argparse.Namespace) -> int:
     output.write_text(markdown, encoding="utf-8")
 
     print(f"ECO_COUNCIL_SUMMARY_OK output={args.output_md} bytes={len(markdown.encode('utf-8'))}")
+    log_event("workflow_end", "Run eco-council summarize completed", {"output": args.output_md, "bytes": len(markdown.encode("utf-8"))})
     return 0
 
 
@@ -1074,22 +1134,34 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    global LOGGER  # pylint: disable=global-statement
     parser = build_parser()
     args = parser.parse_args()
+    LOGGER = HumanLogger(skill_name=SKILL_NAME, root_dir=default_skill_log_root(__file__))
+    log_event("cli_invocation", "CLI invoked", {"argv": sys.argv, "args": vars(args)})
     try:
-        return int(args.func(args))
+        code = int(args.func(args))
+        log_event("cli_exit", "CLI completed", {"exit_code": code})
+        return code
     except sqlite3.Error as exc:
         print(f"ECO_COUNCIL_ERR reason=sqlite_error detail={exc}", file=sys.stderr)
+        log_event("cli_error", "SQLite error", {"detail": str(exc)})
         return 1
     except ValueError as exc:
         print(f"ECO_COUNCIL_ERR reason=value_error detail={exc}", file=sys.stderr)
+        log_event("cli_error", "Value error", {"detail": str(exc)})
         return 1
     except RuntimeError as exc:
         print(f"ECO_COUNCIL_ERR reason=runtime_error detail={exc}", file=sys.stderr)
+        log_event("cli_error", "Runtime error", {"detail": str(exc)})
         return 1
     except Exception as exc:
         print(f"ECO_COUNCIL_ERR reason=unexpected detail={exc}", file=sys.stderr)
+        log_event("cli_error", "Unexpected error", {"detail": str(exc)})
         return 1
+    finally:
+        if LOGGER is not None:
+            LOGGER.close()
 
 
 if __name__ == "__main__":

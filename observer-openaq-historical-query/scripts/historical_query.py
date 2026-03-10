@@ -8,6 +8,20 @@ import sqlite3
 import sys
 from pathlib import Path
 
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.append(str(REPO_ROOT))
+
+from common.human_log import HumanLogger, default_skill_log_root
+
+SKILL_NAME = "observer-openaq-historical-query"
+LOGGER: HumanLogger | None = None
+
+
+def log_event(category: str, summary: str, details: dict[str, object] | None = None) -> None:
+    if LOGGER is not None:
+        LOGGER.log(category=category, summary=summary, details=details or {})
+
 
 def connect(path: str) -> sqlite3.Connection:
     conn = sqlite3.connect(path)
@@ -51,6 +65,7 @@ def ensure_target_table(conn: sqlite3.Connection) -> None:
 
 
 def cmd_ingest(args: argparse.Namespace) -> int:
+    log_event("workflow_start", "Run historical ingest", {"args": vars(args)})
     min_lon, min_lat, max_lon, max_lat = parse_bbox(args.bbox)
     source_db = Path(args.archive_db).expanduser()
     target_db = Path(args.db).expanduser()
@@ -123,6 +138,11 @@ def cmd_ingest(args: argparse.Namespace) -> int:
         f"start={args.start_datetime} end={args.end_datetime} "
         f"bbox={min_lon},{min_lat},{max_lon},{max_lat} selected={len(rows)} upserted={upserted}"
     )
+    log_event(
+        "workflow_end",
+        "Run historical ingest completed",
+        {"selected": len(rows), "upserted": upserted, "source_db": str(source_db), "target_db": str(target_db)},
+    )
     return 0
 
 
@@ -143,19 +163,30 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    global LOGGER  # pylint: disable=global-statement
     parser = build_parser()
     args = parser.parse_args()
+    LOGGER = HumanLogger(skill_name=SKILL_NAME, root_dir=default_skill_log_root(__file__))
+    log_event("cli_invocation", "CLI invoked", {"argv": sys.argv, "args": vars(args)})
     try:
-        return int(args.func(args))
+        code = int(args.func(args))
+        log_event("cli_exit", "CLI completed", {"exit_code": code})
+        return code
     except sqlite3.Error as exc:
         print(f"PHYSICAL_ERR reason=sqlite_error detail={exc}", file=sys.stderr)
+        log_event("cli_error", "SQLite error", {"detail": str(exc)})
         return 1
     except ValueError as exc:
         print(f"PHYSICAL_ERR reason=value_error detail={exc}", file=sys.stderr)
+        log_event("cli_error", "Value error", {"detail": str(exc)})
         return 1
     except Exception as exc:
         print(f"PHYSICAL_ERR reason=unexpected detail={exc}", file=sys.stderr)
+        log_event("cli_error", "Unexpected error", {"detail": str(exc)})
         return 1
+    finally:
+        if LOGGER is not None:
+            LOGGER.close()
 
 
 if __name__ == "__main__":

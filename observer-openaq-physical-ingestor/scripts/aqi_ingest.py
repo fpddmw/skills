@@ -18,6 +18,12 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.append(str(REPO_ROOT))
+
+from common.human_log import HumanLogger, default_skill_log_root
+
 
 DEFAULT_DB_FILENAME = "observer_physical.db"
 DEFAULT_DB_PATH = os.environ.get("OBSERVER_DB_PATH", DEFAULT_DB_FILENAME)
@@ -35,6 +41,8 @@ LEGACY_ENTRYPOINT_NOTICE = (
     "PHYSICAL_WARN legacy_entrypoint=scripts/aqi_ingest.py "
     "recommended=scripts/observer_ingest.py,scripts/observer_enrich.py,scripts/observer_summarize.py"
 )
+SKILL_NAME = "observer-openaq-physical-ingestor"
+LOGGER: HumanLogger | None = None
 
 TARGET_PARAMETER_IDS = {
     "pm25": 2,
@@ -150,6 +158,17 @@ def normalize_space(value: str) -> str:
     return " ".join(str(value or "").split())
 
 
+def ensure_logger() -> None:
+    global LOGGER  # pylint: disable=global-statement
+    if LOGGER is None:
+        LOGGER = HumanLogger(skill_name=SKILL_NAME, root_dir=default_skill_log_root(__file__))
+
+
+def log_event(category: str, summary: str, details: dict[str, Any] | None = None) -> None:
+    if LOGGER is not None:
+        LOGGER.log(category=category, summary=summary, details=details or {})
+
+
 def parse_iso_datetime(raw: str, label: str) -> str:
     text = normalize_space(raw)
     if not text:
@@ -256,6 +275,11 @@ def load_fixture_records(path: str) -> list[dict[str, Any]]:
 def openaq_get(config: RuntimeConfig, path: str, query: dict[str, Any]) -> dict[str, Any]:
     cleaned = {k: v for k, v in query.items() if v is not None and str(v) != ""}
     url = config.openaq_base_url.rstrip("/") + path + "?" + urlencode(cleaned, doseq=True)
+    log_event(
+        "api_request",
+        "OpenAQ request",
+        {"url": url, "timeout_seconds": config.timeout, "query": cleaned, "provider": config.provider},
+    )
     req = Request(
         url=url,
         method="GET",
@@ -280,12 +304,18 @@ def openaq_get(config: RuntimeConfig, path: str, query: dict[str, Any]) -> dict[
         raise RuntimeError("openaq_invalid_json") from exc
     if not isinstance(payload, dict):
         raise RuntimeError("openaq_invalid_shape")
+    log_event("api_response", "OpenAQ response", {"url": url, "payload": payload})
     return payload
 
 
 def openmeteo_get(config: RuntimeConfig, query: dict[str, Any]) -> dict[str, Any]:
     cleaned = {k: v for k, v in query.items() if v is not None and str(v) != ""}
     url = config.openmeteo_base_url.rstrip("/") + "?" + urlencode(cleaned, doseq=True)
+    log_event(
+        "api_request",
+        "Open-Meteo request",
+        {"url": url, "timeout_seconds": config.timeout, "query": cleaned, "provider": config.provider},
+    )
     req = Request(
         url=url,
         method="GET",
@@ -309,6 +339,7 @@ def openmeteo_get(config: RuntimeConfig, query: dict[str, Any]) -> dict[str, Any
         raise RuntimeError("openmeteo_invalid_json") from exc
     if not isinstance(payload, dict):
         raise RuntimeError("openmeteo_invalid_shape")
+    log_event("api_response", "Open-Meteo response", {"url": url, "payload": payload})
     return payload
 
 
@@ -744,13 +775,18 @@ def upsert_raw_row(
 
 
 def cmd_init_db(args: argparse.Namespace) -> int:
+    ensure_logger()
+    log_event("workflow_start", "Initialize physical DB", {"args": vars(args)})
     with connect_db(args.db) as conn:
         init_db(conn)
     print(f"PHYSICAL_DB_OK path={resolve_db_path(args.db)} tables=aq_raw_observations,aq_enriched_observations,physical_metrics")
+    log_event("workflow_end", "Initialize physical DB completed", {"db": str(resolve_db_path(args.db))})
     return 0
 
 
 def cmd_ingest(args: argparse.Namespace) -> int:
+    ensure_logger()
+    log_event("workflow_start", "Run physical ingest", {"args": vars(args)})
     min_lon, min_lat, max_lon, max_lat = parse_bbox(args.bbox)
     start_utc = parse_iso_datetime(args.start_datetime, "--start-datetime")
     end_utc = parse_iso_datetime(args.end_datetime, "--end-datetime")
@@ -926,10 +962,24 @@ def cmd_ingest(args: argparse.Namespace) -> int:
         f"locations={len(locations)} sensors={sensors_scanned} fetched={rows_fetched} "
         f"upserted={raw_upserted} raw_total={raw_total} countries={country_count}"
     )
+    log_event(
+        "workflow_end",
+        "Run physical ingest completed",
+        {
+            "provider": provider_used,
+            "locations": len(locations),
+            "sensors": sensors_scanned,
+            "fetched": rows_fetched,
+            "upserted": raw_upserted,
+            "raw_total": raw_total,
+        },
+    )
     return 0
 
 
 def cmd_enrich(args: argparse.Namespace) -> int:
+    ensure_logger()
+    log_event("workflow_start", "Run physical enrich", {"args": vars(args)})
     start_utc = parse_iso_datetime(args.start_datetime, "--start-datetime") if args.start_datetime else ""
     end_utc = parse_iso_datetime(args.end_datetime, "--end-datetime") if args.end_datetime else ""
     if start_utc and end_utc and end_utc <= start_utc:
@@ -1023,10 +1073,17 @@ def cmd_enrich(args: argparse.Namespace) -> int:
         "PHYSICAL_ENRICH_OK "
         f"processed={processed} upserted={upserted} exceeded={exceeded} enriched_total={enriched_total}"
     )
+    log_event(
+        "workflow_end",
+        "Run physical enrich completed",
+        {"processed": processed, "upserted": upserted, "exceeded": exceeded, "enriched_total": enriched_total},
+    )
     return 0
 
 
 def cmd_summarize(args: argparse.Namespace) -> int:
+    ensure_logger()
+    log_event("workflow_start", "Run physical summarize", {"args": vars(args)})
     start_utc = parse_iso_datetime(args.start_datetime, "--start-datetime") if args.start_datetime else ""
     end_utc = parse_iso_datetime(args.end_datetime, "--end-datetime") if args.end_datetime else ""
     if start_utc and end_utc and end_utc <= start_utc:
@@ -1129,6 +1186,17 @@ def cmd_summarize(args: argparse.Namespace) -> int:
     print(
         "PHYSICAL_SUMMARY_OK "
         f"raw_rows={raw_rows} enriched_rows={enriched_rows} groups={len(rows)} upserted={upserted} metric_rows={metric_rows}"
+    )
+    log_event(
+        "workflow_end",
+        "Run physical summarize completed",
+        {
+            "raw_rows": raw_rows,
+            "enriched_rows": enriched_rows,
+            "groups": len(rows),
+            "upserted": upserted,
+            "metric_rows": metric_rows,
+        },
     )
     return 0
 
@@ -1235,23 +1303,35 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    global LOGGER  # pylint: disable=global-statement
     parser = build_parser()
     args = parser.parse_args()
+    LOGGER = HumanLogger(skill_name=SKILL_NAME, root_dir=default_skill_log_root(__file__))
+    log_event("cli_invocation", "CLI invoked", {"argv": sys.argv, "args": vars(args)})
     print(LEGACY_ENTRYPOINT_NOTICE, file=sys.stderr)
     try:
-        return int(args.func(args))
+        code = int(args.func(args))
+        log_event("cli_exit", "CLI completed", {"exit_code": code})
+        return code
     except sqlite3.Error as exc:
         print(f"PHYSICAL_ERR reason=sqlite_error detail={exc}", file=sys.stderr)
+        log_event("cli_error", "SQLite error", {"detail": str(exc)})
         return 1
     except ValueError as exc:
         print(f"PHYSICAL_ERR reason=value_error detail={exc}", file=sys.stderr)
+        log_event("cli_error", "Value error", {"detail": str(exc)})
         return 1
     except RuntimeError as exc:
         print(f"PHYSICAL_ERR reason=runtime_error detail={exc}", file=sys.stderr)
+        log_event("cli_error", "Runtime error", {"detail": str(exc)})
         return 1
     except Exception as exc:  # pragma: no cover - defensive
         print(f"PHYSICAL_ERR reason=unexpected detail={exc}", file=sys.stderr)
+        log_event("cli_error", "Unexpected error", {"detail": str(exc)})
         return 1
+    finally:
+        if LOGGER is not None:
+            LOGGER.close()
 
 
 if __name__ == "__main__":

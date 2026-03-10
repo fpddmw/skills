@@ -16,12 +16,20 @@ from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.append(str(REPO_ROOT))
+
+from common.human_log import HumanLogger, default_skill_log_root
+
 
 DEFAULT_DB_FILENAME = "gdelt_environment.db"
 DEFAULT_DB_PATH = os.environ.get("GDELT_ENV_DB_PATH", DEFAULT_DB_FILENAME)
 DEFAULT_TIMEOUT = 25.0
 DEFAULT_USER_AGENT = "listener-caswarn-analyzer/1.0 (+https://github.com/tiangong-ai/skills)"
 ALLOWED_MODES = {"rule", "llm"}
+SKILL_NAME = "listener-caswarn-analyzer"
+LOGGER: HumanLogger | None = None
 
 
 @dataclass(frozen=True)
@@ -36,6 +44,17 @@ class AnalysisResult:
 
 def normalize_space(value: Any) -> str:
     return " ".join(str(value or "").split())
+
+
+def ensure_logger() -> None:
+    global LOGGER  # pylint: disable=global-statement
+    if LOGGER is None:
+        LOGGER = HumanLogger(skill_name=SKILL_NAME, root_dir=default_skill_log_root(__file__))
+
+
+def log_event(category: str, summary: str, details: dict[str, Any] | None = None) -> None:
+    if LOGGER is not None:
+        LOGGER.log(category=category, summary=summary, details=details or {})
 
 
 def resolve_db_path(db_path: str) -> Path:
@@ -117,6 +136,11 @@ def call_json_api(
     headers: dict[str, str] | None = None,
     body: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    log_event(
+        "api_request",
+        "CASWARN HTTP request",
+        {"url": url, "method": method, "timeout_seconds": timeout, "headers": headers or {}, "body": body or {}},
+    )
     payload: bytes | None = None
     req_headers = {"User-Agent": DEFAULT_USER_AGENT}
     if headers:
@@ -140,6 +164,7 @@ def call_json_api(
         raise RuntimeError("invalid_json_response") from exc
     if not isinstance(payload_json, dict):
         raise RuntimeError("unexpected_response_shape")
+    log_event("api_response", "CASWARN HTTP response", {"url": url, "payload": payload_json})
     return payload_json
 
 
@@ -233,6 +258,11 @@ def analyze_llm(
         ],
         "response_format": {"type": "json_object"},
     }
+    log_event(
+        "llm_prompt",
+        "CASWARN LLM prompt",
+        {"model": llm_model, "base_url": llm_base_url, "prompt_body": body},
+    )
     payload = call_json_api(
         url=f"{llm_base_url}/chat/completions",
         timeout=timeout,
@@ -253,7 +283,7 @@ def analyze_llm(
     sarf_label = normalize_space(parsed.get("sarf_label") or "").lower() or "low"
     if sarf_label not in {"low", "medium", "high"}:
         sarf_label = "low"
-    return AnalysisResult(
+    result = AnalysisResult(
         sarf_label=sarf_label,
         sarf_reason=normalize_space(parsed.get("sarf_reason") or "llm_no_reason"),
         dominant_emotion=normalize_space(parsed.get("dominant_emotion") or "neutral").lower(),
@@ -261,6 +291,8 @@ def analyze_llm(
         risk_frame=normalize_space(parsed.get("risk_frame") or "general concern"),
         model_name=f"llm:{llm_model}",
     )
+    log_event("llm_response", "CASWARN LLM response parsed", {"model": llm_model, "result": result.__dict__})
+    return result
 
 
 def analyze_one(
@@ -295,6 +327,8 @@ def analyze_one(
 
 
 def run_analysis(args: argparse.Namespace) -> int:
+    ensure_logger()
+    log_event("workflow_start", "Run CASWARN analysis", {"args": vars(args)})
     mode = normalize_space(args.mode).lower()
     if mode not in ALLOWED_MODES:
         raise ValueError(f"--mode must be one of {sorted(ALLOWED_MODES)}")
@@ -369,12 +403,18 @@ def run_analysis(args: argparse.Namespace) -> int:
 
     if analyzed_count == 0:
         print('[SUCCESS] Analyzed 0 news items | {"dominant_emotion":"none","nimby_risk_score":0.0}')
+        log_event("workflow_end", "CASWARN analysis completed", {"analyzed_count": 0})
         return 0
 
     dominant = Counter(emotions).most_common(1)[0][0] if emotions else "neutral"
     avg_risk = round(sum(risk_scores) / len(risk_scores), 4) if risk_scores else 0.0
     print(
         f'[SUCCESS] Analyzed {analyzed_count} news items | {{"dominant_emotion":"{dominant}","nimby_risk_score":{avg_risk}}}'
+    )
+    log_event(
+        "workflow_end",
+        "CASWARN analysis completed",
+        {"analyzed_count": analyzed_count, "dominant_emotion": dominant, "average_risk": avg_risk},
     )
     return 0
 
@@ -397,22 +437,34 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    global LOGGER  # pylint: disable=global-statement
     parser = build_parser()
     args = parser.parse_args()
+    LOGGER = HumanLogger(skill_name=SKILL_NAME, root_dir=default_skill_log_root(__file__))
+    log_event("cli_invocation", "CLI invoked", {"argv": sys.argv, "args": vars(args)})
     try:
-        return int(run_analysis(args))
+        code = int(run_analysis(args))
+        log_event("cli_exit", "CLI completed", {"exit_code": code})
+        return code
     except sqlite3.Error as exc:
         print(f"CASWARN_ERR reason=sqlite_error detail={exc}", file=sys.stderr)
+        log_event("cli_error", "SQLite error", {"detail": str(exc)})
         return 1
     except ValueError as exc:
         print(f"CASWARN_ERR reason=value_error detail={exc}", file=sys.stderr)
+        log_event("cli_error", "Value error", {"detail": str(exc)})
         return 1
     except RuntimeError as exc:
         print(f"CASWARN_ERR reason=runtime_error detail={exc}", file=sys.stderr)
+        log_event("cli_error", "Runtime error", {"detail": str(exc)})
         return 1
     except Exception as exc:
         print(f"CASWARN_ERR reason=unexpected detail={exc}", file=sys.stderr)
+        log_event("cli_error", "Unexpected error", {"detail": str(exc)})
         return 1
+    finally:
+        if LOGGER is not None:
+            LOGGER.close()
 
 
 if __name__ == "__main__":

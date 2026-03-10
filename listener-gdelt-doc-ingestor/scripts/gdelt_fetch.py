@@ -19,6 +19,12 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from urllib.request import Request, urlopen
 
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.append(str(REPO_ROOT))
+
+from common.human_log import HumanLogger, default_skill_log_root
+
 
 DEFAULT_DB_FILENAME = "gdelt_environment.db"
 DEFAULT_DB_PATH = os.environ.get("GDELT_ENV_DB_PATH", DEFAULT_DB_FILENAME)
@@ -49,6 +55,8 @@ DEFAULT_GDELT_RETRY_WAIT_SECONDS = 8.0
 DEFAULT_GDELT_MAX_ATTEMPTS = 5
 GDELT_MIN_INTERVAL_SECONDS = 5.2
 _LAST_GDELT_REQUEST_TS = 0.0
+SKILL_NAME = "listener-gdelt-doc-ingestor"
+LOGGER: HumanLogger | None = None
 
 ALLOWED_CLASSIFY_MODES = {"none", "rule", "llm"}
 RULE_KEYWORDS = (
@@ -170,6 +178,17 @@ def now_utc_iso() -> str:
 
 def normalize_space(value: str) -> str:
     return " ".join(str(value or "").split())
+
+
+def ensure_logger() -> None:
+    global LOGGER  # pylint: disable=global-statement
+    if LOGGER is None:
+        LOGGER = HumanLogger(skill_name=SKILL_NAME, root_dir=default_skill_log_root(__file__))
+
+
+def log_event(category: str, summary: str, details: dict[str, Any] | None = None) -> None:
+    if LOGGER is not None:
+        LOGGER.log(category=category, summary=summary, details=details or {})
 
 
 def canonicalize_url(url: str) -> str:
@@ -441,6 +460,11 @@ def call_json_api(
     body: dict[str, Any] | None = None,
     timeout: float = DEFAULT_TIMEOUT,
 ) -> dict[str, Any]:
+    log_event(
+        "api_request",
+        "HTTP JSON request",
+        {"url": url, "method": method, "timeout_seconds": timeout, "body": body, "headers": headers or {}},
+    )
     req_headers = {"User-Agent": DEFAULT_USER_AGENT}
     if headers:
         req_headers.update(headers)
@@ -466,6 +490,7 @@ def call_json_api(
         raise RuntimeError(f"invalid_json_response detail={preview}") from exc
     if not isinstance(data, dict):
         raise RuntimeError("unexpected_response_shape")
+    log_event("api_response", "HTTP JSON response", {"url": url, "payload": data})
     return data
 
 
@@ -606,6 +631,11 @@ def classify_llm(
         ],
         "response_format": {"type": "json_object"},
     }
+    log_event(
+        "llm_prompt",
+        "Classify article with LLM",
+        {"model": llm_model, "base_url": llm_base_url, "prompt_body": body},
+    )
     payload = call_json_api(
         url=f"{llm_base_url}/chat/completions",
         method="POST",
@@ -632,7 +662,9 @@ def classify_llm(
 
     label = normalize_space(parsed.get("label") or ("environment" if relevance else "non-environment"))
     reason = normalize_space(parsed.get("reason") or "")
-    return Classification(relevance, label or None, reason or None, f"llm:{llm_model}")
+    result = Classification(relevance, label or None, reason or None, f"llm:{llm_model}")
+    log_event("llm_response", "LLM classification parsed", {"model": llm_model, "result": result.__dict__})
+    return result
 
 
 def choose_classification(
@@ -823,13 +855,18 @@ def upsert_event(
 
 
 def cmd_init_db(args: argparse.Namespace) -> int:
+    ensure_logger()
+    log_event("workflow_start", "Initialize GDELT DB", {"args": vars(args)})
     with connect_db(args.db) as conn:
         init_db(conn)
     print(f"GDELT_DB_OK path={resolve_db_path(args.db)} table=gdelt_environment_events")
+    log_event("workflow_end", "Initialize GDELT DB completed", {"db": str(resolve_db_path(args.db))})
     return 0
 
 
 def cmd_sync(args: argparse.Namespace) -> int:
+    ensure_logger()
+    log_event("workflow_start", "Run GDELT ingest", {"args": vars(args)})
     base_query = normalize_space(args.query)
     if not base_query:
         raise ValueError("--query is required")
@@ -888,10 +925,24 @@ def cmd_sync(args: argparse.Namespace) -> int:
         f"fetched={len(articles)} upserted={inserted} classify_mode={classify_mode} "
         f"rows={total_rows} unique_urls={unique_urls}"
     )
+    log_event(
+        "workflow_end",
+        "Run GDELT ingest completed",
+        {
+            "query": query_text,
+            "fetched": len(articles),
+            "upserted": inserted,
+            "classify_mode": classify_mode,
+            "rows": total_rows,
+            "unique_urls": unique_urls,
+        },
+    )
     return 0
 
 
 def cmd_enrich(args: argparse.Namespace) -> int:
+    ensure_logger()
+    log_event("workflow_start", "Run GDELT enrich", {"args": vars(args)})
     classify_mode = parse_mode(args.classify_mode)
     processed = 0
     updated = 0
@@ -962,10 +1013,17 @@ def cmd_enrich(args: argparse.Namespace) -> int:
         "GDELT_ENRICH_OK "
         f"processed={processed} updated={updated} classify_mode={classify_mode}"
     )
+    log_event(
+        "workflow_end",
+        "Run GDELT enrich completed",
+        {"processed": processed, "updated": updated, "classify_mode": classify_mode},
+    )
     return 0
 
 
 def cmd_summarize(args: argparse.Namespace) -> int:
+    ensure_logger()
+    log_event("workflow_start", "Run GDELT summarize", {"args": vars(args)})
     processed = 0
     upserted = 0
     with connect_db(args.db) as conn:
@@ -1060,6 +1118,11 @@ def cmd_summarize(args: argparse.Namespace) -> int:
     print(
         "SOCIAL_SUMMARIZE_OK "
         f"source_rows={source_rows} processed={processed} upserted={upserted} social_rows={social_rows}"
+    )
+    log_event(
+        "workflow_end",
+        "Run GDELT summarize completed",
+        {"source_rows": source_rows, "processed": processed, "upserted": upserted, "social_rows": social_rows},
     )
     return 0
 
@@ -1183,23 +1246,35 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    global LOGGER  # pylint: disable=global-statement
     parser = build_parser()
     args = parser.parse_args()
+    LOGGER = HumanLogger(skill_name=SKILL_NAME, root_dir=default_skill_log_root(__file__))
+    log_event("cli_invocation", "CLI invoked", {"argv": sys.argv, "args": vars(args)})
     print(LEGACY_ENTRYPOINT_NOTICE, file=sys.stderr)
     try:
-        return int(args.func(args))
+        code = int(args.func(args))
+        log_event("cli_exit", "CLI completed", {"exit_code": code})
+        return code
     except sqlite3.Error as exc:
         print(f"GDELT_ENV_ERR reason=sqlite_error detail={exc}", file=sys.stderr)
+        log_event("cli_error", "SQLite error", {"detail": str(exc)})
         return 1
     except ValueError as exc:
         print(f"GDELT_ENV_ERR reason=value_error detail={exc}", file=sys.stderr)
+        log_event("cli_error", "Value error", {"detail": str(exc)})
         return 1
     except RuntimeError as exc:
         print(f"GDELT_ENV_ERR reason=runtime_error detail={exc}", file=sys.stderr)
+        log_event("cli_error", "Runtime error", {"detail": str(exc)})
         return 1
     except Exception as exc:
         print(f"GDELT_ENV_ERR reason=unexpected detail={exc}", file=sys.stderr)
+        log_event("cli_error", "Unexpected error", {"detail": str(exc)})
         return 1
+    finally:
+        if LOGGER is not None:
+            LOGGER.close()
 
 
 if __name__ == "__main__":

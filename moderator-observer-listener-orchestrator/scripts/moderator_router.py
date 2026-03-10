@@ -17,6 +17,12 @@ from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.append(str(REPO_ROOT))
+
+from common.human_log import HumanLogger, default_skill_log_root
+
 
 DEFAULT_OBSERVER_ENTRYPOINT = "observer-openaq-physical-ingestor/scripts/aqi_ingest.py"
 DEFAULT_OBSERVER_OPENMETEO = "observer-openmeteo-physical-ingestor/scripts/openmeteo_ingest.py"
@@ -31,6 +37,8 @@ DEFAULT_CONFIG_ENV = "moderator-observer-listener-orchestrator/assets/config.env
 DEFAULT_CONFIG_JSON = "moderator-observer-listener-orchestrator/assets/config.json"
 DEFAULT_LISTENER_ENV = "listener-gdelt-doc-ingestor/assets/config.env"
 DEFAULT_OBSERVER_ENV = "observer-openaq-physical-ingestor/assets/config.env"
+SKILL_NAME = "moderator-observer-listener-orchestrator"
+LOGGER: HumanLogger | None = None
 
 
 @dataclass(frozen=True)
@@ -83,6 +91,11 @@ ENV_TYPE_KEYWORDS = {
 
 def normalize_space(value: Any) -> str:
     return " ".join(str(value or "").split())
+
+
+def log_event(category: str, summary: str, details: dict[str, Any] | None = None) -> None:
+    if LOGGER is not None:
+        LOGGER.log(category=category, summary=summary, details=details or {})
 
 
 def _safe_float(raw: str | None, default: float = 0.0) -> float:
@@ -243,6 +256,11 @@ def call_json_api(
     api_key: str,
     timeout: float = DEFAULT_TIMEOUT,
 ) -> dict[str, Any]:
+    log_event(
+        "api_request",
+        "POST JSON API request",
+        {"url": url, "timeout_seconds": timeout, "request_body": body},
+    )
     payload = json.dumps(body, ensure_ascii=False).encode("utf-8")
     req = Request(
         url=url,
@@ -269,6 +287,11 @@ def call_json_api(
         raise RuntimeError("invalid_json_response") from exc
     if not isinstance(parsed, dict):
         raise RuntimeError("unexpected_response_shape")
+    log_event(
+        "api_response",
+        "JSON API response received",
+        {"url": url, "response_body": parsed},
+    )
     return parsed
 
 
@@ -643,8 +666,13 @@ def extract_status_line(stdout: str, stderr: str, expected_prefix: str) -> str:
 
 def run_command(command: dict[str, Any], *, dry_run: bool, timeout: int) -> dict[str, Any]:
     argv = [str(x) for x in command.get("argv", [])]
+    log_event(
+        "command_dispatch",
+        "Dispatch child command",
+        {"id": command.get("id"), "argv": argv, "dry_run": dry_run, "timeout_seconds": timeout},
+    )
     if dry_run:
-        return {
+        result = {
             "id": command.get("id"),
             "argv": argv,
             "returncode": 0,
@@ -653,10 +681,12 @@ def run_command(command: dict[str, Any], *, dry_run: bool, timeout: int) -> dict
             "status_line": f"DRY_RUN {command.get('id')}",
             "ok": True,
         }
+        log_event("command_result", "Dry-run command completed", result)
+        return result
     proc = subprocess.run(argv, capture_output=True, text=True, timeout=timeout, check=False)
     status_line = extract_status_line(proc.stdout, proc.stderr, str(command.get("expect_status_prefix") or ""))
     ok = proc.returncode == 0 and bool(status_line)
-    return {
+    result = {
         "id": command.get("id"),
         "argv": argv,
         "returncode": proc.returncode,
@@ -665,6 +695,8 @@ def run_command(command: dict[str, Any], *, dry_run: bool, timeout: int) -> dict
         "status_line": status_line,
         "ok": ok,
     }
+    log_event("command_result", "Child command finished", result)
+    return result
 
 
 def load_eco_readiness(ingest_json_path: str) -> dict[str, Any]:
@@ -742,11 +774,20 @@ def evaluate_review(
     elif should_escalate:
         decision = "switch_to_active_recon"
         reason = "risk_signal_detected"
+    reasoning_text = (
+        f"decision={decision}; reason={reason}; "
+        f"observer_exceed_rate={round(observer_exceed_rate, 6)} (threshold={exceed_rate_threshold}); "
+        f"observer_exceeded={observer_exceeded} (threshold={exceed_count_threshold}); "
+        f"listener_upserted={listener_upserted} (threshold={social_upsert_threshold}); "
+        f"caswarn_risk={round(caswarn_risk, 6)} (threshold={analyzer_risk_threshold}); "
+        f"has_error={has_error}."
+    )
 
     return {
         "mode": "moderator_review",
         "decision": decision,
         "reason": reason,
+        "reasoning_text": reasoning_text,
         "metrics": {
             "observer_exceed_rate": round(observer_exceed_rate, 6),
             "observer_exceeded": observer_exceeded,
@@ -979,8 +1020,8 @@ def llm_plan(
             {
                 "role": "system",
                 "content": (
-                    "You are a strict moderator planner. Return JSON only with keys: "
-                    "mode,observer_source,expected_env_type,target_country,bbox,pollutant_type,query,theme,timespan_hours,max_records,analyzer_mode,analyzer_limit,reason. "
+                "You are a strict moderator planner. Return JSON only with keys: "
+                    "mode,observer_source,expected_env_type,target_country,bbox,pollutant_type,query,theme,timespan_hours,max_records,analyzer_mode,analyzer_limit,reason,reasoning_text. "
                     "mode must be passive_patrol or active_reconnaissance. "
                     "observer_source must be one of: openaq_realtime, openmeteo_grid, openaq_archive. "
                     "expected_env_type must be one of: air,water,soil,radiation,waste,general,multi. "
@@ -988,7 +1029,8 @@ def llm_plan(
                     "use openaq_archive for retrospective investigations over archive database. "
                     "bbox must be min_lon,min_lat,max_lon,max_lat. "
                     "timespan_hours integer 1..72. max_records integer 20..250. "
-                    "analyzer_mode is rule or llm."
+                    "analyzer_mode is rule or llm. "
+                    "reasoning_text must be a human-readable short paragraph explaining why you chose these dispatch settings."
                 ),
             },
             {
@@ -1006,8 +1048,15 @@ def llm_plan(
         ],
         "response_format": {"type": "json_object"},
     }
+    log_event(
+        "llm_prompt",
+        "Submit moderator planning prompt",
+        {"model": model, "base_url": base_url, "prompt": prompt},
+    )
     payload = call_json_api(f"{base_url}/chat/completions", body=prompt, api_key=api_key, timeout=timeout)
-    return extract_chat_json(payload)
+    parsed = extract_chat_json(payload)
+    log_event("llm_response", "Received moderator planning response", {"model": model, "parsed_plan": parsed})
+    return parsed
 
 
 def normalize_plan(
@@ -1021,20 +1070,31 @@ def normalize_plan(
     fallback_themes: str,
 ) -> dict[str, Any]:
     preset = find_preset(context or objective)
+    trace_steps: list[str] = []
+    raw = raw or {}
 
-    mode = normalize_space((raw or {}).get("mode") if raw else "")
+    mode = normalize_space(raw.get("mode"))
     if mode not in {"passive_patrol", "active_reconnaissance"}:
         mode = "active_reconnaissance" if mode_hint == "recon" else "passive_patrol"
+        trace_steps.append(f"mode fallback to mode_hint={mode_hint} -> {mode}")
+    else:
+        trace_steps.append(f"mode from raw_plan -> {mode}")
 
-    query = normalize_space((raw or {}).get("query") if raw else "")
+    query = normalize_space(raw.get("query"))
     if not query:
         query = preset.query if preset else fallback_query
+        trace_steps.append(f"query fallback -> {'preset' if preset else 'fallback_query'}")
+    else:
+        trace_steps.append("query from raw_plan")
 
-    themes = normalize_space((raw or {}).get("theme") if raw else "")
+    themes = normalize_space(raw.get("theme"))
     if not themes:
         themes = preset.themes if preset else fallback_themes
+        trace_steps.append(f"themes fallback -> {'preset' if preset else 'fallback_themes'}")
+    else:
+        trace_steps.append("themes from raw_plan")
 
-    expected_env_type = normalize_space((raw or {}).get("expected_env_type") if raw else "").lower()
+    expected_env_type = normalize_space(raw.get("expected_env_type")).lower()
     if expected_env_type not in {"air", "water", "soil", "radiation", "waste", "general", "multi"}:
         expected_env_type = infer_expected_env_type(
             objective=objective,
@@ -1042,6 +1102,9 @@ def normalize_plan(
             query=query,
             themes=themes,
         )
+        trace_steps.append(f"expected_env_type inferred -> {expected_env_type}")
+    else:
+        trace_steps.append(f"expected_env_type from raw_plan -> {expected_env_type}")
 
     context_lower = f"{objective} {context}".lower()
     hinted_source = ""
@@ -1049,46 +1112,79 @@ def normalize_plan(
     if match_hint:
         hinted_source = normalize_space(match_hint.group(1)).lower()
 
-    observer_source = normalize_space((raw or {}).get("observer_source") if raw else "").lower()
+    observer_source = normalize_space(raw.get("observer_source")).lower()
+    observer_source_origin = "raw_plan"
     if observer_source not in {"openaq_realtime", "openmeteo_grid", "openaq_archive"}:
         if hinted_source in {"openaq_realtime", "openmeteo_grid", "openaq_archive"}:
             observer_source = hinted_source
+            observer_source_origin = "context_hint"
         elif any(k in context_lower for k in ("history", "historical", "retrospective", "backfill", "回溯", "历史")):
             observer_source = "openaq_archive"
+            observer_source_origin = "historical_keyword"
         elif expected_env_type in {"water", "soil", "radiation", "waste"}:
             observer_source = "openmeteo_grid"
+            observer_source_origin = "env_type_capability_match"
         elif mode == "passive_patrol":
             observer_source = "openmeteo_grid"
+            observer_source_origin = "mode_default"
         else:
             observer_source = "openaq_realtime"
+            observer_source_origin = "mode_default"
+    trace_steps.append(f"observer_source={observer_source} from {observer_source_origin}")
 
-    bbox_candidate = normalize_space((raw or {}).get("bbox") if raw else "")
+    bbox_candidate = normalize_space(raw.get("bbox"))
+    bbox_source = "raw_plan"
     if not bbox_candidate:
         bbox_candidate = preset.bbox if preset else fallback_bbox
+        bbox_source = "preset" if preset else "fallback_bbox"
     bbox = parse_bbox(bbox_candidate)
+    trace_steps.append(f"bbox={bbox} from {bbox_source}")
 
-    pollutant_type = normalize_space((raw or {}).get("pollutant_type") if raw else "")
+    pollutant_type = normalize_space(raw.get("pollutant_type"))
     if not pollutant_type:
         pollutant_type = preset.pollutant_type if preset else "pm25,no2,o3"
+        trace_steps.append(f"pollutant_type fallback -> {'preset' if preset else 'default'}")
+    else:
+        trace_steps.append("pollutant_type from raw_plan")
 
-    target_country = normalize_space((raw or {}).get("target_country") if raw else "")
+    target_country = normalize_space(raw.get("target_country"))
     if not target_country:
         target_country = preset.country_code if preset else ""
+        trace_steps.append(f"target_country fallback -> {'preset' if preset else 'empty'}")
+    else:
+        trace_steps.append("target_country from raw_plan")
 
-    timespan_hours = _safe_int((raw or {}).get("timespan_hours") if raw else 24, 24)
+    timespan_hours = _safe_int(raw.get("timespan_hours"), 24)
     timespan_hours = max(1, min(72, timespan_hours))
+    trace_steps.append(f"timespan_hours normalized -> {timespan_hours}")
 
-    max_records = _safe_int((raw or {}).get("max_records") if raw else 120, 120)
+    max_records = _safe_int(raw.get("max_records"), 120)
     max_records = max(20, min(250, max_records))
+    trace_steps.append(f"max_records normalized -> {max_records}")
 
-    analyzer_mode = normalize_space((raw or {}).get("analyzer_mode") if raw else "llm").lower() or "llm"
+    analyzer_mode = normalize_space(raw.get("analyzer_mode")).lower() or "llm"
     if analyzer_mode not in {"llm", "rule"}:
         analyzer_mode = "llm"
+    trace_steps.append(f"analyzer_mode -> {analyzer_mode}")
 
-    analyzer_limit = _safe_int((raw or {}).get("analyzer_limit") if raw else 80, 80)
+    analyzer_limit = _safe_int(raw.get("analyzer_limit"), 80)
     analyzer_limit = max(1, min(500, analyzer_limit))
+    trace_steps.append(f"analyzer_limit normalized -> {analyzer_limit}")
 
-    reason = normalize_space((raw or {}).get("reason") if raw else "")
+    reason = normalize_space(raw.get("reason"))
+    reasoning_text = normalize_space(raw.get("reasoning_text"))
+    if not reasoning_text:
+        reasoning_text = (
+            f"mode={mode}; observer_source={observer_source}; expected_env_type={expected_env_type}; "
+            f"bbox={bbox}; timespan_hours={timespan_hours}; max_records={max_records}; "
+            f"analyzer_mode={analyzer_mode}. "
+            "Decision based on objective/context keywords, source capability matching, and fallback rules."
+        )
+    if bbox_source == "fallback_bbox":
+        reasoning_text = (
+            reasoning_text
+            + " No geographic signal was extracted from objective/context/LLM plan, so fallback_bbox was used."
+        )
 
     return {
         "mode": mode,
@@ -1104,6 +1200,14 @@ def normalize_plan(
         "analyzer_mode": analyzer_mode,
         "analyzer_limit": analyzer_limit,
         "reason": reason,
+        "reasoning_text": reasoning_text,
+        "decision_trace": {
+            "bbox_source": bbox_source,
+            "observer_source_origin": observer_source_origin,
+            "preset_used": preset.name if preset else "",
+            "context_hint_observer_source": hinted_source,
+            "trace_steps": trace_steps,
+        },
         "scenario": preset.name if preset else "custom",
     }
 
@@ -1196,6 +1300,7 @@ def cmd_review(args: argparse.Namespace) -> int:
 
 
 def cmd_plan_llm(args: argparse.Namespace) -> int:
+    log_event("workflow_start", "Run plan-llm command", {"args": vars(args)})
     runtime_config = load_runtime_config(args)
     raw_plan = llm_plan(
         objective=args.objective,
@@ -1222,6 +1327,7 @@ def cmd_plan_llm(args: argparse.Namespace) -> int:
         "context": args.context,
         "plan": plan,
     }
+    log_event("workflow_end", "plan-llm completed", {"payload": payload})
     return print_json(payload)
 
 
@@ -1241,12 +1347,18 @@ def cmd_orchestrate(args: argparse.Namespace) -> int:
         raise ValueError("--max-cycles must be >= 1")
 
     runtime_config = load_runtime_config(args)
+    log_event("workflow_start", "Run orchestrate command", {"args": vars(args)})
     current_context = normalize_space(args.context)
     current_mode_hint = args.initial_mode
     cycles: list[dict[str, Any]] = []
 
     for cycle_idx in range(1, args.max_cycles + 1):
         now_utc = parse_iso_utc(args.now_utc, "--now-utc")
+        log_event(
+            "cycle_start",
+            "Orchestration cycle started",
+            {"cycle_index": cycle_idx, "mode_hint": current_mode_hint, "context": current_context},
+        )
 
         if args.planner == "llm":
             raw_plan = llm_plan(
@@ -1271,6 +1383,27 @@ def cmd_orchestrate(args: argparse.Namespace) -> int:
             fallback_query=args.fallback_query,
             fallback_themes=args.fallback_themes,
         )
+        log_event(
+            "reasoning_trace",
+            "Planner reasoning text",
+            {
+                "cycle_index": cycle_idx,
+                "planner": args.planner,
+                "reasoning_text": plan.get("reasoning_text", ""),
+                "decision_trace": plan.get("decision_trace", {}),
+            },
+        )
+        if str((plan.get("decision_trace") or {}).get("bbox_source")) == "fallback_bbox":
+            log_event(
+                "planning_warning",
+                "Fallback bbox used due to missing geographic signal",
+                {
+                    "cycle_index": cycle_idx,
+                    "fallback_bbox": plan.get("bbox"),
+                    "objective": args.objective,
+                    "context": current_context,
+                },
+            )
 
         directive = build_directive(
             mode=plan["mode"],
@@ -1405,6 +1538,16 @@ def cmd_orchestrate(args: argparse.Namespace) -> int:
             review["reason"] = "insufficient_aligned_data"
             review["next"] = {"method": "recon", "run_at": "immediate"}
             review["readiness"] = eco_readiness
+            review["reasoning_text"] = (
+                f"decision=collect_more_data; reason=insufficient_aligned_data; "
+                f"data_sufficiency_status={eco_readiness.get('status')}; "
+                f"readiness_reasons={','.join(str(x) for x in eco_readiness.get('reasons', []))}."
+            )
+        log_event(
+            "reasoning_trace",
+            "Review reasoning text",
+            {"cycle_index": cycle_idx, "reasoning_text": review.get("reasoning_text", "")},
+        )
         report = build_cycle_report(
             observer_db=args.observer_db,
             listener_db=args.listener_db,
@@ -1427,6 +1570,7 @@ def cmd_orchestrate(args: argparse.Namespace) -> int:
             "review": review,
             "report": report,
         }
+        log_event("cycle_end", "Orchestration cycle finished", {"cycle": cycle})
         cycles.append(cycle)
 
         if (
@@ -1461,6 +1605,7 @@ def cmd_orchestrate(args: argparse.Namespace) -> int:
         "cycles": cycles,
         "final_decision": final_review,
     }
+    log_event("workflow_end", "orchestrate completed", {"payload": payload})
     return print_json(payload)
 
 
@@ -1497,6 +1642,7 @@ def add_review_threshold_args(parser: argparse.ArgumentParser) -> None:
 def add_llm_config_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--config-env", default=DEFAULT_CONFIG_ENV, help="Path to .env config file.")
     parser.add_argument("--config-json", default=DEFAULT_CONFIG_JSON, help="Path to JSON config file.")
+    parser.add_argument("--log-dir", default="", help="Human-readable log root directory.")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -1593,22 +1739,35 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    global LOGGER  # pylint: disable=global-statement
     parser = build_parser()
     args = parser.parse_args()
+    log_root = Path(normalize_space(getattr(args, "log_dir", "")) or default_skill_log_root(__file__)).expanduser()
+    LOGGER = HumanLogger(skill_name=SKILL_NAME, root_dir=log_root)
+    log_event("cli_invocation", "CLI invoked", {"argv": sys.argv, "args": vars(args)})
     try:
-        return int(args.func(args))
+        code = int(args.func(args))
+        log_event("cli_exit", "CLI completed", {"exit_code": code})
+        return code
     except subprocess.TimeoutExpired as exc:
         print(json.dumps({"error": "command_timeout", "detail": str(exc)}, ensure_ascii=False), file=sys.stderr)
+        log_event("cli_error", "Command timeout", {"detail": str(exc)})
         return 1
     except ValueError as exc:
         print(json.dumps({"error": "value_error", "detail": str(exc)}, ensure_ascii=False), file=sys.stderr)
+        log_event("cli_error", "Value error", {"detail": str(exc)})
         return 1
     except RuntimeError as exc:
         print(json.dumps({"error": "runtime_error", "detail": str(exc)}, ensure_ascii=False), file=sys.stderr)
+        log_event("cli_error", "Runtime error", {"detail": str(exc)})
         return 1
     except Exception as exc:  # pylint: disable=broad-except
         print(json.dumps({"error": "unexpected", "detail": str(exc)}, ensure_ascii=False), file=sys.stderr)
+        log_event("cli_error", "Unexpected error", {"detail": str(exc)})
         return 1
+    finally:
+        if LOGGER is not None:
+            LOGGER.close()
 
 
 if __name__ == "__main__":

@@ -6,12 +6,29 @@ from __future__ import annotations
 import argparse
 import subprocess
 import sys
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.append(str(REPO_ROOT))
+
+from common.human_log import HumanLogger, default_skill_log_root
 
 DEFAULT_BASE = "observer-openaq-physical-ingestor/scripts/aqi_ingest.py"
+SKILL_NAME = "observer-openmeteo-physical-ingestor"
+LOGGER: HumanLogger | None = None
 
 
 def run_passthrough(argv: list[str]) -> int:
+    if LOGGER is not None:
+        LOGGER.log(category="command_dispatch", summary="Passthrough command", details={"argv": argv})
     proc = subprocess.run(argv, check=False)
+    if LOGGER is not None:
+        LOGGER.log(
+            category="command_result",
+            summary="Passthrough command finished",
+            details={"argv": argv, "returncode": proc.returncode},
+        )
     return int(proc.returncode)
 
 
@@ -52,71 +69,84 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    global LOGGER  # pylint: disable=global-statement
     parser = build_parser()
     args = parser.parse_args()
+    LOGGER = HumanLogger(skill_name=SKILL_NAME, root_dir=default_skill_log_root(__file__))
+    LOGGER.log(category="cli_invocation", summary="CLI invoked", details={"argv": sys.argv, "args": vars(args)})
+    try:
+        if args.command == "init-db":
+            code = run_passthrough(["python3", DEFAULT_BASE, "init-db", "--db", args.db])
+            LOGGER.log(category="cli_exit", summary="CLI completed", details={"exit_code": code})
+            return code
 
-    if args.command == "init-db":
-        return run_passthrough(["python3", DEFAULT_BASE, "init-db", "--db", args.db])
+        if args.command == "ingest":
+            cmd = [
+                "python3",
+                DEFAULT_BASE,
+                "ingest",
+                "--db",
+                args.db,
+                f"--bbox={args.bbox}",
+                "--start-datetime",
+                args.start_datetime,
+                "--end-datetime",
+                args.end_datetime,
+                "--provider",
+                "openmeteo",
+                "--max-locations",
+                str(args.max_locations),
+                "--timeout",
+                str(args.timeout),
+                "--sleep-ms",
+                str(args.sleep_ms),
+            ]
+            if args.openmeteo_api_base:
+                cmd.extend(["--openmeteo-api-base", args.openmeteo_api_base])
+            code = run_passthrough(cmd)
+            LOGGER.log(category="cli_exit", summary="CLI completed", details={"exit_code": code})
+            return code
 
-    if args.command == "ingest":
+        if args.command == "enrich":
+            cmd = [
+                "python3",
+                DEFAULT_BASE,
+                "enrich",
+                "--db",
+                args.db,
+                "--standard-profile",
+                args.standard_profile,
+                "--limit",
+                str(args.limit),
+            ]
+            if args.start_datetime:
+                cmd.extend(["--start-datetime", args.start_datetime])
+            if args.end_datetime:
+                cmd.extend(["--end-datetime", args.end_datetime])
+            code = run_passthrough(cmd)
+            LOGGER.log(category="cli_exit", summary="CLI completed", details={"exit_code": code})
+            return code
+
         cmd = [
             "python3",
             DEFAULT_BASE,
-            "ingest",
+            "summarize",
             "--db",
             args.db,
-            f"--bbox={args.bbox}",
-            "--start-datetime",
-            args.start_datetime,
-            "--end-datetime",
-            args.end_datetime,
-            "--provider",
-            "openmeteo",
-            "--max-locations",
-            str(args.max_locations),
-            "--timeout",
-            str(args.timeout),
-            "--sleep-ms",
-            str(args.sleep_ms),
-        ]
-        if args.openmeteo_api_base:
-            cmd.extend(["--openmeteo-api-base", args.openmeteo_api_base])
-        return run_passthrough(cmd)
-
-    if args.command == "enrich":
-        cmd = [
-            "python3",
-            DEFAULT_BASE,
-            "enrich",
-            "--db",
-            args.db,
-            "--standard-profile",
-            args.standard_profile,
-            "--limit",
-            str(args.limit),
+            "--group-limit",
+            str(args.group_limit),
         ]
         if args.start_datetime:
             cmd.extend(["--start-datetime", args.start_datetime])
         if args.end_datetime:
             cmd.extend(["--end-datetime", args.end_datetime])
-        return run_passthrough(cmd)
-
-    cmd = [
-        "python3",
-        DEFAULT_BASE,
-        "summarize",
-        "--db",
-        args.db,
-        "--group-limit",
-        str(args.group_limit),
-    ]
-    if args.start_datetime:
-        cmd.extend(["--start-datetime", args.start_datetime])
-    if args.end_datetime:
-        cmd.extend(["--end-datetime", args.end_datetime])
-    if args.only_exceed:
-        cmd.append("--only-exceed")
-    return run_passthrough(cmd)
+        if args.only_exceed:
+            cmd.append("--only-exceed")
+        code = run_passthrough(cmd)
+        LOGGER.log(category="cli_exit", summary="CLI completed", details={"exit_code": code})
+        return code
+    finally:
+        LOGGER.close()
 
 
 if __name__ == "__main__":
