@@ -1,0 +1,2064 @@
+#!/usr/bin/env python3
+"""Coordinate eco-council run lifecycle around OpenClaw handoffs."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import re
+import shlex
+import subprocess
+import sys
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from typing import Any
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+SKILL_DIR = SCRIPT_DIR.parent
+REPO_DIR = SKILL_DIR.parent
+
+CONTRACT_SCRIPT = REPO_DIR / "eco-council-data-contract" / "scripts" / "eco_council_contract.py"
+NORMALIZE_SCRIPT = REPO_DIR / "eco-council-normalize" / "scripts" / "eco_council_normalize.py"
+REPORTING_SCRIPT = REPO_DIR / "eco-council-reporting" / "scripts" / "eco_council_reporting.py"
+OPENAQ_API_SCRIPT = REPO_DIR / "openaq-data-fetch" / "scripts" / "openaq_api_client.py"
+
+SKILL_DIRS = {
+    "gdelt-doc-search": REPO_DIR / "gdelt-doc-search",
+    "bluesky-cascade-fetch": REPO_DIR / "bluesky-cascade-fetch",
+    "youtube-video-search": REPO_DIR / "youtube-video-search",
+    "youtube-comments-fetch": REPO_DIR / "youtube-comments-fetch",
+    "regulationsgov-comments-fetch": REPO_DIR / "regulationsgov-comments-fetch",
+    "regulationsgov-comment-detail-fetch": REPO_DIR / "regulationsgov-comment-detail-fetch",
+    "open-meteo-air-quality-fetch": REPO_DIR / "open-meteo-air-quality-fetch",
+    "open-meteo-historical-fetch": REPO_DIR / "open-meteo-historical-fetch",
+    "nasa-firms-fire-fetch": REPO_DIR / "nasa-firms-fire-fetch",
+    "openaq-data-fetch": REPO_DIR / "openaq-data-fetch",
+}
+
+FETCH_SCRIPT_PATHS = {
+    "gdelt-doc-search": SKILL_DIRS["gdelt-doc-search"] / "scripts" / "gdelt_doc_search.py",
+    "bluesky-cascade-fetch": SKILL_DIRS["bluesky-cascade-fetch"] / "scripts" / "bluesky_cascade_fetch.py",
+    "youtube-video-search": SKILL_DIRS["youtube-video-search"] / "scripts" / "youtube_video_search.py",
+    "youtube-comments-fetch": SKILL_DIRS["youtube-comments-fetch"] / "scripts" / "youtube_comments_fetch.py",
+    "regulationsgov-comments-fetch": SKILL_DIRS["regulationsgov-comments-fetch"] / "scripts" / "regulationsgov_comments_fetch.py",
+    "regulationsgov-comment-detail-fetch": SKILL_DIRS["regulationsgov-comment-detail-fetch"] / "scripts" / "regulationsgov_comment_detail_fetch.py",
+    "open-meteo-air-quality-fetch": SKILL_DIRS["open-meteo-air-quality-fetch"] / "scripts" / "open_meteo_air_quality_fetch.py",
+    "open-meteo-historical-fetch": SKILL_DIRS["open-meteo-historical-fetch"] / "scripts" / "open_meteo_historical_fetch.py",
+    "nasa-firms-fire-fetch": SKILL_DIRS["nasa-firms-fire-fetch"] / "scripts" / "nasa_firms_fire_fetch.py",
+}
+
+PUBLIC_SOURCES = (
+    "gdelt-doc-search",
+    "bluesky-cascade-fetch",
+    "youtube-video-search",
+    "youtube-comments-fetch",
+    "regulationsgov-comments-fetch",
+    "regulationsgov-comment-detail-fetch",
+)
+ENVIRONMENT_SOURCES = (
+    "open-meteo-air-quality-fetch",
+    "open-meteo-historical-fetch",
+    "nasa-firms-fire-fetch",
+    "openaq-data-fetch",
+)
+ROUND_ID_PATTERN = re.compile(r"^round-\d{3}$")
+ROUND_DIR_PATTERN = re.compile(r"^round_(\d{3})$")
+ENV_ASSIGNMENT_PATTERN = re.compile(r"^(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)=(.*)$")
+
+DEFAULT_SOURCE_ORDER = {
+    "sociologist": list(PUBLIC_SOURCES),
+    "environmentalist": list(ENVIRONMENT_SOURCES),
+}
+DEFAULT_OPEN_METEO_AIR_VARS = [
+    "pm2_5",
+    "pm10",
+    "nitrogen_dioxide",
+    "ozone",
+    "us_aqi",
+]
+DEFAULT_OPEN_METEO_HIST_HOURLY_VARS = [
+    "temperature_2m",
+    "relative_humidity_2m",
+    "precipitation",
+    "wind_speed_10m",
+    "soil_moisture_0_to_7cm",
+]
+DEFAULT_OPEN_METEO_HIST_DAILY_VARS = [
+    "precipitation_sum",
+    "evapotranspiration",
+]
+DEFAULT_OPENAQ_PARAMETER_NAMES = [
+    "pm25",
+    "pm2.5",
+    "pm10",
+    "o3",
+    "no2",
+]
+
+
+def utc_now_iso() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def pretty_json(data: Any, *, pretty: bool) -> str:
+    if pretty:
+        return json.dumps(data, ensure_ascii=True, indent=2, sort_keys=True)
+    return json.dumps(data, ensure_ascii=True, separators=(",", ":"), sort_keys=True)
+
+
+def read_json(path: Path) -> Any:
+    with path.open("r", encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+def write_json(path: Path, payload: Any, *, pretty: bool) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(pretty_json(payload, pretty=pretty) + "\n", encoding="utf-8")
+
+
+def write_text(path: Path, content: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content.rstrip() + "\n", encoding="utf-8")
+
+
+def normalize_space(value: str) -> str:
+    return " ".join(str(value).split())
+
+
+def maybe_text(value: Any) -> str:
+    if value is None:
+        return ""
+    return normalize_space(str(value))
+
+
+def truncate_text(value: str, limit: int) -> str:
+    text = normalize_space(value)
+    if len(text) <= limit:
+        return text
+    if limit <= 3:
+        return text[:limit]
+    return text[: limit - 3].rstrip() + "..."
+
+
+def unique_strings(values: list[str]) -> list[str]:
+    output: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        text = normalize_space(value)
+        if not text:
+            continue
+        key = text.casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        output.append(text)
+    return output
+
+
+def ensure_object(value: Any, label: str) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise ValueError(f"{label} must be a JSON object.")
+    return value
+
+
+def ensure_object_list(value: Any, label: str) -> list[dict[str, Any]]:
+    if not isinstance(value, list):
+        raise ValueError(f"{label} must be a JSON list.")
+    if not all(isinstance(item, dict) for item in value):
+        raise ValueError(f"{label} must contain only JSON objects.")
+    return value
+
+
+def parse_utc_datetime(value: str) -> datetime:
+    text = value.strip()
+    if not text:
+        raise ValueError("Expected a non-empty UTC datetime string.")
+    normalized = text[:-1] + "+00:00" if text.endswith("Z") else text
+    try:
+        result = datetime.fromisoformat(normalized)
+    except ValueError as exc:
+        raise ValueError(f"Invalid UTC datetime: {value!r}") from exc
+    if result.tzinfo is None:
+        result = result.replace(tzinfo=timezone.utc)
+    return result.astimezone(timezone.utc)
+
+
+def to_date_text(value: str) -> str:
+    return parse_utc_datetime(value).date().isoformat()
+
+
+def to_gdelt_datetime(value: str) -> str:
+    return parse_utc_datetime(value).strftime("%Y%m%d%H%M%S")
+
+
+def round_dir_name(round_id: str) -> str:
+    text = round_id.strip()
+    if not ROUND_ID_PATTERN.match(text):
+        raise ValueError(f"Unsupported round_id format: {round_id!r}. Expected round-001 style.")
+    return text.replace("-", "_")
+
+
+def round_id_from_dirname(dirname: str) -> str | None:
+    match = ROUND_DIR_PATTERN.match(dirname.strip())
+    if match is None:
+        return None
+    return f"round-{match.group(1)}"
+
+
+def round_number(round_id: str) -> int:
+    if not ROUND_ID_PATTERN.match(round_id):
+        raise ValueError(f"Unsupported round_id format: {round_id!r}. Expected round-001 style.")
+    return int(round_id.split("-")[-1])
+
+
+def next_round_id(round_id: str) -> str:
+    return f"round-{round_number(round_id) + 1:03d}"
+
+
+def round_sort_key(round_id: str) -> tuple[int, str]:
+    try:
+        return (round_number(round_id), round_id)
+    except ValueError:
+        return (sys.maxsize, round_id)
+
+
+def round_dir(run_dir: Path, round_id: str) -> Path:
+    return run_dir / round_dir_name(round_id)
+
+
+def role_raw_dir(run_dir: Path, round_id: str, role: str) -> Path:
+    return round_dir(run_dir, round_id) / role / "raw"
+
+
+def role_derived_dir(run_dir: Path, round_id: str, role: str) -> Path:
+    return round_dir(run_dir, round_id) / role / "derived"
+
+
+def role_meta_dir(run_dir: Path, round_id: str, role: str) -> Path:
+    return role_raw_dir(run_dir, round_id, role) / "_meta"
+
+
+def moderator_derived_dir(run_dir: Path, round_id: str) -> Path:
+    return role_derived_dir(run_dir, round_id, "moderator")
+
+
+def task_review_prompt_path(run_dir: Path, round_id: str) -> Path:
+    return moderator_derived_dir(run_dir, round_id) / "openclaw_task_review_prompt.txt"
+
+
+def fetch_plan_path(run_dir: Path, round_id: str) -> Path:
+    return moderator_derived_dir(run_dir, round_id) / "fetch_plan.json"
+
+
+def round_manifest_path(run_dir: Path, round_id: str) -> Path:
+    return moderator_derived_dir(run_dir, round_id) / "openclaw_round_manifest.json"
+
+
+def fetch_prompt_path(run_dir: Path, round_id: str, role: str) -> Path:
+    return role_derived_dir(run_dir, round_id, role) / "openclaw_fetch_prompt.txt"
+
+
+def reporting_handoff_path(run_dir: Path, round_id: str) -> Path:
+    return moderator_derived_dir(run_dir, round_id) / "openclaw_reporting_handoff.json"
+
+
+def approved_next_round_tasks_path(run_dir: Path, round_id: str) -> Path:
+    return moderator_derived_dir(run_dir, round_id) / "approved_next_round_tasks.json"
+
+
+def default_raw_artifact_path(run_dir: Path, round_id: str, role: str, source_skill: str) -> Path:
+    extension = ".json"
+    if source_skill in {
+        "youtube-video-search",
+        "youtube-comments-fetch",
+        "regulationsgov-comments-fetch",
+        "regulationsgov-comment-detail-fetch",
+    }:
+        extension = ".jsonl"
+    return role_raw_dir(run_dir, round_id, role) / f"{source_skill}{extension}"
+
+
+def default_step_stdout_path(run_dir: Path, round_id: str, role: str, source_skill: str) -> Path:
+    return role_meta_dir(run_dir, round_id, role) / f"{source_skill}.stdout.json"
+
+
+def default_step_stderr_path(run_dir: Path, round_id: str, role: str, source_skill: str) -> Path:
+    return role_meta_dir(run_dir, round_id, role) / f"{source_skill}.stderr.log"
+
+
+def discover_round_ids(run_dir: Path) -> list[str]:
+    output: list[str] = []
+    if not run_dir.exists():
+        return output
+    for child in run_dir.iterdir():
+        if not child.is_dir():
+            continue
+        round_id = round_id_from_dirname(child.name)
+        if round_id is not None:
+            output.append(round_id)
+    output.sort(key=round_sort_key)
+    return output
+
+
+def resolve_round_id(run_dir: Path, round_id: str) -> str:
+    if round_id:
+        return round_id
+    round_ids = discover_round_ids(run_dir)
+    if not round_ids:
+        raise ValueError(f"No round_* directories found in {run_dir}.")
+    return round_ids[-1]
+
+
+def load_mission(run_dir: Path) -> dict[str, Any]:
+    return ensure_object(read_json(run_dir / "mission.json"), "mission.json")
+
+
+def load_tasks(run_dir: Path, round_id: str) -> list[dict[str, Any]]:
+    tasks_path = round_dir(run_dir, round_id) / "moderator" / "tasks.json"
+    return ensure_object_list(read_json(tasks_path), f"{tasks_path}")
+
+
+def tasks_for_role(tasks: list[dict[str, Any]], role: str) -> list[dict[str, Any]]:
+    return [task for task in tasks if maybe_text(task.get("assigned_role")) == role]
+
+
+def mission_window(mission: dict[str, Any]) -> dict[str, str]:
+    window = ensure_object(mission.get("window"), "mission.window")
+    start_utc = maybe_text(window.get("start_utc"))
+    end_utc = maybe_text(window.get("end_utc"))
+    if not start_utc or not end_utc:
+        raise ValueError("Mission window must include start_utc and end_utc.")
+    return {"start_utc": start_utc, "end_utc": end_utc}
+
+
+def mission_region(mission: dict[str, Any]) -> dict[str, Any]:
+    return ensure_object(mission.get("region"), "mission.region")
+
+
+def source_policy_for_role(mission: dict[str, Any], role: str) -> list[str]:
+    policy = mission.get("source_policy")
+    if not isinstance(policy, dict):
+        return list(DEFAULT_SOURCE_ORDER.get(role, []))
+    selected = policy.get(role)
+    if not isinstance(selected, list):
+        return list(DEFAULT_SOURCE_ORDER.get(role, []))
+    return [maybe_text(item) for item in selected if maybe_text(item)]
+
+
+def task_inputs(task: dict[str, Any]) -> dict[str, Any]:
+    value = task.get("inputs")
+    if isinstance(value, dict):
+        return value
+    return {}
+
+
+def task_notes(task: dict[str, Any]) -> str:
+    return maybe_text(task.get("notes"))
+
+
+def merged_task_string_list(tasks: list[dict[str, Any]], key: str) -> list[str]:
+    output: list[str] = []
+    for task in tasks:
+        inputs = task_inputs(task)
+        candidate = inputs.get(key)
+        if isinstance(candidate, list):
+            output.extend(maybe_text(item) for item in candidate if maybe_text(item))
+        elif isinstance(candidate, str) and candidate.strip():
+            output.append(candidate)
+    return unique_strings(output)
+
+
+def merged_task_scalar(tasks: list[dict[str, Any]], key: str) -> str:
+    for task in tasks:
+        value = task_inputs(task).get(key)
+        text = maybe_text(value)
+        if text:
+            return text
+    return ""
+
+
+def task_objective_text(tasks: list[dict[str, Any]]) -> str:
+    return " ".join(maybe_text(task.get("objective")) for task in tasks if maybe_text(task.get("objective")))
+
+
+def role_supported_sources(role: str) -> list[str]:
+    return list(DEFAULT_SOURCE_ORDER.get(role, []))
+
+
+def role_selected_sources(*, mission: dict[str, Any], tasks: list[dict[str, Any]], role: str) -> list[str]:
+    preferred = merged_task_string_list(tasks, "preferred_sources")
+    allowed = source_policy_for_role(mission, role)
+    if not preferred:
+        return [source for source in allowed if source in role_supported_sources(role)]
+    filtered = [source for source in preferred if source in role_supported_sources(role)]
+    if allowed:
+        filtered = [source for source in filtered if source in allowed]
+    return unique_strings(filtered)
+
+
+def build_plain_query(*, mission: dict[str, Any], tasks: list[dict[str, Any]]) -> str:
+    query_hints = merged_task_string_list(tasks, "query_hints")
+    if query_hints:
+        return query_hints[0]
+    topic = maybe_text(mission.get("topic"))
+    region_label = maybe_text(mission_region(mission).get("label"))
+    objective = truncate_text(task_objective_text(tasks) or maybe_text(mission.get("objective")), 96)
+    parts = unique_strings([topic, region_label, objective])
+    return " ".join(parts[:2]) if parts else "environment public signals"
+
+
+def build_gdelt_query(*, mission: dict[str, Any], tasks: list[dict[str, Any]]) -> str:
+    query_hints = merged_task_string_list(tasks, "query_hints")
+    if not query_hints:
+        query_hints = [build_plain_query(mission=mission, tasks=tasks)]
+    terms: list[str] = []
+    for hint in query_hints[:3]:
+        clean = normalize_space(hint)
+        if not clean:
+            continue
+        if any(token in clean for token in ('"', "(", ")", " OR ", " AND ", "sourcecountry:")):
+            terms.append(clean)
+        elif " " in clean:
+            terms.append(f'"{clean}"')
+        else:
+            terms.append(clean)
+    if not terms:
+        return '"environment"'
+    if len(terms) == 1:
+        return terms[0]
+    return "(" + " OR ".join(terms) + ")"
+
+
+def geometry_from_task_or_mission(*, mission: dict[str, Any], tasks: list[dict[str, Any]]) -> dict[str, Any]:
+    for task in tasks:
+        geometry = task_inputs(task).get("mission_geometry")
+        if isinstance(geometry, dict):
+            return geometry
+    return ensure_object(mission_region(mission).get("geometry"), "mission.region.geometry")
+
+
+def window_from_task_or_mission(*, mission: dict[str, Any], tasks: list[dict[str, Any]]) -> dict[str, str]:
+    for task in tasks:
+        window = task_inputs(task).get("mission_window")
+        if isinstance(window, dict) and maybe_text(window.get("start_utc")) and maybe_text(window.get("end_utc")):
+            return {"start_utc": maybe_text(window.get("start_utc")), "end_utc": maybe_text(window.get("end_utc"))}
+    return mission_window(mission)
+
+
+def center_point_for_geometry(geometry: dict[str, Any]) -> tuple[float, float]:
+    geometry_type = maybe_text(geometry.get("type"))
+    if geometry_type == "Point":
+        return float(geometry["latitude"]), float(geometry["longitude"])
+    if geometry_type == "BBox":
+        west = float(geometry["west"])
+        south = float(geometry["south"])
+        east = float(geometry["east"])
+        north = float(geometry["north"])
+        return ((south + north) / 2.0, (west + east) / 2.0)
+    raise ValueError(f"Unsupported mission geometry type: {geometry_type!r}")
+
+
+def location_strings_for_geometry(geometry: dict[str, Any]) -> list[str]:
+    geometry_type = maybe_text(geometry.get("type"))
+    if geometry_type == "Point":
+        return [f"{float(geometry['latitude']):.6f},{float(geometry['longitude']):.6f}"]
+    if geometry_type == "BBox":
+        west = float(geometry["west"])
+        south = float(geometry["south"])
+        east = float(geometry["east"])
+        north = float(geometry["north"])
+        center_lat, center_lon = center_point_for_geometry(geometry)
+        candidates = [
+            f"{center_lat:.6f},{center_lon:.6f}",
+            f"{north:.6f},{west:.6f}",
+            f"{south:.6f},{east:.6f}",
+        ]
+        return unique_strings(candidates)
+    raise ValueError(f"Unsupported mission geometry type: {geometry_type!r}")
+
+
+def bbox_text_for_geometry(geometry: dict[str, Any], *, point_padding_deg: float) -> str:
+    geometry_type = maybe_text(geometry.get("type"))
+    if geometry_type == "BBox":
+        return ",".join(
+            [
+                f"{float(geometry['west']):.6f}",
+                f"{float(geometry['south']):.6f}",
+                f"{float(geometry['east']):.6f}",
+                f"{float(geometry['north']):.6f}",
+            ]
+        )
+    if geometry_type != "Point":
+        raise ValueError(f"Unsupported mission geometry type: {geometry_type!r}")
+    latitude = float(geometry["latitude"])
+    longitude = float(geometry["longitude"])
+    padding = abs(point_padding_deg)
+    south = max(-90.0, latitude - padding)
+    north = min(90.0, latitude + padding)
+    west = max(-180.0, longitude - padding)
+    east = min(180.0, longitude + padding)
+    return f"{west:.6f},{south:.6f},{east:.6f},{north:.6f}"
+
+
+def source_role(source_skill: str) -> str:
+    if source_skill in PUBLIC_SOURCES:
+        return "sociologist"
+    if source_skill in ENVIRONMENT_SOURCES:
+        return "environmentalist"
+    raise ValueError(f"Unsupported source skill: {source_skill}")
+
+
+def default_env_file(skill_name: str) -> Path | None:
+    skill_dir = SKILL_DIRS.get(skill_name)
+    if skill_dir is None:
+        return None
+    primary = skill_dir / "assets" / "config.env"
+    example = skill_dir / "assets" / "config.example.env"
+    if primary.exists():
+        return primary
+    if example.exists():
+        return example
+    return None
+
+
+def shell_join(argv: list[str]) -> str:
+    return " ".join(shlex.quote(str(part)) for part in argv)
+
+
+def shell_command(argv: list[str], *, env_file: Path | None = None) -> str:
+    lines: list[str] = []
+    if env_file is not None:
+        lines.extend(
+            [
+                "set -a",
+                f"source {shlex.quote(str(env_file))}",
+                "set +a",
+            ]
+        )
+    lines.append(shell_join(argv))
+    return "\n".join(lines)
+
+
+def make_step(
+    *,
+    step_id: str,
+    role: str,
+    source_skill: str,
+    task_ids: list[str],
+    artifact_path: Path,
+    stdout_path: Path,
+    stderr_path: Path,
+    command: str,
+    depends_on: list[str],
+    notes: list[str],
+    skill_refs: list[str],
+    cwd: Path,
+) -> dict[str, Any]:
+    return {
+        "step_id": step_id,
+        "role": role,
+        "source_skill": source_skill,
+        "task_ids": task_ids,
+        "depends_on": depends_on,
+        "artifact_path": str(artifact_path),
+        "stdout_path": str(stdout_path),
+        "stderr_path": str(stderr_path),
+        "cwd": str(cwd),
+        "command": command,
+        "notes": notes,
+        "skill_refs": skill_refs,
+        "normalizer_input": f"{source_skill}={artifact_path}",
+    }
+
+
+def new_step_id(role: str, source_skill: str, counter: int) -> str:
+    return f"step-{role}-{counter:02d}-{source_skill}"
+
+
+def regs_task_enabled(tasks: list[dict[str, Any]]) -> bool:
+    combined = " ".join(
+        [
+            task_objective_text(tasks),
+            " ".join(merged_task_string_list(tasks, "query_hints")),
+            " ".join(merged_task_string_list(tasks, "agency_ids")),
+        ]
+    ).casefold()
+    return any(token in combined for token in ("policy", "regulation", "epa", "docket", "comment"))
+
+
+def step_task_ids(tasks: list[dict[str, Any]]) -> list[str]:
+    return [maybe_text(task.get("task_id")) for task in tasks if maybe_text(task.get("task_id"))]
+
+
+def build_sociologist_steps(
+    *,
+    run_dir: Path,
+    round_id: str,
+    mission: dict[str, Any],
+    tasks: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    role = "sociologist"
+    role_tasks = tasks_for_role(tasks, role)
+    if not role_tasks:
+        return []
+    selected = role_selected_sources(mission=mission, tasks=role_tasks, role=role)
+    if not selected:
+        return []
+    task_ids = step_task_ids(role_tasks)
+    window = window_from_task_or_mission(mission=mission, tasks=role_tasks)
+    query_text = build_plain_query(mission=mission, tasks=role_tasks)
+    gdelt_query = build_gdelt_query(mission=mission, tasks=role_tasks)
+    include_regs = regs_task_enabled(role_tasks)
+    sources = list(selected)
+    if "youtube-comments-fetch" in sources and "youtube-video-search" not in sources and not merged_task_scalar(role_tasks, "youtube_video_ids_file"):
+        sources.insert(0, "youtube-video-search")
+    if "regulationsgov-comment-detail-fetch" in sources and "regulationsgov-comments-fetch" not in sources and not merged_task_scalar(role_tasks, "comment_ids_file"):
+        sources.insert(0, "regulationsgov-comments-fetch")
+
+    steps: list[dict[str, Any]] = []
+    counter = 0
+    prior_step_ids: dict[str, str] = {}
+    for source_skill in sources:
+        if source_skill not in PUBLIC_SOURCES:
+            continue
+        if source_skill.startswith("regulationsgov") and not include_regs and source_skill not in merged_task_string_list(role_tasks, "preferred_sources"):
+            continue
+        counter += 1
+        step_id = new_step_id(role, source_skill, counter)
+        artifact_path = default_raw_artifact_path(run_dir, round_id, role, source_skill)
+        stdout_path = default_step_stdout_path(run_dir, round_id, role, source_skill)
+        stderr_path = default_step_stderr_path(run_dir, round_id, role, source_skill)
+        env_file = default_env_file(source_skill)
+        notes: list[str] = []
+        depends_on: list[str] = []
+        skill_refs = [f"${source_skill}"]
+
+        if source_skill == "gdelt-doc-search":
+            argv = [
+                "python3",
+                str(FETCH_SCRIPT_PATHS[source_skill]),
+                "search",
+                "--query",
+                gdelt_query,
+                "--mode",
+                "artlist",
+                "--format",
+                "json",
+                "--start-datetime",
+                to_gdelt_datetime(window["start_utc"]),
+                "--end-datetime",
+                to_gdelt_datetime(window["end_utc"]),
+                "--max-records",
+                merged_task_scalar(role_tasks, "gdelt_max_records") or "50",
+                "--output",
+                str(artifact_path),
+                "--pretty",
+            ]
+            notes.append("Use GDELT DOC as broad article discovery for public claims.")
+        elif source_skill == "bluesky-cascade-fetch":
+            argv = [
+                "python3",
+                str(FETCH_SCRIPT_PATHS[source_skill]),
+                "fetch",
+                "--source-mode",
+                "search",
+                "--query",
+                query_text,
+                "--search-sort",
+                "latest",
+                "--start-datetime",
+                window["start_utc"],
+                "--end-datetime",
+                window["end_utc"],
+                "--max-pages",
+                merged_task_scalar(role_tasks, "bluesky_max_pages") or "5",
+                "--max-posts",
+                merged_task_scalar(role_tasks, "bluesky_max_posts") or "120",
+                "--max-threads",
+                merged_task_scalar(role_tasks, "bluesky_max_threads") or "40",
+                "--output",
+                str(artifact_path),
+                "--pretty",
+            ]
+            notes.append("Collect seed posts plus cascades for diffusion structure.")
+        elif source_skill == "youtube-video-search":
+            argv = [
+                "python3",
+                str(FETCH_SCRIPT_PATHS[source_skill]),
+                "search",
+                "--query",
+                query_text,
+                "--published-after",
+                window["start_utc"],
+                "--published-before",
+                window["end_utc"],
+                "--order",
+                "date",
+                "--max-pages",
+                merged_task_scalar(role_tasks, "youtube_max_pages") or "4",
+                "--max-results",
+                merged_task_scalar(role_tasks, "youtube_max_results") or "80",
+                "--comment-count-min",
+                merged_task_scalar(role_tasks, "youtube_comment_count_min") or "5",
+                "--save-records",
+                "--output-file",
+                str(artifact_path),
+                "--overwrite",
+                "--pretty",
+            ]
+            notes.append("Persist candidate video IDs so comment fetch can chain from the saved JSONL artifact.")
+        elif source_skill == "youtube-comments-fetch":
+            video_ids_file = merged_task_scalar(role_tasks, "youtube_video_ids_file")
+            if not video_ids_file:
+                dependency_step = prior_step_ids.get("youtube-video-search")
+                if dependency_step:
+                    depends_on.append(dependency_step)
+                    video_ids_file = str(default_raw_artifact_path(run_dir, round_id, role, "youtube-video-search"))
+            if not video_ids_file:
+                raise ValueError("youtube-comments-fetch requires youtube-video-search output or task.inputs.youtube_video_ids_file.")
+            argv = [
+                "python3",
+                str(FETCH_SCRIPT_PATHS[source_skill]),
+                "fetch",
+                "--video-ids-file",
+                video_ids_file,
+                "--start-datetime",
+                window["start_utc"],
+                "--end-datetime",
+                window["end_utc"],
+                "--time-field",
+                "published",
+                "--include-replies",
+                "--order",
+                "time",
+                "--max-videos",
+                merged_task_scalar(role_tasks, "youtube_max_videos") or "12",
+                "--max-thread-pages",
+                merged_task_scalar(role_tasks, "youtube_max_thread_pages") or "12",
+                "--max-reply-pages",
+                merged_task_scalar(role_tasks, "youtube_max_reply_pages") or "12",
+                "--max-comments",
+                merged_task_scalar(role_tasks, "youtube_max_comments") or "1200",
+                "--save-records",
+                "--output-file",
+                str(artifact_path),
+                "--overwrite",
+                "--pretty",
+            ]
+            notes.append("Use the saved YouTube video artifact as the only ID source for comment collection.")
+        elif source_skill == "regulationsgov-comments-fetch":
+            argv = [
+                "python3",
+                str(FETCH_SCRIPT_PATHS[source_skill]),
+                "fetch",
+                "--filter-mode",
+                "last-modified",
+                "--start-datetime",
+                window["start_utc"],
+                "--end-datetime",
+                window["end_utc"],
+                "--search-term",
+                query_text,
+                "--max-pages",
+                merged_task_scalar(role_tasks, "reggov_max_pages") or "3",
+                "--max-records",
+                merged_task_scalar(role_tasks, "reggov_max_records") or "300",
+                "--save-response",
+                "--output-file",
+                str(artifact_path),
+                "--overwrite",
+                "--pretty",
+            ]
+            agency_id = merged_task_scalar(role_tasks, "agency_id")
+            if agency_id:
+                argv.extend(["--agency-id", agency_id])
+                notes.append(f"Constrain Regulations.gov discovery to agency_id={agency_id}.")
+            else:
+                notes.append("Use Regulations.gov only when policy or public-comment coverage is mission relevant.")
+        elif source_skill == "regulationsgov-comment-detail-fetch":
+            comment_ids_file = merged_task_scalar(role_tasks, "comment_ids_file")
+            if not comment_ids_file:
+                dependency_step = prior_step_ids.get("regulationsgov-comments-fetch")
+                if dependency_step:
+                    depends_on.append(dependency_step)
+                    comment_ids_file = str(default_raw_artifact_path(run_dir, round_id, role, "regulationsgov-comments-fetch"))
+            if not comment_ids_file:
+                raise ValueError("regulationsgov-comment-detail-fetch requires comment IDs or Regulations.gov list output.")
+            argv = [
+                "python3",
+                str(FETCH_SCRIPT_PATHS[source_skill]),
+                "fetch",
+                "--comment-ids-file",
+                comment_ids_file,
+                "--max-comments",
+                merged_task_scalar(role_tasks, "reggov_max_detail_comments") or "100",
+                "--include",
+                "attachments",
+                "--save-response",
+                "--output-file",
+                str(artifact_path),
+                "--overwrite",
+                "--pretty",
+            ]
+            notes.append("Fetch detail records only after a comment ID list exists.")
+        else:
+            continue
+
+        steps.append(
+            make_step(
+                step_id=step_id,
+                role=role,
+                source_skill=source_skill,
+                task_ids=task_ids,
+                artifact_path=artifact_path,
+                stdout_path=stdout_path,
+                stderr_path=stderr_path,
+                command=shell_command(argv, env_file=env_file),
+                depends_on=depends_on,
+                notes=notes,
+                skill_refs=skill_refs,
+                cwd=SKILL_DIRS.get(source_skill, REPO_DIR),
+            )
+        )
+        prior_step_ids[source_skill] = step_id
+    return steps
+
+
+def build_environmentalist_steps(
+    *,
+    run_dir: Path,
+    round_id: str,
+    mission: dict[str, Any],
+    tasks: list[dict[str, Any]],
+    firms_point_padding_deg: float,
+) -> list[dict[str, Any]]:
+    role = "environmentalist"
+    role_tasks = tasks_for_role(tasks, role)
+    if not role_tasks:
+        return []
+    selected = role_selected_sources(mission=mission, tasks=role_tasks, role=role)
+    if not selected:
+        return []
+    task_ids = step_task_ids(role_tasks)
+    window = window_from_task_or_mission(mission=mission, tasks=role_tasks)
+    geometry = geometry_from_task_or_mission(mission=mission, tasks=role_tasks)
+    location_values = location_strings_for_geometry(geometry)
+    bbox_text = bbox_text_for_geometry(
+        geometry,
+        point_padding_deg=float(merged_task_scalar(role_tasks, "firms_point_padding_deg") or firms_point_padding_deg),
+    )
+
+    steps: list[dict[str, Any]] = []
+    counter = 0
+    for source_skill in selected:
+        if source_skill not in ENVIRONMENT_SOURCES:
+            continue
+        counter += 1
+        step_id = new_step_id(role, source_skill, counter)
+        artifact_path = default_raw_artifact_path(run_dir, round_id, role, source_skill)
+        stdout_path = default_step_stdout_path(run_dir, round_id, role, source_skill)
+        stderr_path = default_step_stderr_path(run_dir, round_id, role, source_skill)
+        notes: list[str] = []
+        skill_refs = [f"${source_skill}"]
+        env_file = default_env_file(source_skill)
+
+        if source_skill == "open-meteo-air-quality-fetch":
+            argv = [
+                "python3",
+                str(FETCH_SCRIPT_PATHS[source_skill]),
+                "fetch",
+            ]
+            for location in location_values:
+                argv.extend(["--location", location])
+            argv.extend(
+                [
+                    "--start-date",
+                    to_date_text(window["start_utc"]),
+                    "--end-date",
+                    to_date_text(window["end_utc"]),
+                ]
+            )
+            for metric in DEFAULT_OPEN_METEO_AIR_VARS:
+                argv.extend(["--hourly-var", metric])
+            argv.extend(
+                [
+                    "--domain",
+                    merged_task_scalar(role_tasks, "open_meteo_air_domain") or "auto",
+                    "--cell-selection",
+                    merged_task_scalar(role_tasks, "open_meteo_air_cell_selection") or "nearest",
+                    "--output",
+                    str(artifact_path),
+                    "--pretty",
+                ]
+            )
+            notes.append("Collect modeled background air-quality context for the mission geometry.")
+            command = shell_command(argv, env_file=env_file)
+        elif source_skill == "open-meteo-historical-fetch":
+            argv = [
+                "python3",
+                str(FETCH_SCRIPT_PATHS[source_skill]),
+                "fetch",
+            ]
+            for location in location_values:
+                argv.extend(["--location", location])
+            argv.extend(
+                [
+                    "--start-date",
+                    to_date_text(window["start_utc"]),
+                    "--end-date",
+                    to_date_text(window["end_utc"]),
+                ]
+            )
+            for metric in DEFAULT_OPEN_METEO_HIST_HOURLY_VARS:
+                argv.extend(["--hourly-var", metric])
+            for metric in DEFAULT_OPEN_METEO_HIST_DAILY_VARS:
+                argv.extend(["--daily-var", metric])
+            argv.extend(
+                [
+                    "--timezone",
+                    "GMT",
+                    "--output",
+                    str(artifact_path),
+                    "--pretty",
+                ]
+            )
+            notes.append("Collect meteorology and soil variables for physical verification.")
+            command = shell_command(argv, env_file=env_file)
+        elif source_skill == "nasa-firms-fire-fetch":
+            argv = [
+                "python3",
+                str(FETCH_SCRIPT_PATHS[source_skill]),
+                "fetch",
+                "--source",
+                merged_task_scalar(role_tasks, "firms_source") or "VIIRS_NOAA20_NRT",
+                "--bbox",
+                bbox_text,
+                "--start-date",
+                to_date_text(window["start_utc"]),
+                "--end-date",
+                to_date_text(window["end_utc"]),
+                "--check-availability",
+                "--output",
+                str(artifact_path),
+                "--pretty",
+            ]
+            notes.append("Collect fire detections for the mission bbox. Point missions are expanded by a deterministic bbox padding.")
+            command = shell_command(argv, env_file=env_file)
+        elif source_skill == "openaq-data-fetch":
+            argv = [
+                "python3",
+                str(SCRIPT_DIR / "eco_council_orchestrate.py"),
+                "collect-openaq",
+                "--run-dir",
+                str(run_dir),
+                "--round-id",
+                round_id,
+                "--output",
+                str(artifact_path),
+                "--task-role",
+                role,
+                "--max-locations",
+                merged_task_scalar(role_tasks, "openaq_max_locations") or "4",
+                "--max-sensors-per-location",
+                merged_task_scalar(role_tasks, "openaq_max_sensors_per_location") or "3",
+                "--max-pages",
+                merged_task_scalar(role_tasks, "openaq_max_pages") or "5",
+                "--radius-meters",
+                merged_task_scalar(role_tasks, "openaq_radius_meters") or "50000",
+            ]
+            for parameter_name in merged_task_string_list(role_tasks, "openaq_parameter_names") or DEFAULT_OPENAQ_PARAMETER_NAMES:
+                argv.extend(["--parameter-name", parameter_name])
+            argv.append("--pretty")
+            notes.append("Collect OpenAQ station measurements through location discovery, sensor discovery, and measurement fetch aggregation.")
+            command = shell_command(argv, env_file=None)
+        else:
+            continue
+
+        steps.append(
+            make_step(
+                step_id=step_id,
+                role=role,
+                source_skill=source_skill,
+                task_ids=task_ids,
+                artifact_path=artifact_path,
+                stdout_path=stdout_path,
+                stderr_path=stderr_path,
+                command=command,
+                depends_on=[],
+                notes=notes,
+                skill_refs=skill_refs,
+                cwd=REPO_DIR,
+            )
+        )
+    return steps
+
+
+def build_fetch_plan(
+    *,
+    run_dir: Path,
+    round_id: str,
+    firms_point_padding_deg: float,
+) -> dict[str, Any]:
+    mission = load_mission(run_dir)
+    tasks = load_tasks(run_dir, round_id)
+    sociologist_tasks = tasks_for_role(tasks, "sociologist")
+    environmentalist_tasks = tasks_for_role(tasks, "environmentalist")
+
+    steps: list[dict[str, Any]] = []
+    steps.extend(
+        build_sociologist_steps(
+            run_dir=run_dir,
+            round_id=round_id,
+            mission=mission,
+            tasks=tasks,
+        )
+    )
+    steps.extend(
+        build_environmentalist_steps(
+            run_dir=run_dir,
+            round_id=round_id,
+            mission=mission,
+            tasks=tasks,
+            firms_point_padding_deg=firms_point_padding_deg,
+        )
+    )
+    return {
+        "plan_kind": "eco-council-fetch-plan",
+        "schema_version": "1.0.0",
+        "generated_at_utc": utc_now_iso(),
+        "run": {
+            "run_id": maybe_text(mission.get("run_id")),
+            "round_id": round_id,
+            "topic": maybe_text(mission.get("topic")),
+            "objective": maybe_text(mission.get("objective")),
+            "region_label": maybe_text(mission_region(mission).get("label")),
+            "window": mission_window(mission),
+        },
+        "roles": {
+            "sociologist": {
+                "task_ids": step_task_ids(sociologist_tasks),
+                "objective": task_objective_text(sociologist_tasks),
+                "source_policy": role_selected_sources(mission=mission, tasks=sociologist_tasks, role="sociologist"),
+            },
+            "environmentalist": {
+                "task_ids": step_task_ids(environmentalist_tasks),
+                "objective": task_objective_text(environmentalist_tasks),
+                "source_policy": role_selected_sources(mission=mission, tasks=environmentalist_tasks, role="environmentalist"),
+            },
+        },
+        "steps": steps,
+    }
+
+
+def render_moderator_task_review_prompt(*, run_dir: Path, round_id: str) -> Path:
+    mission_path = run_dir / "mission.json"
+    tasks_path = round_dir(run_dir, round_id) / "moderator" / "tasks.json"
+    validate_command = shell_join(
+        [
+            "python3",
+            str(CONTRACT_SCRIPT),
+            "validate",
+            "--kind",
+            "round-task",
+            "--input",
+            str(tasks_path),
+        ]
+    )
+    lines = [
+        "Use $eco-council-data-contract.",
+        f"Open mission at: {mission_path}",
+        f"Open current task list at: {tasks_path}",
+        "",
+        "Review and, if needed, revise the round-task list before expert fetch work begins.",
+        "Requirements:",
+        "1. Keep the file as a JSON list of valid round-task objects.",
+        "2. Keep run_id and round_id unchanged.",
+        "3. Use only moderator-owned task assignment; do not write claims, observations, evidence cards, or reports here.",
+        "4. Prefer source skills already allowed in mission.source_policy and task.inputs.preferred_sources.",
+        "5. Keep objectives concrete enough that sociologist and environmentalist can fetch raw artifacts deterministically.",
+        "",
+        "After editing, validate with:",
+        validate_command,
+        "",
+        "Return only the final JSON list.",
+    ]
+    output_path = task_review_prompt_path(run_dir, round_id)
+    write_text(output_path, "\n".join(lines))
+    return output_path
+
+
+def render_role_fetch_prompt(
+    *,
+    run_dir: Path,
+    round_id: str,
+    role: str,
+    plan: dict[str, Any],
+) -> Path | None:
+    tasks = load_tasks(run_dir, round_id)
+    role_tasks = tasks_for_role(tasks, role)
+    if not role_tasks:
+        return None
+    steps = [step for step in plan.get("steps", []) if maybe_text(step.get("role")) == role]
+    if not steps:
+        return None
+
+    mission = load_mission(run_dir)
+    mission_window_value = mission_window(mission)
+    objective_lines = [f"- {maybe_text(task.get('task_id'))}: {maybe_text(task.get('objective'))}" for task in role_tasks]
+    referenced_skills = unique_strings(
+        [skill_ref for step in steps for skill_ref in step.get("skill_refs", []) if maybe_text(skill_ref)]
+    )
+    lines = [
+        f"You are the {role} for {maybe_text(mission.get('run_id'))} {round_id}.",
+        "",
+        "Mission:",
+        f"- topic: {maybe_text(mission.get('topic'))}",
+        f"- objective: {maybe_text(mission.get('objective'))}",
+        f"- region: {maybe_text(mission_region(mission).get('label'))}",
+        f"- window_start_utc: {mission_window_value['start_utc']}",
+        f"- window_end_utc: {mission_window_value['end_utc']}",
+        "",
+        "Assigned tasks:",
+        *objective_lines,
+        "",
+        "Relevant skills:",
+        ", ".join(referenced_skills) if referenced_skills else "$eco-council-orchestrate",
+        "",
+        "Execution rules:",
+        "1. Execute only the shell commands listed below for your role.",
+        "2. Keep raw outputs exactly at the specified artifact paths. Those files are the contract boundary for normalization.",
+        "3. Do not create claims, observations, evidence cards, or expert reports in this phase.",
+        "4. If you intentionally rerun a step, overwrite only the artifact paths already listed in the plan.",
+        "5. After all commands complete, return only JSON summarizing artifact paths and any blockers.",
+        "",
+    ]
+    for step in steps:
+        lines.extend(
+            [
+                f"Step: {maybe_text(step.get('step_id'))}",
+                f"Source skill: {maybe_text(step.get('source_skill'))}",
+                f"Artifact path: {maybe_text(step.get('artifact_path'))}",
+            ]
+        )
+        if isinstance(step.get("depends_on"), list) and step.get("depends_on"):
+            lines.append(f"Depends on: {', '.join(step['depends_on'])}")
+        if isinstance(step.get("notes"), list):
+            for note in step["notes"]:
+                note_text = maybe_text(note)
+                if note_text:
+                    lines.append(f"Note: {note_text}")
+        command_text = step.get("command")
+        if not isinstance(command_text, str) or not command_text.strip():
+            command_text = "# missing command"
+        lines.extend(["Command:", "```bash", command_text, "```", ""])
+
+    lines.extend(
+        [
+            "Return JSON only with this shape:",
+            "```json",
+            "{",
+            f'  "role": "{role}",',
+            f'  "round_id": "{round_id}",',
+            '  "status": "raw-data-ready",',
+            '  "artifacts": ["..."],',
+            '  "notes": []',
+            "}",
+            "```",
+        ]
+    )
+    output_path = fetch_prompt_path(run_dir, round_id, role)
+    write_text(output_path, "\n".join(lines))
+    return output_path
+
+
+def write_round_manifest(
+    *,
+    run_dir: Path,
+    round_id: str,
+    stage: str,
+    task_prompt: Path | None,
+    fetch_plan: Path | None,
+    fetch_prompts: dict[str, str],
+) -> Path:
+    prepare_command = shell_join(
+        [
+            "python3",
+            str(SCRIPT_DIR / "eco_council_orchestrate.py"),
+            "prepare-round",
+            "--run-dir",
+            str(run_dir),
+            "--round-id",
+            round_id,
+            "--pretty",
+        ]
+    )
+    data_plane_command = shell_join(
+        [
+            "python3",
+            str(SCRIPT_DIR / "eco_council_orchestrate.py"),
+            "run-data-plane",
+            "--run-dir",
+            str(run_dir),
+            "--round-id",
+            round_id,
+            "--pretty",
+        ]
+    )
+    execute_fetch_command = shell_join(
+        [
+            "python3",
+            str(SCRIPT_DIR / "eco_council_orchestrate.py"),
+            "execute-fetch-plan",
+            "--run-dir",
+            str(run_dir),
+            "--round-id",
+            round_id,
+            "--pretty",
+        ]
+    )
+    manifest = {
+        "manifest_kind": "eco-council-round-manifest",
+        "schema_version": "1.0.0",
+        "generated_at_utc": utc_now_iso(),
+        "stage": stage,
+        "run_dir": str(run_dir),
+        "round_id": round_id,
+        "task_review_prompt_path": str(task_prompt) if task_prompt is not None else "",
+        "fetch_plan_path": str(fetch_plan) if fetch_plan is not None else "",
+        "role_fetch_prompt_paths": fetch_prompts,
+        "next_commands": {
+            "prepare_round": prepare_command,
+            "run_data_plane": data_plane_command,
+            "execute_fetch_plan": execute_fetch_command,
+        },
+    }
+    output_path = round_manifest_path(run_dir, round_id)
+    write_json(output_path, manifest, pretty=True)
+    return output_path
+
+
+def strip_inline_comment(text: str) -> str:
+    chars: list[str] = []
+    in_single = False
+    in_double = False
+    escape = False
+    for char in text:
+        if escape:
+            chars.append(char)
+            escape = False
+            continue
+        if char == "\\" and not in_single:
+            chars.append(char)
+            escape = True
+            continue
+        if char == "'" and not in_double:
+            in_single = not in_single
+        elif char == '"' and not in_single:
+            in_double = not in_double
+        elif char == "#" and not in_single and not in_double:
+            break
+        chars.append(char)
+    return "".join(chars).strip()
+
+
+def parse_env_file(path: Path) -> dict[str, str]:
+    if not path.exists():
+        raise ValueError(f"Environment file does not exist: {path}")
+    env: dict[str, str] = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        clean = strip_inline_comment(line)
+        if not clean:
+            continue
+        match = ENV_ASSIGNMENT_PATTERN.match(clean)
+        if match is None:
+            continue
+        key, raw_value = match.groups()
+        value = raw_value.strip()
+        if value.startswith('"') and value.endswith('"') and len(value) >= 2:
+            value = value[1:-1]
+        elif value.startswith("'") and value.endswith("'") and len(value) >= 2:
+            value = value[1:-1]
+        env[key] = value
+    return env
+
+
+def run_json_cli(argv: list[str], *, cwd: Path | None = None, env: dict[str, str] | None = None) -> dict[str, Any]:
+    completed = subprocess.run(
+        argv,
+        cwd=str(cwd) if cwd is not None else None,
+        env=env,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if completed.returncode != 0:
+        stderr = completed.stderr.strip()
+        stdout = completed.stdout.strip()
+        detail = stderr or stdout or f"exit={completed.returncode}"
+        raise RuntimeError(f"Command failed: {shell_join(argv)} :: {detail}")
+    stdout_text = completed.stdout.strip()
+    if not stdout_text:
+        raise RuntimeError(f"Command produced no JSON output: {shell_join(argv)}")
+    try:
+        payload = json.loads(stdout_text)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"Command did not emit valid JSON: {shell_join(argv)}") from exc
+    if not isinstance(payload, dict):
+        raise RuntimeError(f"Command JSON output must be an object: {shell_join(argv)}")
+    return payload
+
+
+def ensure_ok_envelope(payload: dict[str, Any], label: str) -> dict[str, Any]:
+    if payload.get("ok") is False:
+        raise RuntimeError(f"{label} returned ok=false: {payload}")
+    result = payload.get("payload")
+    if isinstance(result, dict):
+        return result
+    return payload
+
+
+def prepare_round(
+    *,
+    run_dir: Path,
+    round_id: str,
+    firms_point_padding_deg: float,
+) -> dict[str, Any]:
+    run_path = run_dir.expanduser().resolve()
+    current_round_id = resolve_round_id(run_path, round_id)
+    task_prompt = render_moderator_task_review_prompt(run_dir=run_path, round_id=current_round_id)
+    plan = build_fetch_plan(run_dir=run_path, round_id=current_round_id, firms_point_padding_deg=firms_point_padding_deg)
+    plan_output_path = fetch_plan_path(run_path, current_round_id)
+    write_json(plan_output_path, plan, pretty=True)
+
+    prompt_paths: dict[str, str] = {}
+    for role in ("sociologist", "environmentalist"):
+        path = render_role_fetch_prompt(run_dir=run_path, round_id=current_round_id, role=role, plan=plan)
+        if path is not None:
+            prompt_paths[role] = str(path)
+
+    manifest_path = write_round_manifest(
+        run_dir=run_path,
+        round_id=current_round_id,
+        stage="fetch-ready",
+        task_prompt=task_prompt,
+        fetch_plan=plan_output_path,
+        fetch_prompts=prompt_paths,
+    )
+    return {
+        "run_dir": str(run_path),
+        "round_id": current_round_id,
+        "fetch_plan_path": str(plan_output_path),
+        "task_review_prompt_path": str(task_prompt),
+        "role_fetch_prompt_paths": prompt_paths,
+        "manifest_path": str(manifest_path),
+        "step_count": len(plan.get("steps", [])),
+    }
+
+
+def execute_fetch_plan(
+    *,
+    run_dir: Path,
+    round_id: str,
+    continue_on_error: bool,
+    skip_existing: bool,
+    timeout_seconds: int,
+) -> dict[str, Any]:
+    run_path = run_dir.expanduser().resolve()
+    current_round_id = resolve_round_id(run_path, round_id)
+    plan_path = fetch_plan_path(run_path, current_round_id)
+    plan = ensure_object(read_json(plan_path), f"{plan_path}")
+    steps = ensure_object_list(plan.get("steps"), f"{plan_path}.steps")
+
+    statuses: list[dict[str, Any]] = []
+    succeeded: set[str] = set()
+    for step in steps:
+        step_id = maybe_text(step.get("step_id"))
+        artifact_path = Path(maybe_text(step.get("artifact_path"))).expanduser().resolve()
+        stdout_path = Path(maybe_text(step.get("stdout_path"))).expanduser().resolve()
+        stderr_path = Path(maybe_text(step.get("stderr_path"))).expanduser().resolve()
+        cwd = Path(maybe_text(step.get("cwd")) or str(REPO_DIR)).expanduser().resolve()
+        depends_on = [maybe_text(item) for item in step.get("depends_on", []) if maybe_text(item)]
+        command = maybe_text(step.get("command"))
+
+        if any(dep not in succeeded for dep in depends_on):
+            status = {
+                "step_id": step_id,
+                "source_skill": maybe_text(step.get("source_skill")),
+                "status": "skipped",
+                "reason": f"Unmet dependencies: {depends_on}",
+            }
+            statuses.append(status)
+            if not continue_on_error:
+                break
+            continue
+
+        if skip_existing and artifact_path.exists():
+            statuses.append(
+                {
+                    "step_id": step_id,
+                    "source_skill": maybe_text(step.get("source_skill")),
+                    "status": "skipped",
+                    "reason": "artifact_exists",
+                    "artifact_path": str(artifact_path),
+                }
+            )
+            succeeded.add(step_id)
+            continue
+
+        stdout_path.parent.mkdir(parents=True, exist_ok=True)
+        stderr_path.parent.mkdir(parents=True, exist_ok=True)
+        with stdout_path.open("w", encoding="utf-8") as stdout_handle, stderr_path.open("w", encoding="utf-8") as stderr_handle:
+            try:
+                completed = subprocess.run(
+                    ["/bin/bash", "-lc", command],
+                    cwd=str(cwd),
+                    check=False,
+                    stdout=stdout_handle,
+                    stderr=stderr_handle,
+                    text=True,
+                    timeout=timeout_seconds,
+                )
+                returncode = completed.returncode
+                timed_out = False
+            except subprocess.TimeoutExpired:
+                returncode = 124
+                timed_out = True
+        if returncode == 0:
+            succeeded.add(step_id)
+            statuses.append(
+                {
+                    "step_id": step_id,
+                    "source_skill": maybe_text(step.get("source_skill")),
+                    "status": "completed",
+                    "artifact_path": str(artifact_path),
+                    "stdout_path": str(stdout_path),
+                    "stderr_path": str(stderr_path),
+                }
+            )
+            continue
+
+        statuses.append(
+            {
+                "step_id": step_id,
+                "source_skill": maybe_text(step.get("source_skill")),
+                "status": "failed",
+                "artifact_path": str(artifact_path),
+                "stdout_path": str(stdout_path),
+                "stderr_path": str(stderr_path),
+                "returncode": returncode,
+                "timed_out": timed_out,
+            }
+        )
+        if not continue_on_error:
+            break
+
+    result = {
+        "run_dir": str(run_path),
+        "round_id": current_round_id,
+        "plan_path": str(plan_path),
+        "step_count": len(steps),
+        "completed_count": sum(1 for status in statuses if status.get("status") == "completed"),
+        "failed_count": sum(1 for status in statuses if status.get("status") == "failed"),
+        "statuses": statuses,
+    }
+    execution_path = moderator_derived_dir(run_path, current_round_id) / "fetch_execution.json"
+    write_json(execution_path, result, pretty=True)
+    result["execution_path"] = str(execution_path)
+    return result
+
+
+def discover_normalize_inputs(run_dir: Path, round_id: str, *, role: str, sources: tuple[str, ...]) -> list[str]:
+    input_specs: list[str] = []
+    for source_skill in sources:
+        artifact_path = default_raw_artifact_path(run_dir, round_id, role, source_skill)
+        if artifact_path.exists():
+            input_specs.append(f"{source_skill}={artifact_path}")
+    return input_specs
+
+
+def build_reporting_handoff(*, run_dir: Path, round_id: str) -> Path:
+    base_round_dir = round_dir(run_dir, round_id)
+    promote_all_command = shell_join(
+        [
+            "python3",
+            str(REPORTING_SCRIPT),
+            "promote-all",
+            "--run-dir",
+            str(run_dir),
+            "--round-id",
+            round_id,
+            "--pretty",
+        ]
+    )
+    validate_bundle_command = shell_join(
+        [
+            "python3",
+            str(CONTRACT_SCRIPT),
+            "validate-bundle",
+            "--run-dir",
+            str(run_dir),
+            "--pretty",
+        ]
+    )
+    advance_round_command = shell_join(
+        [
+            "python3",
+            str(SCRIPT_DIR / "eco_council_orchestrate.py"),
+            "advance-round",
+            "--run-dir",
+            str(run_dir),
+            "--round-id",
+            round_id,
+            "--pretty",
+        ]
+    )
+    handoff = {
+        "handoff_kind": "eco-council-reporting-handoff",
+        "schema_version": "1.0.0",
+        "generated_at_utc": utc_now_iso(),
+        "run_dir": str(run_dir),
+        "round_id": round_id,
+        "expert_report_prompt_paths": {
+            "sociologist": str(base_round_dir / "sociologist" / "derived" / "openclaw_report_prompt.txt"),
+            "environmentalist": str(base_round_dir / "environmentalist" / "derived" / "openclaw_report_prompt.txt"),
+        },
+        "decision_prompt_path": str(base_round_dir / "moderator" / "derived" / "openclaw_decision_prompt.txt"),
+        "draft_paths": {
+            "sociologist": str(base_round_dir / "sociologist" / "derived" / "sociologist_report_draft.json"),
+            "environmentalist": str(base_round_dir / "environmentalist" / "derived" / "environmentalist_report_draft.json"),
+            "moderator": str(base_round_dir / "moderator" / "derived" / "council_decision_draft.json"),
+        },
+        "promotion_commands": {
+            "promote_all": promote_all_command,
+            "validate_bundle": validate_bundle_command,
+            "advance_round": advance_round_command,
+        },
+    }
+    output_path = reporting_handoff_path(run_dir, round_id)
+    write_json(output_path, handoff, pretty=True)
+    return output_path
+
+
+def run_data_plane(*, run_dir: Path, round_id: str) -> dict[str, Any]:
+    run_path = run_dir.expanduser().resolve()
+    current_round_id = resolve_round_id(run_path, round_id)
+
+    init_payload = ensure_ok_envelope(
+        run_json_cli(["python3", str(NORMALIZE_SCRIPT), "init-run", "--run-dir", str(run_path), "--round-id", current_round_id]),
+        "normalize init-run",
+    )
+    public_inputs = discover_normalize_inputs(run_path, current_round_id, role="sociologist", sources=PUBLIC_SOURCES)
+    environment_inputs = discover_normalize_inputs(run_path, current_round_id, role="environmentalist", sources=ENVIRONMENT_SOURCES)
+
+    normalize_public_cmd = ["python3", str(NORMALIZE_SCRIPT), "normalize-public", "--run-dir", str(run_path), "--round-id", current_round_id]
+    for input_spec in public_inputs:
+        normalize_public_cmd.extend(["--input", input_spec])
+    public_payload = ensure_ok_envelope(run_json_cli(normalize_public_cmd), "normalize public")
+
+    normalize_environment_cmd = [
+        "python3",
+        str(NORMALIZE_SCRIPT),
+        "normalize-environment",
+        "--run-dir",
+        str(run_path),
+        "--round-id",
+        current_round_id,
+    ]
+    for input_spec in environment_inputs:
+        normalize_environment_cmd.extend(["--input", input_spec])
+    environment_payload = ensure_ok_envelope(run_json_cli(normalize_environment_cmd), "normalize environment")
+
+    evidence_payload = ensure_ok_envelope(
+        run_json_cli(["python3", str(NORMALIZE_SCRIPT), "link-evidence", "--run-dir", str(run_path), "--round-id", current_round_id]),
+        "link evidence",
+    )
+    context_payload = ensure_ok_envelope(
+        run_json_cli(["python3", str(NORMALIZE_SCRIPT), "build-round-context", "--run-dir", str(run_path), "--round-id", current_round_id]),
+        "build round context",
+    )
+    reporting_payload = ensure_ok_envelope(
+        run_json_cli(
+            [
+                "python3",
+                str(REPORTING_SCRIPT),
+                "build-all",
+                "--run-dir",
+                str(run_path),
+                "--round-id",
+                current_round_id,
+                "--prefer-draft-reports",
+            ]
+        ),
+        "reporting build-all",
+    )
+    prompt_payload = ensure_ok_envelope(
+        run_json_cli(
+            [
+                "python3",
+                str(REPORTING_SCRIPT),
+                "render-openclaw-prompts",
+                "--run-dir",
+                str(run_path),
+                "--round-id",
+                current_round_id,
+            ]
+        ),
+        "render openclaw prompts",
+    )
+    bundle_payload = ensure_ok_envelope(
+        run_json_cli(["python3", str(CONTRACT_SCRIPT), "validate-bundle", "--run-dir", str(run_path)]),
+        "validate bundle",
+    )
+    handoff_path = build_reporting_handoff(run_dir=run_path, round_id=current_round_id)
+    return {
+        "run_dir": str(run_path),
+        "round_id": current_round_id,
+        "public_inputs": public_inputs,
+        "environment_inputs": environment_inputs,
+        "normalize_init": init_payload,
+        "normalize_public": public_payload,
+        "normalize_environment": environment_payload,
+        "link_evidence": evidence_payload,
+        "build_context": context_payload,
+        "reporting": reporting_payload,
+        "prompt_render": prompt_payload,
+        "bundle_validation": bundle_payload,
+        "reporting_handoff_path": str(handoff_path),
+    }
+
+
+def command_bootstrap_run(args: argparse.Namespace) -> dict[str, Any]:
+    run_dir = Path(args.run_dir).expanduser().resolve()
+    if run_dir.exists() and any(run_dir.iterdir()) and not args.allow_existing:
+        raise ValueError(f"Run directory already exists and is not empty: {run_dir}. Use --allow-existing to proceed.")
+    cmd = [
+        "python3",
+        str(CONTRACT_SCRIPT),
+        "scaffold-run-from-mission",
+        "--run-dir",
+        str(run_dir),
+        "--mission-input",
+        str(Path(args.mission_input).expanduser().resolve()),
+    ]
+    if args.tasks_input:
+        cmd.extend(["--tasks-input", str(Path(args.tasks_input).expanduser().resolve())])
+    contract_payload = ensure_ok_envelope(run_json_cli(cmd), "scaffold-run-from-mission")
+    round_id = maybe_text(contract_payload.get("round_id")) or "round-001"
+    task_prompt = render_moderator_task_review_prompt(run_dir=run_dir, round_id=round_id)
+    manifest_path = write_round_manifest(
+        run_dir=run_dir,
+        round_id=round_id,
+        stage="task-review",
+        task_prompt=task_prompt,
+        fetch_plan=None,
+        fetch_prompts={},
+    )
+    bundle_payload = ensure_ok_envelope(
+        run_json_cli(["python3", str(CONTRACT_SCRIPT), "validate-bundle", "--run-dir", str(run_dir)]),
+        "validate bundle",
+    )
+    return {
+        "run_dir": str(run_dir),
+        "round_id": round_id,
+        "contract": contract_payload,
+        "task_review_prompt_path": str(task_prompt),
+        "manifest_path": str(manifest_path),
+        "bundle_validation": bundle_payload,
+    }
+
+
+def command_prepare_round(args: argparse.Namespace) -> dict[str, Any]:
+    return prepare_round(
+        run_dir=Path(args.run_dir),
+        round_id=args.round_id,
+        firms_point_padding_deg=args.firms_point_padding_deg,
+    )
+
+
+def command_execute_fetch_plan(args: argparse.Namespace) -> dict[str, Any]:
+    return execute_fetch_plan(
+        run_dir=Path(args.run_dir),
+        round_id=args.round_id,
+        continue_on_error=args.continue_on_error,
+        skip_existing=args.skip_existing,
+        timeout_seconds=args.timeout_seconds,
+    )
+
+
+def call_openaq_api(
+    *,
+    env: dict[str, str],
+    path: str,
+    query_pairs: list[str],
+    max_pages: int,
+    all_pages: bool,
+) -> dict[str, Any]:
+    argv = [
+        "python3",
+        str(OPENAQ_API_SCRIPT),
+        "request",
+        "--path",
+        path,
+    ]
+    for pair in query_pairs:
+        argv.extend(["--query", pair])
+    if all_pages:
+        argv.append("--all-pages")
+        argv.extend(["--max-pages", str(max_pages)])
+    return run_json_cli(argv, cwd=SKILL_DIRS["openaq-data-fetch"], env=env)
+
+
+def normalized_parameter_name(value: Any) -> str:
+    return maybe_text(value).casefold().replace("_", "").replace("-", "").replace(".", "")
+
+
+def sensor_parameter_name(sensor: dict[str, Any]) -> str:
+    parameter = sensor.get("parameter")
+    if isinstance(parameter, dict):
+        return maybe_text(parameter.get("name") or parameter.get("displayName") or parameter.get("parameter"))
+    return maybe_text(parameter or sensor.get("parameterName") or sensor.get("name"))
+
+
+def sensor_parameter_matches(sensor: dict[str, Any], allowed_names: list[str]) -> bool:
+    if not allowed_names:
+        return True
+    normalized = normalized_parameter_name(sensor_parameter_name(sensor))
+    if not normalized:
+        return False
+    return normalized in {normalized_parameter_name(name) for name in allowed_names}
+
+
+def coordinates_from_location(location: dict[str, Any]) -> tuple[float | None, float | None]:
+    coordinates = location.get("coordinates")
+    if isinstance(coordinates, dict):
+        latitude = coordinates.get("latitude")
+        longitude = coordinates.get("longitude")
+        try:
+            return (float(latitude), float(longitude))
+        except (TypeError, ValueError):
+            return (None, None)
+    for lat_key in ("latitude", "lat"):
+        for lon_key in ("longitude", "lon", "lng"):
+            if lat_key in location and lon_key in location:
+                try:
+                    return (float(location[lat_key]), float(location[lon_key]))
+                except (TypeError, ValueError):
+                    return (None, None)
+    return (None, None)
+
+
+def command_collect_openaq(args: argparse.Namespace) -> dict[str, Any]:
+    run_dir = Path(args.run_dir).expanduser().resolve()
+    round_id = resolve_round_id(run_dir, args.round_id)
+    mission = load_mission(run_dir)
+    tasks = tasks_for_role(load_tasks(run_dir, round_id), args.task_role)
+    if not tasks:
+        raise ValueError(f"No tasks assigned to role={args.task_role!r} in {round_id}.")
+
+    geometry = geometry_from_task_or_mission(mission=mission, tasks=tasks)
+    window = window_from_task_or_mission(mission=mission, tasks=tasks)
+    env_file = default_env_file("openaq-data-fetch")
+    if env_file is None:
+        raise ValueError("No env file found for openaq-data-fetch.")
+    env = dict(os.environ)
+    env.update(parse_env_file(env_file))
+
+    output_path = Path(args.output).expanduser().resolve() if args.output else default_raw_artifact_path(
+        run_dir,
+        round_id,
+        args.task_role,
+        "openaq-data-fetch",
+    )
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    location_query_pairs = ["limit=1000"]
+    geometry_type = maybe_text(geometry.get("type"))
+    if geometry_type == "BBox":
+        location_query_pairs.append(f"bbox={bbox_text_for_geometry(geometry, point_padding_deg=0.0)}")
+    elif geometry_type == "Point":
+        latitude, longitude = center_point_for_geometry(geometry)
+        location_query_pairs.append(f"coordinates={latitude:.6f},{longitude:.6f}")
+        location_query_pairs.append(f"radius={args.radius_meters}")
+    else:
+        raise ValueError(f"Unsupported mission geometry type for OpenAQ: {geometry_type!r}")
+
+    locations_payload = call_openaq_api(
+        env=env,
+        path="/v3/locations",
+        query_pairs=location_query_pairs,
+        max_pages=args.max_pages,
+        all_pages=True,
+    )
+    locations = ensure_object_list(locations_payload.get("results", []), "OpenAQ locations results")
+    selected_locations = locations[: args.max_locations]
+
+    records: list[dict[str, Any]] = []
+    discovery_summary: list[dict[str, Any]] = []
+    allowed_parameter_names = args.parameter_name or DEFAULT_OPENAQ_PARAMETER_NAMES
+
+    for location in selected_locations:
+        location_id = location.get("id")
+        if location_id in (None, ""):
+            continue
+        sensors_payload = call_openaq_api(
+            env=env,
+            path=f"/v3/locations/{location_id}/sensors",
+            query_pairs=["limit=1000"],
+            max_pages=args.max_pages,
+            all_pages=True,
+        )
+        sensors = ensure_object_list(sensors_payload.get("results", []), f"OpenAQ sensors results for location {location_id}")
+        selected_sensors = [sensor for sensor in sensors if sensor_parameter_matches(sensor, allowed_parameter_names)]
+        selected_sensors = selected_sensors[: args.max_sensors_per_location]
+        latitude, longitude = coordinates_from_location(location)
+
+        location_summary = {
+            "location_id": location_id,
+            "location_name": maybe_text(location.get("name")),
+            "sensor_count": len(selected_sensors),
+            "selected_sensor_ids": [sensor.get("id") for sensor in selected_sensors],
+        }
+        discovery_summary.append(location_summary)
+
+        for sensor in selected_sensors:
+            sensor_id = sensor.get("id")
+            if sensor_id in (None, ""):
+                continue
+            query_pairs = [
+                "limit=1000",
+                f"datetime_from={window['start_utc']}",
+                f"datetime_to={window['end_utc']}",
+            ]
+            measurements_payload = call_openaq_api(
+                env=env,
+                path=f"/v3/sensors/{sensor_id}/measurements",
+                query_pairs=query_pairs,
+                max_pages=args.max_pages,
+                all_pages=True,
+            )
+            measurement_rows = ensure_object_list(
+                measurements_payload.get("results", []),
+                f"OpenAQ measurements results for sensor {sensor_id}",
+            )
+            for row in measurement_rows:
+                enriched = dict(row)
+                if "location" not in enriched:
+                    enriched["location"] = {
+                        "id": location_id,
+                        "name": maybe_text(location.get("name")),
+                    }
+                if "sensor" not in enriched:
+                    enriched["sensor"] = {
+                        "id": sensor_id,
+                    }
+                if "parameter" not in enriched:
+                    parameter = sensor.get("parameter")
+                    if parameter is not None:
+                        enriched["parameter"] = parameter
+                    else:
+                        enriched["parameter"] = {"name": sensor_parameter_name(sensor)}
+                if "coordinates" not in enriched and latitude is not None and longitude is not None:
+                    enriched["coordinates"] = {"latitude": latitude, "longitude": longitude}
+                records.append(enriched)
+
+    payload = {
+        "generated_at_utc": utc_now_iso(),
+        "run_id": maybe_text(mission.get("run_id")),
+        "round_id": round_id,
+        "source_skill": "openaq-data-fetch",
+        "request": {
+            "geometry": geometry,
+            "window": window,
+            "max_locations": args.max_locations,
+            "max_sensors_per_location": args.max_sensors_per_location,
+            "max_pages": args.max_pages,
+            "radius_meters": args.radius_meters,
+            "parameter_names": allowed_parameter_names,
+        },
+        "discovery_summary": discovery_summary,
+        "record_count": len(records),
+        "records": records,
+    }
+    write_json(output_path, payload, pretty=args.pretty)
+    return {
+        "output_path": str(output_path),
+        "record_count": len(records),
+        "location_count": len(selected_locations),
+        "discovery_summary": discovery_summary,
+        "env_file": str(env_file),
+    }
+
+
+def command_run_data_plane(args: argparse.Namespace) -> dict[str, Any]:
+    return run_data_plane(run_dir=Path(args.run_dir), round_id=args.round_id)
+
+
+def command_advance_round(args: argparse.Namespace) -> dict[str, Any]:
+    run_dir = Path(args.run_dir).expanduser().resolve()
+    current_round_id = resolve_round_id(run_dir, args.round_id)
+    decision_path = (
+        Path(args.decision_input).expanduser().resolve()
+        if args.decision_input
+        else round_dir(run_dir, current_round_id) / "moderator" / "council_decision.json"
+    )
+    if not decision_path.exists():
+        raise ValueError(f"Decision file does not exist: {decision_path}")
+    decision = ensure_object(read_json(decision_path), f"{decision_path}")
+    if not decision.get("next_round_required"):
+        return {
+            "run_dir": str(run_dir),
+            "round_id": current_round_id,
+            "decision_path": str(decision_path),
+            "moderator_status": maybe_text(decision.get("moderator_status")),
+            "advanced": False,
+        }
+    next_round_tasks = ensure_object_list(decision.get("next_round_tasks", []), "council_decision.next_round_tasks")
+    if not next_round_tasks:
+        raise ValueError("Decision requires another round, but next_round_tasks is empty.")
+    next_round_ids = unique_strings([maybe_text(task.get("round_id")) for task in next_round_tasks if maybe_text(task.get("round_id"))])
+    if len(next_round_ids) != 1:
+        raise ValueError(f"Expected exactly one next round_id in next_round_tasks, got {next_round_ids}")
+    next_round_id_value = next_round_ids[0]
+    next_round_path = round_dir(run_dir, next_round_id_value)
+    if next_round_path.exists() and any(next_round_path.iterdir()) and not args.allow_existing:
+        raise ValueError(f"Next round already exists: {next_round_path}. Use --allow-existing to proceed.")
+
+    tasks_path = approved_next_round_tasks_path(run_dir, current_round_id)
+    write_json(tasks_path, next_round_tasks, pretty=True)
+    scaffold_payload = ensure_ok_envelope(
+        run_json_cli(
+            [
+                "python3",
+                str(CONTRACT_SCRIPT),
+                "scaffold-round",
+                "--run-dir",
+                str(run_dir),
+                "--round-id",
+                next_round_id_value,
+                "--tasks-input",
+                str(tasks_path),
+            ]
+        ),
+        "scaffold-round",
+    )
+    task_prompt = render_moderator_task_review_prompt(run_dir=run_dir, round_id=next_round_id_value)
+    manifest_path = write_round_manifest(
+        run_dir=run_dir,
+        round_id=next_round_id_value,
+        stage="task-review",
+        task_prompt=task_prompt,
+        fetch_plan=None,
+        fetch_prompts={},
+    )
+    bundle_payload = ensure_ok_envelope(
+        run_json_cli(["python3", str(CONTRACT_SCRIPT), "validate-bundle", "--run-dir", str(run_dir)]),
+        "validate bundle",
+    )
+    return {
+        "run_dir": str(run_dir),
+        "current_round_id": current_round_id,
+        "next_round_id": next_round_id_value,
+        "decision_path": str(decision_path),
+        "approved_next_round_tasks_path": str(tasks_path),
+        "scaffold": scaffold_payload,
+        "task_review_prompt_path": str(task_prompt),
+        "manifest_path": str(manifest_path),
+        "bundle_validation": bundle_payload,
+        "advanced": True,
+    }
+
+
+def add_pretty_flag(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--pretty", action="store_true", help="Pretty-print JSON output.")
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Orchestrate eco-council run lifecycle and OpenClaw handoffs.")
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    bootstrap = sub.add_parser("bootstrap-run", help="Scaffold a run from mission JSON and render moderator task review prompt.")
+    bootstrap.add_argument("--run-dir", required=True, help="Run directory.")
+    bootstrap.add_argument("--mission-input", required=True, help="Mission JSON path.")
+    bootstrap.add_argument("--tasks-input", default="", help="Optional initial round-task list JSON path.")
+    bootstrap.add_argument("--allow-existing", action="store_true", help="Allow writing into an existing run directory.")
+    add_pretty_flag(bootstrap)
+
+    prepare = sub.add_parser("prepare-round", help="Build one round fetch plan plus OpenClaw fetch prompts.")
+    prepare.add_argument("--run-dir", required=True, help="Run directory.")
+    prepare.add_argument("--round-id", default="", help="Round identifier. Defaults to latest round.")
+    prepare.add_argument(
+        "--firms-point-padding-deg",
+        type=float,
+        default=0.5,
+        help="BBox padding in degrees when NASA FIRMS is planned for a point mission geometry.",
+    )
+    add_pretty_flag(prepare)
+
+    execute = sub.add_parser("execute-fetch-plan", help="Execute the shell commands in the prepared fetch plan.")
+    execute.add_argument("--run-dir", required=True, help="Run directory.")
+    execute.add_argument("--round-id", default="", help="Round identifier. Defaults to latest round.")
+    execute.add_argument("--continue-on-error", action="store_true", help="Continue executing remaining steps after a failure.")
+    execute.add_argument("--skip-existing", action="store_true", help="Skip steps whose artifact path already exists.")
+    execute.add_argument("--timeout-seconds", type=int, default=900, help="Per-step timeout in seconds.")
+    add_pretty_flag(execute)
+
+    collect_openaq = sub.add_parser("collect-openaq", help="Collect OpenAQ measurements through the multi-step discovery chain.")
+    collect_openaq.add_argument("--run-dir", required=True, help="Run directory.")
+    collect_openaq.add_argument("--round-id", default="", help="Round identifier. Defaults to latest round.")
+    collect_openaq.add_argument("--output", default="", help="Output JSON artifact path.")
+    collect_openaq.add_argument("--task-role", default="environmentalist", help="Assigned role whose tasks provide geometry and window.")
+    collect_openaq.add_argument("--max-locations", type=int, default=4, help="Maximum nearby locations to keep.")
+    collect_openaq.add_argument("--max-sensors-per-location", type=int, default=3, help="Maximum sensors to keep per location.")
+    collect_openaq.add_argument("--max-pages", type=int, default=5, help="Maximum pages per OpenAQ API request.")
+    collect_openaq.add_argument("--radius-meters", type=int, default=50000, help="Radius used for point-based location discovery.")
+    collect_openaq.add_argument(
+        "--parameter-name",
+        action="append",
+        default=[],
+        help="Preferred parameter names to keep, for example pm25 or no2. Repeat for multiple values.",
+    )
+    add_pretty_flag(collect_openaq)
+
+    data_plane = sub.add_parser("run-data-plane", help="Run normalization, reporting, prompt rendering, and bundle validation.")
+    data_plane.add_argument("--run-dir", required=True, help="Run directory.")
+    data_plane.add_argument("--round-id", default="", help="Round identifier. Defaults to latest round.")
+    add_pretty_flag(data_plane)
+
+    advance = sub.add_parser("advance-round", help="Scaffold the next round from an approved council decision.")
+    advance.add_argument("--run-dir", required=True, help="Run directory.")
+    advance.add_argument("--round-id", default="", help="Current round identifier. Defaults to latest round.")
+    advance.add_argument("--decision-input", default="", help="Optional explicit council-decision JSON path.")
+    advance.add_argument("--allow-existing", action="store_true", help="Allow scaffolding into an already existing next-round directory.")
+    add_pretty_flag(advance)
+
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    handlers = {
+        "bootstrap-run": command_bootstrap_run,
+        "prepare-round": command_prepare_round,
+        "execute-fetch-plan": command_execute_fetch_plan,
+        "collect-openaq": command_collect_openaq,
+        "run-data-plane": command_run_data_plane,
+        "advance-round": command_advance_round,
+    }
+    try:
+        payload = handlers[args.command](args)
+    except Exception as exc:
+        result = {"command": args.command, "ok": False, "error": str(exc)}
+        print(pretty_json(result, pretty=getattr(args, "pretty", False)))
+        return 1
+    result = {"command": args.command, "ok": True, "payload": payload}
+    print(pretty_json(result, pretty=getattr(args, "pretty", False)))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,0 +1,21 @@
+{
+  "schema_version": "1.0.0",
+  "task_id": "task-sociologist-round-001-01",
+  "run_id": "eco-20260320-chiangmai-smoke",
+  "round_id": "round-001",
+  "assigned_role": "sociologist",
+  "objective": "Identify up to three public claims about smoke severity, sources, and local impact within the mission window.",
+  "status": "planned",
+  "depends_on": [],
+  "expected_output_kinds": [
+    "claim",
+    "expert-report"
+  ],
+  "inputs": {
+    "query_hints": [
+      "Chiang Mai smoke",
+      "northern Thailand fire haze"
+    ]
+  },
+  "notes": "Prefer latest-window signals and keep claim phrasing concise."
+}

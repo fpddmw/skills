@@ -1,0 +1,776 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/eco-council-data-contract/eco_council.schema.json",
+  "title": "Eco Council Data Contract",
+  "description": "Shared schema definitions for eco-council missions, round tasks, claims, observations, evidence cards, expert reports, and moderator decisions.",
+  "$defs": {
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1
+    },
+    "utcDateTime": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+    },
+    "schemaVersion": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "geometry": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "Point"
+            },
+            "latitude": {
+              "type": "number",
+              "minimum": -90,
+              "maximum": 90
+            },
+            "longitude": {
+              "type": "number",
+              "minimum": -180,
+              "maximum": 180
+            }
+          },
+          "required": [
+            "type",
+            "latitude",
+            "longitude"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "BBox"
+            },
+            "west": {
+              "type": "number",
+              "minimum": -180,
+              "maximum": 180
+            },
+            "south": {
+              "type": "number",
+              "minimum": -90,
+              "maximum": 90
+            },
+            "east": {
+              "type": "number",
+              "minimum": -180,
+              "maximum": 180
+            },
+            "north": {
+              "type": "number",
+              "minimum": -90,
+              "maximum": 90
+            }
+          },
+          "required": [
+            "type",
+            "west",
+            "south",
+            "east",
+            "north"
+          ]
+        }
+      ]
+    },
+    "timeWindow": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "start_utc": {
+          "$ref": "#/$defs/utcDateTime"
+        },
+        "end_utc": {
+          "$ref": "#/$defs/utcDateTime"
+        }
+      },
+      "required": [
+        "start_utc",
+        "end_utc"
+      ]
+    },
+    "regionScope": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "label": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "geometry": {
+          "$ref": "#/$defs/geometry"
+        }
+      },
+      "required": [
+        "label",
+        "geometry"
+      ]
+    },
+    "artifactRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "source_skill": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "artifact_path": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "record_locator": {
+          "type": "string"
+        },
+        "external_id": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{64}$"
+        }
+      },
+      "required": [
+        "source_skill",
+        "artifact_path"
+      ]
+    },
+    "recommendation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "assigned_role": {
+          "enum": [
+            "moderator",
+            "sociologist",
+            "environmentalist",
+            "historian"
+          ]
+        },
+        "objective": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "reason": {
+          "$ref": "#/$defs/nonEmptyString"
+        }
+      },
+      "required": [
+        "assigned_role",
+        "objective",
+        "reason"
+      ]
+    },
+    "roundTask": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "$ref": "#/$defs/schemaVersion"
+        },
+        "task_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "run_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "round_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "assigned_role": {
+          "enum": [
+            "moderator",
+            "sociologist",
+            "environmentalist",
+            "historian"
+          ]
+        },
+        "objective": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "status": {
+          "enum": [
+            "planned",
+            "in_progress",
+            "completed",
+            "blocked"
+          ]
+        },
+        "depends_on": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nonEmptyString"
+          }
+        },
+        "expected_output_kinds": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "mission",
+              "round-task",
+              "claim",
+              "observation",
+              "evidence-card",
+              "expert-report",
+              "council-decision"
+            ]
+          }
+        },
+        "inputs": {
+          "type": "object"
+        },
+        "notes": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "task_id",
+        "run_id",
+        "round_id",
+        "assigned_role",
+        "objective",
+        "status"
+      ]
+    },
+    "mission": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "$ref": "#/$defs/schemaVersion"
+        },
+        "run_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "topic": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "objective": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "window": {
+          "$ref": "#/$defs/timeWindow"
+        },
+        "region": {
+          "$ref": "#/$defs/regionScope"
+        },
+        "hypotheses": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nonEmptyString"
+          }
+        },
+        "constraints": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "max_rounds": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "max_claims_per_round": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "max_tasks_per_round": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "max_rounds",
+            "max_claims_per_round",
+            "max_tasks_per_round"
+          ]
+        },
+        "source_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "sociologist": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/nonEmptyString"
+              }
+            },
+            "environmentalist": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/nonEmptyString"
+              }
+            },
+            "historian": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/nonEmptyString"
+              }
+            }
+          }
+        }
+      },
+      "required": [
+        "schema_version",
+        "run_id",
+        "topic",
+        "objective",
+        "window",
+        "region",
+        "constraints"
+      ]
+    },
+    "claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "$ref": "#/$defs/schemaVersion"
+        },
+        "claim_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "run_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "round_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "agent_role": {
+          "enum": [
+            "moderator",
+            "sociologist",
+            "environmentalist",
+            "historian"
+          ]
+        },
+        "claim_type": {
+          "enum": [
+            "wildfire",
+            "smoke",
+            "flood",
+            "heat",
+            "drought",
+            "air-pollution",
+            "water-pollution",
+            "policy-reaction",
+            "other"
+          ]
+        },
+        "status": {
+          "enum": [
+            "candidate",
+            "selected",
+            "dismissed",
+            "validated"
+          ]
+        },
+        "summary": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "statement": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "priority": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "needs_physical_validation": {
+          "type": "boolean"
+        },
+        "time_window": {
+          "$ref": "#/$defs/timeWindow"
+        },
+        "place_scope": {
+          "$ref": "#/$defs/regionScope"
+        },
+        "public_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifactRef"
+          }
+        }
+      },
+      "required": [
+        "schema_version",
+        "claim_id",
+        "run_id",
+        "round_id",
+        "agent_role",
+        "claim_type",
+        "status",
+        "summary",
+        "statement",
+        "priority",
+        "needs_physical_validation",
+        "time_window",
+        "place_scope",
+        "public_refs"
+      ]
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "$ref": "#/$defs/schemaVersion"
+        },
+        "observation_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "run_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "round_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "agent_role": {
+          "enum": [
+            "moderator",
+            "sociologist",
+            "environmentalist",
+            "historian"
+          ]
+        },
+        "source_skill": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "metric": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "aggregation": {
+          "enum": [
+            "point",
+            "window-summary",
+            "series-summary",
+            "event-count"
+          ]
+        },
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "unit": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "statistics": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "min": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "max": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "mean": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "p95": {
+              "type": [
+                "number",
+                "null"
+              ]
+            }
+          }
+        },
+        "time_window": {
+          "$ref": "#/$defs/timeWindow"
+        },
+        "place_scope": {
+          "$ref": "#/$defs/regionScope"
+        },
+        "quality_flags": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nonEmptyString"
+          }
+        },
+        "provenance": {
+          "$ref": "#/$defs/artifactRef"
+        }
+      },
+      "required": [
+        "schema_version",
+        "observation_id",
+        "run_id",
+        "round_id",
+        "agent_role",
+        "source_skill",
+        "metric",
+        "aggregation",
+        "unit",
+        "time_window",
+        "place_scope",
+        "quality_flags",
+        "provenance"
+      ]
+    },
+    "evidenceCard": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "$ref": "#/$defs/schemaVersion"
+        },
+        "evidence_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "run_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "round_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "claim_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "verdict": {
+          "enum": [
+            "supports",
+            "contradicts",
+            "mixed",
+            "insufficient"
+          ]
+        },
+        "confidence": {
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        "summary": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "public_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifactRef"
+          }
+        },
+        "observation_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nonEmptyString"
+          }
+        },
+        "gaps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nonEmptyString"
+          }
+        }
+      },
+      "required": [
+        "schema_version",
+        "evidence_id",
+        "run_id",
+        "round_id",
+        "claim_id",
+        "verdict",
+        "confidence",
+        "summary",
+        "public_refs",
+        "observation_ids",
+        "gaps"
+      ]
+    },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "finding_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "title": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "summary": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "confidence": {
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        "claim_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nonEmptyString"
+          }
+        },
+        "observation_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nonEmptyString"
+          }
+        },
+        "evidence_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nonEmptyString"
+          }
+        }
+      },
+      "required": [
+        "finding_id",
+        "title",
+        "summary",
+        "confidence"
+      ]
+    },
+    "expertReport": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "$ref": "#/$defs/schemaVersion"
+        },
+        "report_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "run_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "round_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "agent_role": {
+          "enum": [
+            "moderator",
+            "sociologist",
+            "environmentalist",
+            "historian"
+          ]
+        },
+        "status": {
+          "enum": [
+            "complete",
+            "needs-more-evidence",
+            "blocked"
+          ]
+        },
+        "summary": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/finding"
+          }
+        },
+        "open_questions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nonEmptyString"
+          }
+        },
+        "recommended_next_actions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/recommendation"
+          }
+        }
+      },
+      "required": [
+        "schema_version",
+        "report_id",
+        "run_id",
+        "round_id",
+        "agent_role",
+        "status",
+        "summary",
+        "findings",
+        "open_questions",
+        "recommended_next_actions"
+      ]
+    },
+    "councilDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "$ref": "#/$defs/schemaVersion"
+        },
+        "decision_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "run_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "round_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "moderator_status": {
+          "enum": [
+            "continue",
+            "complete",
+            "blocked"
+          ]
+        },
+        "completion_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "evidence_sufficiency": {
+          "enum": [
+            "sufficient",
+            "partial",
+            "insufficient"
+          ]
+        },
+        "decision_summary": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "next_round_required": {
+          "type": "boolean"
+        },
+        "missing_evidence_types": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nonEmptyString"
+          }
+        },
+        "next_round_tasks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/roundTask"
+          }
+        },
+        "final_brief": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "decision_id",
+        "run_id",
+        "round_id",
+        "moderator_status",
+        "completion_score",
+        "evidence_sufficiency",
+        "decision_summary",
+        "next_round_required",
+        "missing_evidence_types",
+        "next_round_tasks"
+      ]
+    }
+  }
+}

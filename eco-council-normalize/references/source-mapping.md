@@ -1,0 +1,68 @@
+# Source Mapping
+
+## Public-Signal Mapping
+
+### `gdelt-doc-search`
+
+- Preferred use: topic recon and article-list retrieval.
+- Output mapping:
+  - article-like items -> `public_signal.signal_kind=article`
+  - timeline bins -> `public_signal.signal_kind=timeline-bin`
+- Claim generation:
+  - article-like items can become `claim` candidates
+  - timeline bins are stored for trend context but usually do not produce standalone claims
+
+### `youtube-video-search`
+
+- Treated as discovery/supporting context.
+- Each kept video becomes one `public_signal`.
+- Videos can contribute to claims when title/description contains mission-relevant assertions.
+
+### `youtube-comments-fetch`
+
+- Each kept comment/reply becomes one `public_signal`.
+- Respect `reply_window_completeness`; do not treat reply counts as fully exhaustive historical coverage.
+
+### `bluesky-cascade-fetch`
+
+- Seed posts and thread nodes can both become `public_signal`.
+- The normalizer stores post text, author, URI, timestamp, and lightweight engagement counts.
+
+### `regulationsgov-comments-fetch`
+
+- List fetch is good for trend discovery and ID capture.
+- Comment text may be partial depending on API payload shape.
+
+### `regulationsgov-comment-detail-fetch`
+
+- Detail fetch is preferred when exact comment text matters.
+- Attachment metadata is preserved in `metadata_json`.
+
+### `gdelt-events-fetch`, `gdelt-mentions-fetch`, `gdelt-gkg-fetch`
+
+- Current implementation ingests manifests and downloaded artifact provenance.
+- These inputs are useful for later analytical joins, but they are not the primary claim-extraction path in this first deterministic build.
+
+## Environment Mapping
+
+### `open-meteo-historical-fetch`
+
+- Produces point-based weather or soil series.
+- Normalizer writes one staging row per timestamped metric value.
+- Canonical output is one or more `observation` summaries per metric and location.
+
+### `open-meteo-air-quality-fetch`
+
+- Treated as modeled background air-quality context.
+- Quality flags include `modeled-background`.
+
+### `nasa-firms-fire-fetch`
+
+- Writes one staging row per fire detection.
+- Canonical output includes an `event-count` observation such as `fire_detection_count`.
+
+### `openaq-data-fetch`
+
+- API JSON results and CSV/CSV.GZ artifacts are both supported.
+- Quality flags include `station-observation`.
+- Prefer API for near-real-time windows and S3 for backfill windows.

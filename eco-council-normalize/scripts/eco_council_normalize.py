@@ -1,0 +1,2239 @@
+#!/usr/bin/env python3
+"""Deterministic normalization pipeline for eco-council runs."""
+
+from __future__ import annotations
+
+import argparse
+import csv
+import gzip
+import hashlib
+import importlib.util
+import json
+import math
+import sqlite3
+import statistics
+import sys
+import zipfile
+from collections import Counter, defaultdict
+from datetime import date, datetime, timezone
+from pathlib import Path
+from typing import Any, Iterable
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+SKILL_DIR = SCRIPT_DIR.parent
+ASSETS_DIR = SKILL_DIR / "assets"
+PUBLIC_DDL_PATH = ASSETS_DIR / "sqlite" / "public_signals.sql"
+ENVIRONMENT_DDL_PATH = ASSETS_DIR / "sqlite" / "environment_signals.sql"
+CONTRACT_SCRIPT_PATH = SKILL_DIR.parent / "eco-council-data-contract" / "scripts" / "eco_council_contract.py"
+
+SCHEMA_VERSION = "1.0.0"
+POINT_MATCH_EPSILON_DEGREES = 0.05
+PHYSICAL_CLAIM_TYPES = {
+    "wildfire",
+    "smoke",
+    "flood",
+    "heat",
+    "drought",
+    "air-pollution",
+    "water-pollution",
+}
+STOPWORDS = {
+    "a",
+    "an",
+    "and",
+    "are",
+    "as",
+    "at",
+    "be",
+    "but",
+    "by",
+    "for",
+    "from",
+    "has",
+    "have",
+    "in",
+    "into",
+    "is",
+    "it",
+    "its",
+    "of",
+    "on",
+    "or",
+    "that",
+    "the",
+    "their",
+    "this",
+    "to",
+    "was",
+    "were",
+    "with",
+}
+CLAIM_KEYWORDS = {
+    "wildfire": ("wildfire", "fire", "burning", "burn", "forest fire", "bushfire"),
+    "smoke": ("smoke", "haze", "smog", "ash"),
+    "flood": ("flood", "flooding", "overflow", "inundation"),
+    "heat": ("heat", "heatwave", "hot weather", "extreme heat"),
+    "drought": ("drought", "dry spell", "water shortage", "dryness"),
+    "air-pollution": ("air quality", "pm2.5", "pm10", "pollution", "dirty air", "aqi"),
+    "water-pollution": ("water pollution", "contaminated water", "sewage", "toxic spill"),
+    "policy-reaction": ("policy", "regulation", "rulemaking", "public comment", "epa", "agency"),
+}
+CLAIM_METRIC_RULES = {
+    "smoke": {
+        "support": {
+            "pm2_5": 35.0,
+            "pm10": 50.0,
+            "us_aqi": 100.0,
+            "fire_detection_count": 1.0,
+        },
+        "contradict": {
+            "pm2_5": 12.0,
+            "pm10": 20.0,
+            "us_aqi": 50.0,
+        },
+    },
+    "air-pollution": {
+        "support": {
+            "pm2_5": 35.0,
+            "pm10": 50.0,
+            "us_aqi": 100.0,
+            "nitrogen_dioxide": 40.0,
+            "ozone": 100.0,
+        },
+        "contradict": {
+            "pm2_5": 12.0,
+            "pm10": 20.0,
+            "us_aqi": 50.0,
+        },
+    },
+    "wildfire": {
+        "support": {
+            "fire_detection_count": 1.0,
+            "temperature_2m": 30.0,
+            "wind_speed_10m": 5.0,
+        },
+        "contradict": {
+            "fire_detection_count": 0.0,
+            "precipitation_sum": 20.0,
+            "relative_humidity_2m": 70.0,
+        },
+    },
+    "flood": {
+        "support": {
+            "precipitation_sum": 20.0,
+            "precipitation": 10.0,
+        },
+        "contradict": {
+            "precipitation_sum": 1.0,
+        },
+    },
+    "heat": {
+        "support": {
+            "temperature_2m": 32.0,
+        },
+        "contradict": {
+            "temperature_2m": 22.0,
+        },
+    },
+    "drought": {
+        "support": {
+            "precipitation_sum": 2.0,
+            "soil_moisture_0_to_7cm": 0.12,
+        },
+        "contradict": {
+            "precipitation_sum": 10.0,
+            "soil_moisture_0_to_7cm": 0.25,
+        },
+    },
+}
+OPENAQ_TIME_KEYS = (
+    "datetime",
+    "date",
+    "observed_at",
+    "observedAt",
+    "timestamp",
+    "utc",
+)
+OPENAQ_VALUE_KEYS = ("value", "measurement", "concentration")
+OPENAQ_LAT_KEYS = ("latitude", "lat")
+OPENAQ_LON_KEYS = ("longitude", "lon", "lng")
+
+
+def utc_now_iso() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def pretty_json(data: Any, *, pretty: bool) -> str:
+    if pretty:
+        return json.dumps(data, ensure_ascii=True, indent=2, sort_keys=True)
+    return json.dumps(data, ensure_ascii=True, separators=(",", ":"), sort_keys=True)
+
+
+def read_json(path: Path) -> Any:
+    with path.open("r", encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+def read_jsonl(path: Path) -> list[Any]:
+    records: list[Any] = []
+    with path.open("r", encoding="utf-8") as handle:
+        for line in handle:
+            text = line.strip()
+            if not text:
+                continue
+            records.append(json.loads(text))
+    return records
+
+
+def write_json(path: Path, payload: Any, *, pretty: bool) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(pretty_json(payload, pretty=pretty) + "\n", encoding="utf-8")
+
+
+def write_jsonl(path: Path, records: list[dict[str, Any]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as handle:
+        for record in records:
+            handle.write(json.dumps(record, ensure_ascii=True, sort_keys=True))
+            handle.write("\n")
+
+
+def normalize_space(value: str) -> str:
+    return " ".join(str(value).split())
+
+
+def truncate_text(value: str, limit: int) -> str:
+    text = normalize_space(value)
+    if len(text) <= limit:
+        return text
+    if limit <= 3:
+        return text[:limit]
+    return text[: limit - 3].rstrip() + "..."
+
+
+def maybe_text(value: Any) -> str:
+    if value is None:
+        return ""
+    text = normalize_space(str(value))
+    return text
+
+
+def maybe_number(value: Any) -> float | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    if isinstance(value, str) and value.strip():
+        try:
+            return float(value.strip())
+        except ValueError:
+            return None
+    return None
+
+
+def parse_loose_datetime(value: Any) -> datetime | None:
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        try:
+            return datetime.fromtimestamp(float(value), tz=timezone.utc)
+        except (OverflowError, OSError, ValueError):
+            return None
+
+    text = normalize_space(str(value))
+    if not text:
+        return None
+
+    if text.endswith("Z"):
+        text = text[:-1] + "+00:00"
+    try:
+        parsed = datetime.fromisoformat(text)
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return parsed.astimezone(timezone.utc)
+    except ValueError:
+        pass
+
+    for pattern in ("%Y%m%d%H%M%S", "%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d"):
+        try:
+            parsed = datetime.strptime(text, pattern)
+            parsed = parsed.replace(tzinfo=timezone.utc)
+            return parsed
+        except ValueError:
+            continue
+    return None
+
+
+def to_rfc3339_z(value: datetime | None) -> str | None:
+    if value is None:
+        return None
+    return value.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def parse_path_payload(path: Path) -> Any:
+    suffix = path.suffix.lower()
+    if suffix == ".json":
+        return read_json(path)
+    if suffix == ".jsonl":
+        return read_jsonl(path)
+    raise ValueError(f"Unsupported JSON payload path: {path}")
+
+
+def file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        while True:
+            chunk = handle.read(65536)
+            if not chunk:
+                break
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def stable_hash(*parts: Any) -> str:
+    joined = "||".join(maybe_text(part) for part in parts)
+    return hashlib.sha256(joined.encode("utf-8")).hexdigest()
+
+
+def round_directory_name(round_id: str) -> str:
+    return round_id.replace("-", "_")
+
+
+def round_dir(run_dir: Path, round_id: str) -> Path:
+    return run_dir / round_directory_name(round_id)
+
+
+def mission_path(run_dir: Path) -> Path:
+    return run_dir / "mission.json"
+
+
+def load_mission(run_dir: Path) -> dict[str, Any]:
+    payload = read_json(mission_path(run_dir))
+    if not isinstance(payload, dict):
+        raise ValueError("mission.json must be an object.")
+    return payload
+
+
+def mission_run_id(mission: dict[str, Any]) -> str:
+    run_id = mission.get("run_id")
+    if not isinstance(run_id, str) or not run_id.strip():
+        raise ValueError("mission.json missing run_id.")
+    return run_id
+
+
+def mission_window(mission: dict[str, Any]) -> dict[str, str]:
+    window = mission.get("window")
+    if not isinstance(window, dict):
+        raise ValueError("mission.json missing window.")
+    start_utc = maybe_text(window.get("start_utc"))
+    end_utc = maybe_text(window.get("end_utc"))
+    if not start_utc or not end_utc:
+        raise ValueError("mission.json window is incomplete.")
+    return {"start_utc": start_utc, "end_utc": end_utc}
+
+
+def mission_place_scope(mission: dict[str, Any]) -> dict[str, Any]:
+    region = mission.get("region")
+    if not isinstance(region, dict):
+        raise ValueError("mission.json missing region.")
+    label = maybe_text(region.get("label")) or "Mission region"
+    geometry = region.get("geometry")
+    if not isinstance(geometry, dict):
+        raise ValueError("mission.json region.geometry must be an object.")
+    return {"label": label, "geometry": geometry}
+
+
+def geometry_to_bbox(geometry: dict[str, Any]) -> tuple[float, float, float, float] | None:
+    kind = maybe_text(geometry.get("type"))
+    if kind == "Point":
+        lat = maybe_number(geometry.get("latitude"))
+        lon = maybe_number(geometry.get("longitude"))
+        if lat is None or lon is None:
+            return None
+        return (lon, lat, lon, lat)
+    if kind == "BBox":
+        west = maybe_number(geometry.get("west"))
+        south = maybe_number(geometry.get("south"))
+        east = maybe_number(geometry.get("east"))
+        north = maybe_number(geometry.get("north"))
+        if None in {west, south, east, north}:
+            return None
+        return (float(west), float(south), float(east), float(north))
+    return None
+
+
+def geometry_overlap(left: dict[str, Any], right: dict[str, Any]) -> bool:
+    left_type = maybe_text(left.get("type"))
+    right_type = maybe_text(right.get("type"))
+    if left_type == "Point" and right_type == "Point":
+        left_lat = maybe_number(left.get("latitude"))
+        left_lon = maybe_number(left.get("longitude"))
+        right_lat = maybe_number(right.get("latitude"))
+        right_lon = maybe_number(right.get("longitude"))
+        if None in {left_lat, left_lon, right_lat, right_lon}:
+            return False
+        assert left_lat is not None
+        assert left_lon is not None
+        assert right_lat is not None
+        assert right_lon is not None
+        return (
+            abs(left_lat - right_lat) <= POINT_MATCH_EPSILON_DEGREES
+            and abs(left_lon - right_lon) <= POINT_MATCH_EPSILON_DEGREES
+        )
+    if left_type == "Point" and right_type == "BBox":
+        left_lat = maybe_number(left.get("latitude"))
+        left_lon = maybe_number(left.get("longitude"))
+        bbox = geometry_to_bbox(right)
+        if None in {left_lat, left_lon} or bbox is None:
+            return False
+        assert left_lat is not None
+        assert left_lon is not None
+        west, south, east, north = bbox
+        return west <= left_lon <= east and south <= left_lat <= north
+    if left_type == "BBox" and right_type == "Point":
+        return geometry_overlap(right, left)
+    left_bbox = geometry_to_bbox(left)
+    right_bbox = geometry_to_bbox(right)
+    if left_bbox is None or right_bbox is None:
+        return False
+    left_west, left_south, left_east, left_north = left_bbox
+    right_west, right_south, right_east, right_north = right_bbox
+    return not (
+        left_east < right_west
+        or right_east < left_west
+        or left_north < right_south
+        or right_north < left_south
+    )
+
+
+def time_windows_overlap(left: dict[str, Any], right: dict[str, Any]) -> bool:
+    left_start = parse_loose_datetime(left.get("start_utc"))
+    left_end = parse_loose_datetime(left.get("end_utc"))
+    right_start = parse_loose_datetime(right.get("start_utc"))
+    right_end = parse_loose_datetime(right.get("end_utc"))
+    if None in {left_start, left_end, right_start, right_end}:
+        return False
+    assert left_start is not None
+    assert left_end is not None
+    assert right_start is not None
+    assert right_end is not None
+    return max(left_start, right_start) <= min(left_end, right_end)
+
+
+def default_public_db_path(run_dir: Path) -> Path:
+    return run_dir / "analytics" / "public_signals.sqlite"
+
+
+def default_environment_db_path(run_dir: Path) -> Path:
+    return run_dir / "analytics" / "environment_signals.sqlite"
+
+
+def default_context_dir(run_dir: Path, round_id: str, role: str) -> Path:
+    return round_dir(run_dir, round_id) / role / "derived"
+
+
+def shared_claims_path(run_dir: Path, round_id: str) -> Path:
+    return round_dir(run_dir, round_id) / "shared" / "claims.json"
+
+
+def shared_observations_path(run_dir: Path, round_id: str) -> Path:
+    return round_dir(run_dir, round_id) / "shared" / "observations.json"
+
+
+def shared_evidence_path(run_dir: Path, round_id: str) -> Path:
+    return round_dir(run_dir, round_id) / "shared" / "evidence_cards.json"
+
+
+def role_normalized_dir(run_dir: Path, round_id: str, role: str) -> Path:
+    return round_dir(run_dir, round_id) / role / "normalized"
+
+
+def run_manifest_path(run_dir: Path) -> Path:
+    return run_dir / "run_manifest.json"
+
+
+def load_or_build_manifest(run_dir: Path, mission: dict[str, Any]) -> dict[str, Any]:
+    manifest_file = run_manifest_path(run_dir)
+    if manifest_file.exists():
+        payload = read_json(manifest_file)
+        if isinstance(payload, dict):
+            return payload
+    return {
+        "run_id": mission_run_id(mission),
+        "run_dir": str(run_dir),
+        "analytics_backend": "sqlite",
+        "databases": {
+            "public_signals": str(default_public_db_path(run_dir)),
+            "environment_signals": str(default_environment_db_path(run_dir)),
+        },
+    }
+
+
+def load_ddl(path: Path) -> str:
+    return path.read_text(encoding="utf-8")
+
+
+def init_sqlite_db(path: Path, ddl_path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    ddl = load_ddl(ddl_path)
+    with sqlite3.connect(path) as conn:
+        conn.executescript(ddl)
+        conn.commit()
+
+
+def emit_row_id(prefix: str, index: int) -> str:
+    return f"{prefix}-{index:03d}"
+
+
+def percentile95(values: list[float]) -> float | None:
+    if not values:
+        return None
+    if len(values) == 1:
+        return values[0]
+    ordered = sorted(values)
+    position = 0.95 * (len(ordered) - 1)
+    lower = math.floor(position)
+    upper = math.ceil(position)
+    if lower == upper:
+        return ordered[lower]
+    lower_value = ordered[lower]
+    upper_value = ordered[upper]
+    weight = position - lower
+    return lower_value + (upper_value - lower_value) * weight
+
+
+def artifact_ref(signal: dict[str, Any]) -> dict[str, Any]:
+    ref = {
+        "source_skill": signal["source_skill"],
+        "artifact_path": signal["artifact_path"],
+        "record_locator": signal["record_locator"],
+    }
+    if signal.get("external_id"):
+        ref["external_id"] = signal["external_id"]
+    if signal.get("sha256"):
+        ref["sha256"] = signal["sha256"]
+    return ref
+
+
+def load_contract_module() -> Any | None:
+    if not CONTRACT_SCRIPT_PATH.exists():
+        return None
+    module_name = "eco_council_contract"
+    spec = importlib.util.spec_from_file_location(module_name, CONTRACT_SCRIPT_PATH)
+    if spec is None or spec.loader is None:
+        return None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+CONTRACT_MODULE = load_contract_module()
+if CONTRACT_MODULE is not None and hasattr(CONTRACT_MODULE, "SCHEMA_VERSION"):
+    SCHEMA_VERSION = CONTRACT_MODULE.SCHEMA_VERSION
+
+
+def validate_payload(kind: str, payload: Any) -> None:
+    if CONTRACT_MODULE is None:
+        return
+    result = CONTRACT_MODULE.validate_payload(kind, payload)
+    validation = result.get("validation", {})
+    if validation.get("ok"):
+        return
+    issue_messages = []
+    for issue in validation.get("issues", [])[:5]:
+        issue_messages.append(f"{issue.get('path')}: {issue.get('message')}")
+    raise ValueError(f"Generated invalid {kind}: {'; '.join(issue_messages)}")
+
+
+def insert_many(conn: sqlite3.Connection, sql: str, rows: Iterable[tuple[Any, ...]]) -> None:
+    data = list(rows)
+    if not data:
+        return
+    conn.executemany(sql, data)
+    conn.commit()
+
+
+def parse_input_specs(values: list[str]) -> list[tuple[str, Path]]:
+    parsed: list[tuple[str, Path]] = []
+    for raw in values:
+        if "=" not in raw:
+            raise ValueError(f"Invalid --input value {raw!r}. Use source-skill=/path/to/artifact.")
+        source_skill, path_text = raw.split("=", 1)
+        source_skill = source_skill.strip()
+        path_text = path_text.strip()
+        if not source_skill or not path_text:
+            raise ValueError(f"Invalid --input value {raw!r}.")
+        path = Path(path_text).expanduser().resolve()
+        if not path.exists():
+            raise ValueError(f"Input artifact does not exist: {path}")
+        parsed.append((source_skill, path))
+    return parsed
+
+
+def semantic_fingerprint(text: str) -> str:
+    cleaned = []
+    token = []
+    for char in text.lower():
+        if char.isalnum():
+            token.append(char)
+            continue
+        if token:
+            cleaned.append("".join(token))
+            token = []
+    if token:
+        cleaned.append("".join(token))
+    filtered = [item for item in cleaned if item and item not in STOPWORDS]
+    return "-".join(filtered[:12])
+
+
+def claim_type_from_text(text: str) -> str:
+    lowered = text.lower()
+    for claim_type, keywords in CLAIM_KEYWORDS.items():
+        if any(keyword in lowered for keyword in keywords):
+            return claim_type
+    return "other"
+
+
+def candidate_statement(title: str, text: str) -> str:
+    if text:
+        return truncate_text(text, 420)
+    return truncate_text(title, 420)
+
+
+def extract_value_for_metric(observation: dict[str, Any]) -> float | None:
+    statistics_obj = observation.get("statistics")
+    if isinstance(statistics_obj, dict):
+        for key in ("mean", "max", "p95", "min"):
+            value = maybe_number(statistics_obj.get(key))
+            if value is not None:
+                return value
+    return maybe_number(observation.get("value"))
+
+
+def make_public_signal(
+    *,
+    run_id: str,
+    round_id: str,
+    source_skill: str,
+    signal_kind: str,
+    external_id: str,
+    title: str,
+    text: str,
+    url: str,
+    author_name: str,
+    channel_name: str,
+    language: str,
+    query_text: str,
+    published_at_utc: str | None,
+    engagement: dict[str, Any],
+    metadata: dict[str, Any],
+    artifact_path: Path,
+    record_locator: str,
+    sha256_value: str,
+    raw_obj: Any,
+) -> dict[str, Any]:
+    identity = external_id or url or f"{signal_kind}:{record_locator}"
+    signal_hash = stable_hash(source_skill, identity, maybe_text(title), maybe_text(text))
+    return {
+        "signal_id": f"pubsig-{signal_hash[:12]}",
+        "run_id": run_id,
+        "round_id": round_id,
+        "source_skill": source_skill,
+        "signal_kind": signal_kind,
+        "external_id": external_id,
+        "title": title,
+        "text": text,
+        "url": url,
+        "author_name": author_name,
+        "channel_name": channel_name,
+        "language": language,
+        "query_text": query_text,
+        "published_at_utc": published_at_utc,
+        "captured_at_utc": utc_now_iso(),
+        "engagement": engagement,
+        "metadata": metadata,
+        "artifact_path": str(artifact_path),
+        "record_locator": record_locator,
+        "sha256": sha256_value,
+        "raw_json": raw_obj,
+    }
+
+
+def collect_records(payload: Any) -> list[dict[str, Any]]:
+    if isinstance(payload, list):
+        return [item for item in payload if isinstance(item, dict)]
+    if isinstance(payload, dict):
+        for key in ("records", "items", "data", "results"):
+            candidate = payload.get(key)
+            if isinstance(candidate, list):
+                return [item for item in candidate if isinstance(item, dict)]
+    return []
+
+
+def normalize_public_from_youtube_videos(
+    path: Path,
+    payload: Any,
+    *,
+    run_id: str,
+    round_id: str,
+    sha256_value: str,
+) -> list[dict[str, Any]]:
+    signals: list[dict[str, Any]] = []
+    for index, record in enumerate(collect_records(payload)):
+        video = record.get("video")
+        if not isinstance(video, dict):
+            continue
+        video_id = maybe_text(record.get("video_id")) or maybe_text(video.get("id"))
+        title = maybe_text(video.get("title"))
+        description = maybe_text(video.get("description"))
+        url = f"https://www.youtube.com/watch?v={video_id}" if video_id else ""
+        signals.append(
+            make_public_signal(
+                run_id=run_id,
+                round_id=round_id,
+                source_skill="youtube-video-search",
+                signal_kind="video",
+                external_id=video_id,
+                title=title,
+                text=description,
+                url=url,
+                author_name=maybe_text(video.get("channel_title")),
+                channel_name=maybe_text(video.get("channel_title")),
+                language=maybe_text(video.get("default_language") or video.get("default_audio_language")),
+                query_text=maybe_text(record.get("query")),
+                published_at_utc=to_rfc3339_z(parse_loose_datetime(video.get("published_at"))),
+                engagement=video.get("statistics") if isinstance(video.get("statistics"), dict) else {},
+                metadata={
+                    "search_match": record.get("search_match"),
+                    "content_details": video.get("content_details"),
+                    "status": video.get("status"),
+                },
+                artifact_path=path,
+                record_locator=f"$[{index}]",
+                sha256_value=sha256_value,
+                raw_obj=record,
+            )
+        )
+    return signals
+
+
+def normalize_public_from_youtube_comments(
+    path: Path,
+    payload: Any,
+    *,
+    run_id: str,
+    round_id: str,
+    sha256_value: str,
+) -> list[dict[str, Any]]:
+    signals: list[dict[str, Any]] = []
+    for index, record in enumerate(collect_records(payload)):
+        comment_id = maybe_text(record.get("comment_id"))
+        video_id = maybe_text(record.get("video_id"))
+        text = maybe_text(record.get("text_original") or record.get("text_display"))
+        url = ""
+        if video_id and comment_id:
+            url = f"https://www.youtube.com/watch?v={video_id}&lc={comment_id}"
+        signals.append(
+            make_public_signal(
+                run_id=run_id,
+                round_id=round_id,
+                source_skill="youtube-comments-fetch",
+                signal_kind=maybe_text(record.get("comment_type")) or "comment",
+                external_id=comment_id,
+                title=truncate_text(text, 120),
+                text=text,
+                url=url,
+                author_name=maybe_text(record.get("author_display_name")),
+                channel_name=maybe_text(record.get("channel_id")),
+                language="",
+                query_text=maybe_text((record.get("source") or {}).get("search_terms")),
+                published_at_utc=to_rfc3339_z(parse_loose_datetime(record.get("published_at"))),
+                engagement={"like_count": maybe_number(record.get("like_count"))},
+                metadata={
+                    "video_id": video_id,
+                    "thread_id": maybe_text(record.get("thread_id")),
+                    "parent_comment_id": maybe_text(record.get("parent_comment_id")),
+                    "source": record.get("source"),
+                },
+                artifact_path=path,
+                record_locator=f"$[{index}]",
+                sha256_value=sha256_value,
+                raw_obj=record,
+            )
+        )
+    return signals
+
+
+def bluesky_uri_to_url(uri: str, author_handle: str) -> str:
+    if not uri or not author_handle:
+        return ""
+    parts = uri.split("/")
+    post_id = parts[-1] if parts else ""
+    if not post_id:
+        return ""
+    return f"https://bsky.app/profile/{author_handle}/post/{post_id}"
+
+
+def normalize_public_from_bluesky(
+    path: Path,
+    payload: Any,
+    *,
+    run_id: str,
+    round_id: str,
+    sha256_value: str,
+) -> list[dict[str, Any]]:
+    seeds: list[dict[str, Any]] = []
+    if isinstance(payload, dict):
+        if isinstance(payload.get("seed_posts"), list):
+            seeds.extend(item for item in payload["seed_posts"] if isinstance(item, dict))
+        if isinstance(payload.get("threads"), list):
+            for thread in payload["threads"]:
+                if not isinstance(thread, dict):
+                    continue
+                nodes = thread.get("nodes")
+                if isinstance(nodes, list):
+                    seeds.extend(node for node in nodes if isinstance(node, dict))
+    elif isinstance(payload, list):
+        seeds.extend(item for item in payload if isinstance(item, dict))
+
+    signals: list[dict[str, Any]] = []
+    seen_ids: set[str] = set()
+    for index, record in enumerate(seeds):
+        uri = maybe_text(record.get("uri"))
+        if uri and uri in seen_ids:
+            continue
+        if uri:
+            seen_ids.add(uri)
+        author_handle = maybe_text(record.get("author_handle"))
+        text = maybe_text(record.get("text"))
+        signals.append(
+            make_public_signal(
+                run_id=run_id,
+                round_id=round_id,
+                source_skill="bluesky-cascade-fetch",
+                signal_kind="reply" if maybe_text(record.get("reply_parent_uri")) else "post",
+                external_id=uri or maybe_text(record.get("cid")),
+                title=truncate_text(text, 120),
+                text=text,
+                url=bluesky_uri_to_url(uri, author_handle),
+                author_name=author_handle,
+                channel_name=maybe_text(record.get("author_did")),
+                language=",".join(record.get("langs", [])) if isinstance(record.get("langs"), list) else "",
+                query_text="",
+                published_at_utc=maybe_text(record.get("timestamp_utc")) or to_rfc3339_z(parse_loose_datetime(record.get("created_at"))),
+                engagement={
+                    "reply_count": maybe_number(record.get("reply_count")),
+                    "repost_count": maybe_number(record.get("repost_count")),
+                    "like_count": maybe_number(record.get("like_count")),
+                    "quote_count": maybe_number(record.get("quote_count")),
+                },
+                metadata={
+                    "author_did": maybe_text(record.get("author_did")),
+                    "cid": maybe_text(record.get("cid")),
+                    "reply_root_uri": maybe_text(record.get("reply_root_uri")),
+                    "timestamp_source": maybe_text(record.get("timestamp_source")),
+                },
+                artifact_path=path,
+                record_locator=f"$[{index}]",
+                sha256_value=sha256_value,
+                raw_obj=record,
+            )
+        )
+    return signals
+
+
+def extract_reggov_resource(record: dict[str, Any]) -> tuple[dict[str, Any] | None, dict[str, Any]]:
+    if "detail" in record:
+        detail = record.get("detail")
+        if isinstance(detail, dict):
+            resource = detail.get("data") if isinstance(detail.get("data"), dict) else detail.get("data")
+            if isinstance(resource, dict):
+                return resource, {"response_url": record.get("response_url"), "validation": record.get("validation")}
+    return record if "attributes" in record else None, {}
+
+
+def normalize_reggov_resource(
+    path: Path,
+    record: dict[str, Any],
+    *,
+    index: int,
+    run_id: str,
+    round_id: str,
+    source_skill: str,
+    sha256_value: str,
+) -> dict[str, Any] | None:
+    resource, metadata = extract_reggov_resource(record)
+    if not isinstance(resource, dict):
+        return None
+    attrs = resource.get("attributes") if isinstance(resource.get("attributes"), dict) else {}
+    links = resource.get("links") if isinstance(resource.get("links"), dict) else {}
+    text = maybe_text(
+        attrs.get("comment")
+        or attrs.get("commentText")
+        or attrs.get("commentOn")
+        or attrs.get("title")
+        or attrs.get("organization")
+    )
+    title = maybe_text(attrs.get("title") or attrs.get("subject") or attrs.get("organization")) or truncate_text(text, 120)
+    metadata.update(
+        {
+            "docket_id": maybe_text(attrs.get("docketId")),
+            "document_type": maybe_text(attrs.get("documentType")),
+            "posted_date": maybe_text(attrs.get("postedDate")),
+            "last_modified_date": maybe_text(attrs.get("lastModifiedDate")),
+        }
+    )
+    return make_public_signal(
+        run_id=run_id,
+        round_id=round_id,
+        source_skill=source_skill,
+        signal_kind="policy-comment",
+        external_id=maybe_text(resource.get("id") or record.get("comment_id")),
+        title=title,
+        text=text,
+        url=maybe_text(links.get("self") or metadata.get("response_url")),
+        author_name=maybe_text(attrs.get("organization") or attrs.get("firstName")),
+        channel_name=maybe_text(attrs.get("agencyId")),
+        language="",
+        query_text="",
+        published_at_utc=to_rfc3339_z(
+            parse_loose_datetime(attrs.get("postedDate") or attrs.get("lastModifiedDate"))
+        ),
+        engagement={},
+        metadata=metadata,
+        artifact_path=path,
+        record_locator=f"$[{index}]",
+        sha256_value=sha256_value,
+        raw_obj=record,
+    )
+
+
+def normalize_public_from_reggov(
+    path: Path,
+    payload: Any,
+    *,
+    run_id: str,
+    round_id: str,
+    source_skill: str,
+    sha256_value: str,
+) -> list[dict[str, Any]]:
+    signals: list[dict[str, Any]] = []
+    for index, record in enumerate(collect_records(payload)):
+        normalized = normalize_reggov_resource(
+            path,
+            record,
+            index=index,
+            run_id=run_id,
+            round_id=round_id,
+            source_skill=source_skill,
+            sha256_value=sha256_value,
+        )
+        if normalized is not None:
+            signals.append(normalized)
+    return signals
+
+
+def normalize_public_from_gdelt_doc(
+    path: Path,
+    payload: Any,
+    *,
+    run_id: str,
+    round_id: str,
+    sha256_value: str,
+) -> list[dict[str, Any]]:
+    signals: list[dict[str, Any]] = []
+    if not isinstance(payload, dict):
+        return signals
+
+    if isinstance(payload.get("articles"), list):
+        records = payload["articles"]
+        for index, item in enumerate(records):
+            if not isinstance(item, dict):
+                continue
+            title = maybe_text(item.get("title"))
+            description = maybe_text(item.get("seendate") or item.get("domain"))
+            signals.append(
+                make_public_signal(
+                    run_id=run_id,
+                    round_id=round_id,
+                    source_skill="gdelt-doc-search",
+                    signal_kind="article",
+                    external_id=maybe_text(item.get("url") or item.get("title")),
+                    title=title,
+                    text=title or description,
+                    url=maybe_text(item.get("url")),
+                    author_name="",
+                    channel_name=maybe_text(item.get("domain")),
+                    language=maybe_text(item.get("language") or item.get("sourcelang")),
+                    query_text="",
+                    published_at_utc=to_rfc3339_z(
+                        parse_loose_datetime(item.get("seendate") or item.get("date"))
+                    ),
+                    engagement={},
+                    metadata=item,
+                    artifact_path=path,
+                    record_locator=f"$.articles[{index}]",
+                    sha256_value=sha256_value,
+                    raw_obj=item,
+                )
+            )
+        return signals
+
+    for key in ("timeline", "data", "records"):
+        candidate = payload.get(key)
+        if not isinstance(candidate, list):
+            continue
+        for index, item in enumerate(candidate):
+            if not isinstance(item, dict):
+                continue
+            title = maybe_text(item.get("title")) or "GDELT timeline bin"
+            text = title
+            if maybe_text(item.get("value")):
+                text = f"{title} value={item.get('value')}"
+            signals.append(
+                make_public_signal(
+                    run_id=run_id,
+                    round_id=round_id,
+                    source_skill="gdelt-doc-search",
+                    signal_kind="timeline-bin",
+                    external_id=maybe_text(item.get("date") or item.get("datetime") or index),
+                    title=title,
+                    text=text,
+                    url=maybe_text(item.get("url")),
+                    author_name="",
+                    channel_name="",
+                    language="",
+                    query_text="",
+                    published_at_utc=to_rfc3339_z(
+                        parse_loose_datetime(item.get("date") or item.get("datetime"))
+                    ),
+                    engagement={},
+                    metadata=item,
+                    artifact_path=path,
+                    record_locator=f"$.{key}[{index}]",
+                    sha256_value=sha256_value,
+                    raw_obj=item,
+                )
+            )
+        if signals:
+            return signals
+    return signals
+
+
+def normalize_public_from_gdelt_manifest(
+    path: Path,
+    payload: Any,
+    *,
+    run_id: str,
+    round_id: str,
+    source_skill: str,
+    sha256_value: str,
+) -> list[dict[str, Any]]:
+    signals: list[dict[str, Any]] = []
+    if not isinstance(payload, dict):
+        return signals
+    downloads = payload.get("downloads")
+    if not isinstance(downloads, list):
+        return signals
+    for index, item in enumerate(downloads):
+        if not isinstance(item, dict):
+            continue
+        output_path = maybe_text(item.get("output_path"))
+        title = maybe_text(item.get("filename") or Path(output_path).name or "GDELT artifact")
+        signals.append(
+            make_public_signal(
+                run_id=run_id,
+                round_id=round_id,
+                source_skill=source_skill,
+                signal_kind="artifact-manifest",
+                external_id=title,
+                title=title,
+                text="",
+                url=maybe_text(item.get("url")),
+                author_name="",
+                channel_name="",
+                language="",
+                query_text="",
+                published_at_utc=to_rfc3339_z(parse_loose_datetime(item.get("timestamp"))),
+                engagement={},
+                metadata=item,
+                artifact_path=path,
+                record_locator=f"$.downloads[{index}]",
+                sha256_value=sha256_value,
+                raw_obj=item,
+            )
+        )
+    return signals
+
+
+def normalize_public_source(
+    source_skill: str,
+    path: Path,
+    *,
+    run_id: str,
+    round_id: str,
+) -> list[dict[str, Any]]:
+    sha256_value = file_sha256(path)
+    payload = parse_path_payload(path)
+    if source_skill == "youtube-video-search":
+        return normalize_public_from_youtube_videos(path, payload, run_id=run_id, round_id=round_id, sha256_value=sha256_value)
+    if source_skill == "youtube-comments-fetch":
+        return normalize_public_from_youtube_comments(path, payload, run_id=run_id, round_id=round_id, sha256_value=sha256_value)
+    if source_skill == "bluesky-cascade-fetch":
+        return normalize_public_from_bluesky(path, payload, run_id=run_id, round_id=round_id, sha256_value=sha256_value)
+    if source_skill in {"regulationsgov-comments-fetch", "regulationsgov-comment-detail-fetch"}:
+        return normalize_public_from_reggov(
+            path,
+            payload,
+            run_id=run_id,
+            round_id=round_id,
+            source_skill=source_skill,
+            sha256_value=sha256_value,
+        )
+    if source_skill == "gdelt-doc-search":
+        return normalize_public_from_gdelt_doc(path, payload, run_id=run_id, round_id=round_id, sha256_value=sha256_value)
+    if source_skill in {"gdelt-events-fetch", "gdelt-mentions-fetch", "gdelt-gkg-fetch"}:
+        return normalize_public_from_gdelt_manifest(
+            path,
+            payload,
+            run_id=run_id,
+            round_id=round_id,
+            source_skill=source_skill,
+            sha256_value=sha256_value,
+        )
+    raise ValueError(f"Unsupported public source skill: {source_skill}")
+
+
+def public_signals_to_claims(
+    *,
+    mission: dict[str, Any],
+    round_id: str,
+    signals: list[dict[str, Any]],
+    max_claims: int,
+) -> list[dict[str, Any]]:
+    run_id = mission_run_id(mission)
+    groups: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for signal in signals:
+        source_text = maybe_text(signal.get("title")) or maybe_text(signal.get("text"))
+        if not source_text:
+            continue
+        claim_type = claim_type_from_text(source_text)
+        fingerprint = semantic_fingerprint(source_text)
+        if not fingerprint:
+            fingerprint = signal["signal_id"]
+        groups[f"{claim_type}|{fingerprint}"].append(signal)
+
+    ranked = sorted(
+        groups.values(),
+        key=lambda items: (
+            -len(items),
+            -(parse_loose_datetime(items[0].get("published_at_utc")) or datetime(1970, 1, 1, tzinfo=timezone.utc)).timestamp(),
+            items[0]["signal_id"],
+        ),
+    )
+
+    claims: list[dict[str, Any]] = []
+    place_scope = mission_place_scope(mission)
+    time_window = mission_window(mission)
+    for index, items in enumerate(ranked[:max_claims], start=1):
+        lead = items[0]
+        combined_text = maybe_text(lead.get("text")) or maybe_text(lead.get("title"))
+        summary = truncate_text(maybe_text(lead.get("title")) or combined_text, 180)
+        claim_type = claim_type_from_text(summary + " " + combined_text)
+        claim = {
+            "schema_version": SCHEMA_VERSION,
+            "claim_id": emit_row_id("claim", index),
+            "run_id": run_id,
+            "round_id": round_id,
+            "agent_role": "sociologist",
+            "claim_type": claim_type,
+            "status": "candidate",
+            "summary": summary or f"Candidate claim from {lead['source_skill']}",
+            "statement": candidate_statement(summary, combined_text or summary),
+            "priority": min(index, 5),
+            "needs_physical_validation": claim_type in PHYSICAL_CLAIM_TYPES,
+            "time_window": time_window,
+            "place_scope": place_scope,
+            "public_refs": [artifact_ref(item) for item in items[:8]],
+        }
+        validate_payload("claim", claim)
+        claims.append(claim)
+    return claims
+
+
+def save_public_db(db_path: Path, signals: list[dict[str, Any]], claims: list[dict[str, Any]]) -> None:
+    init_sqlite_db(db_path, PUBLIC_DDL_PATH)
+    with sqlite3.connect(db_path) as conn:
+        insert_many(
+            conn,
+            """
+            INSERT OR REPLACE INTO public_signals (
+                signal_id, run_id, round_id, source_skill, signal_kind, external_id, title, text,
+                url, author_name, channel_name, language, query_text, published_at_utc,
+                captured_at_utc, engagement_json, metadata_json, artifact_path, record_locator,
+                sha256, raw_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                (
+                    signal["signal_id"],
+                    signal["run_id"],
+                    signal["round_id"],
+                    signal["source_skill"],
+                    signal["signal_kind"],
+                    signal["external_id"],
+                    signal["title"],
+                    signal["text"],
+                    signal["url"],
+                    signal["author_name"],
+                    signal["channel_name"],
+                    signal["language"],
+                    signal["query_text"],
+                    signal["published_at_utc"],
+                    signal["captured_at_utc"],
+                    json.dumps(signal.get("engagement", {}), ensure_ascii=True, sort_keys=True),
+                    json.dumps(signal.get("metadata", {}), ensure_ascii=True, sort_keys=True),
+                    signal["artifact_path"],
+                    signal["record_locator"],
+                    signal["sha256"],
+                    json.dumps(signal.get("raw_json"), ensure_ascii=True, sort_keys=True),
+                )
+                for signal in signals
+            ),
+        )
+        insert_many(
+            conn,
+            """
+            INSERT OR REPLACE INTO claim_candidates (
+                claim_id, run_id, round_id, claim_type, priority, summary, statement,
+                source_signal_ids_json, claim_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                (
+                    claim["claim_id"],
+                    claim["run_id"],
+                    claim["round_id"],
+                    claim["claim_type"],
+                    claim["priority"],
+                    claim["summary"],
+                    claim["statement"],
+                    json.dumps(
+                        [ref.get("external_id") or ref.get("record_locator") for ref in claim.get("public_refs", [])],
+                        ensure_ascii=True,
+                        sort_keys=True,
+                    ),
+                    json.dumps(claim, ensure_ascii=True, sort_keys=True),
+                )
+                for claim in claims
+            ),
+        )
+
+
+def first_datetime_and_last(values: list[dict[str, Any]]) -> tuple[str, str] | None:
+    datetimes: list[datetime] = []
+    for item in values:
+        observed = parse_loose_datetime(item.get("observed_at_utc") or item.get("window_start_utc"))
+        if observed is not None:
+            datetimes.append(observed)
+    if not datetimes:
+        return None
+    datetimes.sort()
+    return to_rfc3339_z(datetimes[0]) or "", to_rfc3339_z(datetimes[-1]) or ""
+
+
+def aggregate_stats(values: list[float]) -> dict[str, float | None]:
+    if not values:
+        return {"min": None, "max": None, "mean": None, "p95": None}
+    return {
+        "min": min(values),
+        "max": max(values),
+        "mean": statistics.fmean(values),
+        "p95": percentile95(values),
+    }
+
+
+def make_environment_signal(
+    *,
+    run_id: str,
+    round_id: str,
+    source_skill: str,
+    signal_kind: str,
+    metric: str,
+    value: float | None,
+    unit: str,
+    observed_at_utc: str | None,
+    window_start_utc: str | None,
+    window_end_utc: str | None,
+    latitude: float | None,
+    longitude: float | None,
+    bbox: dict[str, Any] | None,
+    quality_flags: list[str],
+    metadata: dict[str, Any],
+    artifact_path: Path,
+    record_locator: str,
+    sha256_value: str,
+    raw_obj: Any,
+) -> dict[str, Any]:
+    signal_hash = stable_hash(source_skill, metric, observed_at_utc or window_start_utc or record_locator, value, latitude, longitude)
+    return {
+        "signal_id": f"envsig-{signal_hash[:12]}",
+        "run_id": run_id,
+        "round_id": round_id,
+        "source_skill": source_skill,
+        "signal_kind": signal_kind,
+        "metric": metric,
+        "value": value,
+        "unit": unit or "unknown",
+        "observed_at_utc": observed_at_utc,
+        "window_start_utc": window_start_utc,
+        "window_end_utc": window_end_utc,
+        "latitude": latitude,
+        "longitude": longitude,
+        "bbox": bbox,
+        "quality_flags": quality_flags,
+        "metadata": metadata,
+        "artifact_path": str(artifact_path),
+        "record_locator": record_locator,
+        "sha256": sha256_value,
+        "raw_json": raw_obj,
+    }
+
+
+def open_meteo_point_scope(record: dict[str, Any], default_scope: dict[str, Any]) -> dict[str, Any]:
+    lat = maybe_number(record.get("latitude"))
+    lon = maybe_number(record.get("longitude"))
+    if lat is None or lon is None:
+        return default_scope
+    return {
+        "label": maybe_text(record.get("timezone")) or default_scope["label"],
+        "geometry": {"type": "Point", "latitude": lat, "longitude": lon},
+    }
+
+
+def iter_open_meteo_signals(
+    path: Path,
+    payload: Any,
+    *,
+    run_id: str,
+    round_id: str,
+    source_skill: str,
+    sha256_value: str,
+) -> list[dict[str, Any]]:
+    signals: list[dict[str, Any]] = []
+    records = payload.get("records") if isinstance(payload, dict) else payload
+    if not isinstance(records, list):
+        return signals
+    for record_index, record in enumerate(records):
+        if not isinstance(record, dict):
+            continue
+        latitude = maybe_number(record.get("latitude"))
+        longitude = maybe_number(record.get("longitude"))
+        for section_name, units_name in (("hourly", "hourly_units"), ("daily", "daily_units")):
+            section = record.get(section_name)
+            if not isinstance(section, dict):
+                continue
+            units = record.get(units_name) if isinstance(record.get(units_name), dict) else {}
+            times = section.get("time") if isinstance(section.get("time"), list) else []
+            for metric, series in section.items():
+                if metric == "time" or not isinstance(series, list):
+                    continue
+                unit = maybe_text(units.get(metric)) or "unknown"
+                for value_index, raw_value in enumerate(series):
+                    numeric_value = maybe_number(raw_value)
+                    if numeric_value is None:
+                        continue
+                    observed_at = parse_loose_datetime(times[value_index]) if value_index < len(times) else None
+                    signals.append(
+                        make_environment_signal(
+                            run_id=run_id,
+                            round_id=round_id,
+                            source_skill=source_skill,
+                            signal_kind=section_name,
+                            metric=metric,
+                            value=numeric_value,
+                            unit=unit,
+                            observed_at_utc=to_rfc3339_z(observed_at),
+                            window_start_utc=None,
+                            window_end_utc=None,
+                            latitude=latitude,
+                            longitude=longitude,
+                            bbox=None,
+                            quality_flags=["modeled-background"] if source_skill == "open-meteo-air-quality-fetch" else ["reanalysis-or-model"],
+                            metadata={
+                                "section": section_name,
+                                "timezone": maybe_text(record.get("timezone")),
+                                "elevation": maybe_number(record.get("elevation")),
+                                "record_index": record_index,
+                            },
+                            artifact_path=path,
+                            record_locator=f"$.records[{record_index}].{section_name}.{metric}[{value_index}]",
+                            sha256_value=sha256_value,
+                            raw_obj=raw_value,
+                        )
+                    )
+    return signals
+
+
+def iter_nasa_firms_signals(
+    path: Path,
+    payload: Any,
+    *,
+    run_id: str,
+    round_id: str,
+    sha256_value: str,
+) -> list[dict[str, Any]]:
+    signals: list[dict[str, Any]] = []
+    if not isinstance(payload, dict):
+        return signals
+    rows = payload.get("records")
+    if not isinstance(rows, list):
+        return signals
+    for index, row in enumerate(rows):
+        if not isinstance(row, dict):
+            continue
+        bbox = None
+        signals.append(
+            make_environment_signal(
+                run_id=run_id,
+                round_id=round_id,
+                source_skill="nasa-firms-fire-fetch",
+                signal_kind="fire-detection",
+                metric="fire_detection",
+                value=1.0,
+                unit="count",
+                observed_at_utc=maybe_text(row.get("_acquired_at_utc")),
+                window_start_utc=maybe_text(row.get("_chunk_start_date")),
+                window_end_utc=maybe_text(row.get("_chunk_end_date")),
+                latitude=maybe_number(row.get("_latitude")),
+                longitude=maybe_number(row.get("_longitude")),
+                bbox=bbox,
+                quality_flags=["satellite-detection"],
+                metadata={
+                    "confidence": maybe_text(row.get("confidence")),
+                    "satellite": maybe_text(row.get("satellite")),
+                    "instrument": maybe_text(row.get("instrument")),
+                    "frp": maybe_number(row.get("frp")),
+                },
+                artifact_path=path,
+                record_locator=f"$.records[{index}]",
+                sha256_value=sha256_value,
+                raw_obj=row,
+            )
+        )
+    return signals
+
+
+def unwrap_openaq_payload(payload: Any) -> Any:
+    if isinstance(payload, dict) and "result" in payload:
+        return unwrap_openaq_payload(payload["result"])
+    return payload
+
+
+def extract_nested_value(row: dict[str, Any], *paths: str) -> Any:
+    for path in paths:
+        current: Any = row
+        ok = True
+        for part in path.split("."):
+            if not isinstance(current, dict):
+                ok = False
+                break
+            current = current.get(part)
+        if ok and current is not None:
+            return current
+    return None
+
+
+def openaq_row_to_signal(
+    row: dict[str, Any],
+    *,
+    path: Path,
+    run_id: str,
+    round_id: str,
+    index: int,
+    sha256_value: str,
+) -> dict[str, Any] | None:
+    metric = maybe_text(
+        extract_nested_value(row, "parameter.name", "parameter", "parameterName", "metric", "name")
+    )
+    unit = maybe_text(extract_nested_value(row, "parameter.units", "unit", "units")) or "unknown"
+    value = None
+    for key in OPENAQ_VALUE_KEYS:
+        value = maybe_number(extract_nested_value(row, key))
+        if value is not None:
+            break
+    if value is None or not metric:
+        return None
+    timestamp_text = ""
+    timestamp_candidate = extract_nested_value(row, "date.utc", "date.local")
+    if timestamp_candidate is None:
+        for key in OPENAQ_TIME_KEYS:
+            timestamp_candidate = extract_nested_value(row, key)
+            if timestamp_candidate is not None:
+                break
+    if timestamp_candidate is not None:
+        timestamp_text = maybe_text(timestamp_candidate)
+    coordinates = row.get("coordinates") if isinstance(row.get("coordinates"), dict) else {}
+    latitude = maybe_number(coordinates.get("latitude"))
+    longitude = maybe_number(coordinates.get("longitude"))
+    if latitude is None:
+        for key in OPENAQ_LAT_KEYS:
+            latitude = maybe_number(extract_nested_value(row, key))
+            if latitude is not None:
+                break
+    if longitude is None:
+        for key in OPENAQ_LON_KEYS:
+            longitude = maybe_number(extract_nested_value(row, key))
+            if longitude is not None:
+                break
+    metadata = {
+        "location_id": extract_nested_value(row, "location.id", "locationId", "locationsId"),
+        "location_name": maybe_text(extract_nested_value(row, "location.name", "location")),
+        "sensor_id": extract_nested_value(row, "sensor.id", "sensorId", "sensorsId"),
+        "provider": maybe_text(extract_nested_value(row, "provider.name", "provider")),
+    }
+    return make_environment_signal(
+        run_id=run_id,
+        round_id=round_id,
+        source_skill="openaq-data-fetch",
+        signal_kind="station-measurement",
+        metric=metric,
+        value=value,
+        unit=unit,
+        observed_at_utc=to_rfc3339_z(parse_loose_datetime(timestamp_text)),
+        window_start_utc=None,
+        window_end_utc=None,
+        latitude=latitude,
+        longitude=longitude,
+        bbox=None,
+        quality_flags=["station-observation"],
+        metadata=metadata,
+        artifact_path=path,
+        record_locator=f"$[{index}]",
+        sha256_value=sha256_value,
+        raw_obj=row,
+    )
+
+
+def iter_csv_rows(path: Path) -> list[dict[str, str]]:
+    open_func = gzip.open if path.suffix.lower() == ".gz" else open
+    with open_func(path, "rt", encoding="utf-8", newline="") as handle:
+        reader = csv.DictReader(handle)
+        return [dict(row) for row in reader]
+
+
+def iter_openaq_signals(
+    path: Path,
+    *,
+    run_id: str,
+    round_id: str,
+) -> list[dict[str, Any]]:
+    sha256_value = file_sha256(path)
+    suffix = path.suffix.lower()
+    rows: list[dict[str, Any]] = []
+    if suffix in {".json", ".jsonl"}:
+        payload = unwrap_openaq_payload(parse_path_payload(path))
+        rows = collect_records(payload)
+        if not rows and isinstance(payload, dict):
+            output_path = maybe_text(payload.get("output_path"))
+            if output_path:
+                nested_path = Path(output_path).expanduser().resolve()
+                if nested_path.exists():
+                    return iter_openaq_signals(nested_path, run_id=run_id, round_id=round_id)
+    elif suffix in {".csv", ".gz"}:
+        rows = iter_csv_rows(path)
+    else:
+        raise ValueError(f"Unsupported OpenAQ artifact path: {path}")
+
+    signals: list[dict[str, Any]] = []
+    for index, row in enumerate(rows):
+        normalized = openaq_row_to_signal(
+            row,
+            path=path,
+            run_id=run_id,
+            round_id=round_id,
+            index=index,
+            sha256_value=sha256_value,
+        )
+        if normalized is not None:
+            signals.append(normalized)
+    return signals
+
+
+def normalize_environment_source(
+    source_skill: str,
+    path: Path,
+    *,
+    run_id: str,
+    round_id: str,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    signals: list[dict[str, Any]] = []
+    extra_observations: list[dict[str, Any]] = []
+    if source_skill in {"open-meteo-historical-fetch", "open-meteo-air-quality-fetch"}:
+        sha256_value = file_sha256(path)
+        payload = parse_path_payload(path)
+        signals = iter_open_meteo_signals(
+            path,
+            payload,
+            run_id=run_id,
+            round_id=round_id,
+            source_skill=source_skill,
+            sha256_value=sha256_value,
+        )
+    elif source_skill == "nasa-firms-fire-fetch":
+        sha256_value = file_sha256(path)
+        payload = parse_path_payload(path)
+        signals = iter_nasa_firms_signals(path, payload, run_id=run_id, round_id=round_id, sha256_value=sha256_value)
+        if isinstance(payload, dict) and isinstance(payload.get("records"), list) and not payload.get("records"):
+            run_id_value = run_id
+            extra_observations.append(
+                {
+                    "schema_version": SCHEMA_VERSION,
+                    "observation_id": "obs-placeholder",
+                    "run_id": run_id_value,
+                    "round_id": round_id,
+                    "agent_role": "environmentalist",
+                    "source_skill": "nasa-firms-fire-fetch",
+                    "metric": "fire_detection_count",
+                    "aggregation": "event-count",
+                    "value": 0.0,
+                    "unit": "count",
+                    "statistics": {"min": 0.0, "max": 0.0, "mean": 0.0, "p95": 0.0},
+                    "time_window": {
+                        "start_utc": maybe_text((payload.get("request") or {}).get("start_date")) or utc_now_iso(),
+                        "end_utc": maybe_text((payload.get("request") or {}).get("end_date")) or utc_now_iso(),
+                    },
+                    "place_scope": {"label": "Mission region", "geometry": {"type": "Point", "latitude": 0.0, "longitude": 0.0}},
+                    "quality_flags": ["satellite-detection", "zero-detections"],
+                    "provenance": {
+                        "source_skill": "nasa-firms-fire-fetch",
+                        "artifact_path": str(path),
+                        "sha256": sha256_value,
+                    },
+                }
+            )
+    elif source_skill == "openaq-data-fetch":
+        signals = iter_openaq_signals(path, run_id=run_id, round_id=round_id)
+    else:
+        raise ValueError(f"Unsupported environment source skill: {source_skill}")
+    return signals, extra_observations
+
+
+def observation_group_key(signal: dict[str, Any], mission_scope: dict[str, Any]) -> tuple[str, str, str]:
+    metric = maybe_text(signal.get("metric"))
+    source_skill = maybe_text(signal.get("source_skill"))
+    lat = maybe_number(signal.get("latitude"))
+    lon = maybe_number(signal.get("longitude"))
+    if lat is None or lon is None:
+        return (source_skill, metric, stable_hash(json.dumps(mission_scope, sort_keys=True))[:8])
+    return (source_skill, metric, f"{lat:.3f},{lon:.3f}")
+
+
+def derive_place_scope(signals: list[dict[str, Any]], mission_scope: dict[str, Any]) -> dict[str, Any]:
+    if not signals:
+        return mission_scope
+    latitudes = [maybe_number(item.get("latitude")) for item in signals]
+    longitudes = [maybe_number(item.get("longitude")) for item in signals]
+    if any(value is None for value in latitudes + longitudes):
+        return mission_scope
+    unique_points = {(round(float(lat), 3), round(float(lon), 3)) for lat, lon in zip(latitudes, longitudes)}
+    if len(unique_points) != 1:
+        return mission_scope
+    latitude = statistics.fmean(float(value) for value in latitudes if value is not None)
+    longitude = statistics.fmean(float(value) for value in longitudes if value is not None)
+    return {
+        "label": mission_scope["label"],
+        "geometry": {"type": "Point", "latitude": latitude, "longitude": longitude},
+    }
+
+
+def environment_signals_to_observations(
+    *,
+    mission: dict[str, Any],
+    round_id: str,
+    signals: list[dict[str, Any]],
+    extra_observations: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    run_id = mission_run_id(mission)
+    mission_scope = mission_place_scope(mission)
+    mission_time_window = mission_window(mission)
+    grouped: dict[tuple[str, str, str], list[dict[str, Any]]] = defaultdict(list)
+    for signal in signals:
+        grouped[observation_group_key(signal, mission_scope)].append(signal)
+
+    observations: list[dict[str, Any]] = []
+    counter = 1
+    for (_, metric, _), group in sorted(grouped.items()):
+        values = [float(signal["value"]) for signal in group if maybe_number(signal.get("value")) is not None]
+        if not values:
+            continue
+        source_skill = group[0]["source_skill"]
+        output_metric = metric
+        aggregation = "window-summary" if len(values) > 1 else "point"
+        value = statistics.fmean(values) if len(values) > 1 else values[0]
+        if source_skill == "nasa-firms-fire-fetch" and metric == "fire_detection":
+            output_metric = "fire_detection_count"
+            aggregation = "event-count"
+            value = float(len(group))
+        window = first_datetime_and_last(group)
+        if window is None:
+            time_window = mission_time_window
+        else:
+            start_utc, end_utc = window
+            time_window = {"start_utc": start_utc or mission_time_window["start_utc"], "end_utc": end_utc or mission_time_window["end_utc"]}
+        quality_flags = sorted({flag for signal in group for flag in signal.get("quality_flags", [])})
+        observation = {
+            "schema_version": SCHEMA_VERSION,
+            "observation_id": emit_row_id("obs", counter),
+            "run_id": run_id,
+            "round_id": round_id,
+            "agent_role": "environmentalist",
+            "source_skill": source_skill,
+            "metric": output_metric,
+            "aggregation": aggregation,
+            "value": value,
+            "unit": "count" if output_metric == "fire_detection_count" else group[0]["unit"],
+            "statistics": aggregate_stats(values),
+            "time_window": time_window,
+            "place_scope": derive_place_scope(group, mission_scope),
+            "quality_flags": quality_flags,
+            "provenance": artifact_ref(group[0]),
+        }
+        validate_payload("observation", observation)
+        observations.append(observation)
+        counter += 1
+
+    for item in extra_observations:
+        item["observation_id"] = emit_row_id("obs", counter)
+        item["run_id"] = run_id
+        item["round_id"] = round_id
+        item["place_scope"] = mission_scope
+        item["time_window"] = mission_time_window
+        validate_payload("observation", item)
+        observations.append(item)
+        counter += 1
+    return observations
+
+
+def save_environment_db(db_path: Path, signals: list[dict[str, Any]], observations: list[dict[str, Any]]) -> None:
+    init_sqlite_db(db_path, ENVIRONMENT_DDL_PATH)
+    with sqlite3.connect(db_path) as conn:
+        insert_many(
+            conn,
+            """
+            INSERT OR REPLACE INTO environment_signals (
+                signal_id, run_id, round_id, source_skill, signal_kind, metric, value, unit,
+                observed_at_utc, window_start_utc, window_end_utc, latitude, longitude,
+                bbox_json, quality_flags_json, metadata_json, artifact_path, record_locator,
+                sha256, raw_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                (
+                    signal["signal_id"],
+                    signal["run_id"],
+                    signal["round_id"],
+                    signal["source_skill"],
+                    signal["signal_kind"],
+                    signal["metric"],
+                    signal["value"],
+                    signal["unit"],
+                    signal["observed_at_utc"],
+                    signal["window_start_utc"],
+                    signal["window_end_utc"],
+                    signal["latitude"],
+                    signal["longitude"],
+                    json.dumps(signal.get("bbox"), ensure_ascii=True, sort_keys=True) if signal.get("bbox") is not None else None,
+                    json.dumps(signal.get("quality_flags", []), ensure_ascii=True, sort_keys=True),
+                    json.dumps(signal.get("metadata", {}), ensure_ascii=True, sort_keys=True),
+                    signal["artifact_path"],
+                    signal["record_locator"],
+                    signal["sha256"],
+                    json.dumps(signal.get("raw_json"), ensure_ascii=True, sort_keys=True),
+                )
+                for signal in signals
+            ),
+        )
+        insert_many(
+            conn,
+            """
+            INSERT OR REPLACE INTO observation_summaries (
+                observation_id, run_id, round_id, metric, source_skill, observation_json
+            ) VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                (
+                    observation["observation_id"],
+                    observation["run_id"],
+                    observation["round_id"],
+                    observation["metric"],
+                    observation["source_skill"],
+                    json.dumps(observation, ensure_ascii=True, sort_keys=True),
+                )
+                for observation in observations
+            ),
+        )
+
+
+def load_canonical_list(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    payload = read_json(path)
+    if not isinstance(payload, list):
+        raise ValueError(f"Expected list in {path}")
+    return [item for item in payload if isinstance(item, dict)]
+
+
+def metric_relevant(claim_type: str, metric: str) -> bool:
+    if claim_type not in CLAIM_METRIC_RULES:
+        return True
+    support_metrics = set(CLAIM_METRIC_RULES[claim_type]["support"].keys())
+    contradict_metrics = set(CLAIM_METRIC_RULES[claim_type]["contradict"].keys())
+    return metric in support_metrics or metric in contradict_metrics
+
+
+def assess_observation_against_claim(claim_type: str, observation: dict[str, Any]) -> tuple[int, int, str]:
+    metric = maybe_text(observation.get("metric"))
+    metric_value = extract_value_for_metric(observation)
+    if metric_value is None:
+        return 0, 0, ""
+    rules = CLAIM_METRIC_RULES.get(claim_type)
+    if rules is None:
+        return 0, 0, ""
+    support_threshold = rules["support"].get(metric)
+    contradict_threshold = rules["contradict"].get(metric)
+    if support_threshold is not None:
+        if metric == "fire_detection_count":
+            if metric_value >= support_threshold:
+                return 2, 0, f"{metric}={metric_value:g}"
+        elif claim_type == "drought" and metric in {"precipitation_sum", "soil_moisture_0_to_7cm"}:
+            if metric_value <= support_threshold:
+                return 2, 0, f"{metric}={metric_value:g}"
+        else:
+            if metric_value >= support_threshold:
+                return 2, 0, f"{metric}={metric_value:g}"
+    if contradict_threshold is not None:
+        if metric == "fire_detection_count":
+            if metric_value <= contradict_threshold:
+                return 0, 1, f"{metric}={metric_value:g}"
+        elif claim_type == "wildfire" and metric in {"precipitation_sum", "relative_humidity_2m"}:
+            if metric_value >= contradict_threshold:
+                return 0, 1, f"{metric}={metric_value:g}"
+        elif claim_type == "drought" and metric in {"precipitation_sum", "soil_moisture_0_to_7cm"}:
+            if metric_value >= contradict_threshold:
+                return 0, 1, f"{metric}={metric_value:g}"
+        else:
+            if metric_value <= contradict_threshold:
+                return 0, 1, f"{metric}={metric_value:g}"
+    return 0, 0, ""
+
+
+def build_evidence_summary(claim: dict[str, Any], observation_notes: list[str], verdict: str, gaps: list[str]) -> str:
+    lead = claim.get("summary") or claim.get("statement") or "Claim"
+    base = truncate_text(maybe_text(lead), 140)
+    if observation_notes:
+        return f"{base}. Matched metrics: {', '.join(observation_notes[:4])}."
+    if gaps:
+        return f"{base}. Evidence remains limited: {'; '.join(gaps[:2])}."
+    return f"{base}. Current evidence verdict: {verdict}."
+
+
+def link_claims_to_evidence(
+    *,
+    claims: list[dict[str, Any]],
+    observations: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    evidence_cards: list[dict[str, Any]] = []
+    for index, claim in enumerate(claims, start=1):
+        matching = [
+            observation
+            for observation in observations
+            if metric_relevant(maybe_text(claim.get("claim_type")), maybe_text(observation.get("metric")))
+            and time_windows_overlap(claim.get("time_window", {}), observation.get("time_window", {}))
+            and geometry_overlap(
+                claim.get("place_scope", {}).get("geometry", {}),
+                observation.get("place_scope", {}).get("geometry", {}),
+            )
+        ]
+        support_score = 0
+        contradict_score = 0
+        notes: list[str] = []
+        gaps: list[str] = []
+        for observation in matching:
+            support, contradict, note = assess_observation_against_claim(
+                maybe_text(claim.get("claim_type")),
+                observation,
+            )
+            support_score += support
+            contradict_score += contradict
+            if note:
+                notes.append(note)
+
+        if not matching:
+            verdict = "insufficient"
+            confidence = "low"
+            gaps.append("No mission-aligned observations matched the claim window and geometry.")
+        elif support_score > 0 and contradict_score == 0:
+            verdict = "supports"
+            confidence = "high" if support_score >= 4 and len(matching) >= 2 else "medium"
+        elif support_score == 0 and contradict_score > 0:
+            verdict = "contradicts"
+            confidence = "medium"
+        elif support_score > 0 and contradict_score > 0:
+            verdict = "mixed"
+            confidence = "medium"
+        else:
+            verdict = "insufficient"
+            confidence = "low"
+            gaps.append("Matched observations were mostly contextual and did not cross rule thresholds.")
+
+        if maybe_text(claim.get("claim_type")) in {"smoke", "air-pollution"}:
+            if not any(item.get("source_skill") == "openaq-data-fetch" for item in matching):
+                gaps.append("Station-grade corroboration is missing.")
+            if any("modeled-background" in item.get("quality_flags", []) for item in matching):
+                gaps.append("Modeled background fields should be cross-checked with station or local observations.")
+
+        evidence = {
+            "schema_version": SCHEMA_VERSION,
+            "evidence_id": emit_row_id("evidence", index),
+            "run_id": claim["run_id"],
+            "round_id": claim["round_id"],
+            "claim_id": claim["claim_id"],
+            "verdict": verdict,
+            "confidence": confidence,
+            "summary": build_evidence_summary(claim, notes, verdict, gaps),
+            "public_refs": claim.get("public_refs", []),
+            "observation_ids": [item["observation_id"] for item in matching],
+            "gaps": sorted(dict.fromkeys(gaps)),
+        }
+        validate_payload("evidence-card", evidence)
+        evidence_cards.append(evidence)
+    return evidence_cards
+
+
+def build_round_snapshot(
+    *,
+    mission: dict[str, Any],
+    round_id: str,
+    tasks: list[dict[str, Any]],
+    claims: list[dict[str, Any]],
+    observations: list[dict[str, Any]],
+    evidence_cards: list[dict[str, Any]],
+    role: str,
+) -> dict[str, Any]:
+    run = {
+        "run_id": mission_run_id(mission),
+        "round_id": round_id,
+        "topic": maybe_text(mission.get("topic")),
+        "objective": maybe_text(mission.get("objective")),
+        "region": mission_place_scope(mission),
+        "window": mission_window(mission),
+        "role": role,
+    }
+    role_tasks = [task for task in tasks if role == "moderator" or task.get("assigned_role") == role]
+    verdict_counter = Counter(maybe_text(item.get("verdict")) for item in evidence_cards)
+    focus_claims = claims
+    if role == "environmentalist":
+        focus_claims = [claim for claim in claims if claim.get("needs_physical_validation")]
+
+    dataset = {
+        "generated_at_utc": utc_now_iso(),
+        "task_count": len(role_tasks),
+        "claim_count": len(claims),
+        "observation_count": len(observations),
+        "evidence_count": len(evidence_cards),
+    }
+    focus = {
+        "task_ids": [maybe_text(task.get("task_id")) for task in role_tasks],
+        "claims_needing_more_evidence": [
+            card["claim_id"] for card in evidence_cards if card.get("verdict") in {"mixed", "insufficient"}
+        ],
+    }
+    if role == "sociologist":
+        focus["candidate_claim_ids"] = [claim["claim_id"] for claim in focus_claims]
+    if role == "environmentalist":
+        focus["metrics_requested"] = sorted({observation["metric"] for observation in observations})
+
+    return {
+        "run": run,
+        "dataset": dataset,
+        "aggregates": {
+            "claim_type_counts": dict(Counter(maybe_text(item.get("claim_type")) for item in claims)),
+            "observation_metric_counts": dict(Counter(maybe_text(item.get("metric")) for item in observations)),
+            "evidence_verdict_counts": dict(verdict_counter),
+        },
+        "tasks": role_tasks,
+        "focus": focus,
+        "claims": focus_claims,
+        "observations": observations,
+        "evidence_cards": evidence_cards,
+    }
+
+
+def command_init_run(args: argparse.Namespace) -> dict[str, Any]:
+    run_dir_path = Path(args.run_dir).expanduser().resolve()
+    mission = load_mission(run_dir_path)
+    public_db = Path(args.public_db).expanduser().resolve() if args.public_db else default_public_db_path(run_dir_path)
+    environment_db = (
+        Path(args.environment_db).expanduser().resolve()
+        if args.environment_db
+        else default_environment_db_path(run_dir_path)
+    )
+    init_sqlite_db(public_db, PUBLIC_DDL_PATH)
+    init_sqlite_db(environment_db, ENVIRONMENT_DDL_PATH)
+
+    for role in ("moderator", "sociologist", "environmentalist"):
+        default_context_dir(run_dir_path, args.round_id, role).mkdir(parents=True, exist_ok=True)
+    (round_dir(run_dir_path, args.round_id) / "shared" / "contexts").mkdir(parents=True, exist_ok=True)
+
+    manifest = load_or_build_manifest(run_dir_path, mission)
+    manifest["round_id_initialized"] = args.round_id
+    manifest["databases"] = {
+        "public_signals": str(public_db),
+        "environment_signals": str(environment_db),
+    }
+    manifest["initialized_at_utc"] = utc_now_iso()
+    write_json(run_manifest_path(run_dir_path), manifest, pretty=args.pretty)
+
+    return {
+        "run_dir": str(run_dir_path),
+        "public_db": str(public_db),
+        "environment_db": str(environment_db),
+        "manifest_path": str(run_manifest_path(run_dir_path)),
+    }
+
+
+def command_normalize_public(args: argparse.Namespace) -> dict[str, Any]:
+    run_dir_path = Path(args.run_dir).expanduser().resolve()
+    mission = load_mission(run_dir_path)
+    run_id = mission_run_id(mission)
+    public_db = Path(args.public_db).expanduser().resolve() if args.public_db else default_public_db_path(run_dir_path)
+    inputs = parse_input_specs(args.input)
+    all_signals: list[dict[str, Any]] = []
+    for source_skill, path in inputs:
+        all_signals.extend(normalize_public_source(source_skill, path, run_id=run_id, round_id=args.round_id))
+
+    deduped_by_id: dict[str, dict[str, Any]] = {signal["signal_id"]: signal for signal in all_signals}
+    signals = sorted(
+        deduped_by_id.values(),
+        key=lambda item: (
+            item.get("published_at_utc") or "",
+            item["signal_id"],
+        ),
+        reverse=False,
+    )
+    claims = public_signals_to_claims(
+        mission=mission,
+        round_id=args.round_id,
+        signals=signals,
+        max_claims=args.max_claims,
+    )
+
+    save_public_db(public_db, signals, claims)
+    normalized_dir = role_normalized_dir(run_dir_path, args.round_id, "sociologist")
+    public_signals_file = normalized_dir / "public_signals.jsonl"
+    claims_file = normalized_dir / "claim_candidates.json"
+    write_jsonl(public_signals_file, signals)
+    write_json(claims_file, claims, pretty=args.pretty)
+    write_json(shared_claims_path(run_dir_path, args.round_id), claims, pretty=args.pretty)
+
+    return {
+        "public_db": str(public_db),
+        "signal_count": len(signals),
+        "claim_count": len(claims),
+        "signals_path": str(public_signals_file),
+        "claims_path": str(claims_file),
+        "shared_claims_path": str(shared_claims_path(run_dir_path, args.round_id)),
+    }
+
+
+def command_normalize_environment(args: argparse.Namespace) -> dict[str, Any]:
+    run_dir_path = Path(args.run_dir).expanduser().resolve()
+    mission = load_mission(run_dir_path)
+    run_id = mission_run_id(mission)
+    environment_db = (
+        Path(args.environment_db).expanduser().resolve()
+        if args.environment_db
+        else default_environment_db_path(run_dir_path)
+    )
+    inputs = parse_input_specs(args.input)
+    all_signals: list[dict[str, Any]] = []
+    extra_observations: list[dict[str, Any]] = []
+    for source_skill, path in inputs:
+        source_signals, source_observations = normalize_environment_source(
+            source_skill,
+            path,
+            run_id=run_id,
+            round_id=args.round_id,
+        )
+        all_signals.extend(source_signals)
+        extra_observations.extend(source_observations)
+
+    deduped_by_id: dict[str, dict[str, Any]] = {signal["signal_id"]: signal for signal in all_signals}
+    signals = sorted(deduped_by_id.values(), key=lambda item: (item.get("metric") or "", item["signal_id"]))
+    observations = environment_signals_to_observations(
+        mission=mission,
+        round_id=args.round_id,
+        signals=signals,
+        extra_observations=extra_observations,
+    )
+
+    save_environment_db(environment_db, signals, observations)
+    normalized_dir = role_normalized_dir(run_dir_path, args.round_id, "environmentalist")
+    signals_file = normalized_dir / "environment_signals.jsonl"
+    observations_file = normalized_dir / "observations.json"
+    write_jsonl(signals_file, signals)
+    write_json(observations_file, observations, pretty=args.pretty)
+    write_json(shared_observations_path(run_dir_path, args.round_id), observations, pretty=args.pretty)
+
+    return {
+        "environment_db": str(environment_db),
+        "signal_count": len(signals),
+        "observation_count": len(observations),
+        "signals_path": str(signals_file),
+        "observations_path": str(observations_file),
+        "shared_observations_path": str(shared_observations_path(run_dir_path, args.round_id)),
+    }
+
+
+def command_link_evidence(args: argparse.Namespace) -> dict[str, Any]:
+    run_dir_path = Path(args.run_dir).expanduser().resolve()
+    claims = load_canonical_list(shared_claims_path(run_dir_path, args.round_id))
+    observations = load_canonical_list(shared_observations_path(run_dir_path, args.round_id))
+    evidence_cards = link_claims_to_evidence(claims=claims, observations=observations)
+
+    normalized_dir = role_normalized_dir(run_dir_path, args.round_id, "environmentalist")
+    evidence_path = normalized_dir / "evidence_cards.json"
+    write_json(evidence_path, evidence_cards, pretty=args.pretty)
+    write_json(shared_evidence_path(run_dir_path, args.round_id), evidence_cards, pretty=args.pretty)
+
+    return {
+        "evidence_count": len(evidence_cards),
+        "evidence_path": str(evidence_path),
+        "shared_evidence_path": str(shared_evidence_path(run_dir_path, args.round_id)),
+    }
+
+
+def command_build_round_context(args: argparse.Namespace) -> dict[str, Any]:
+    run_dir_path = Path(args.run_dir).expanduser().resolve()
+    mission = load_mission(run_dir_path)
+    tasks_path = round_dir(run_dir_path, args.round_id) / "moderator" / "tasks.json"
+    tasks = load_canonical_list(tasks_path)
+    claims = load_canonical_list(shared_claims_path(run_dir_path, args.round_id))
+    observations = load_canonical_list(shared_observations_path(run_dir_path, args.round_id))
+    evidence_cards = load_canonical_list(shared_evidence_path(run_dir_path, args.round_id))
+
+    outputs: dict[str, str] = {}
+    for role in ("moderator", "sociologist", "environmentalist"):
+        payload = build_round_snapshot(
+            mission=mission,
+            round_id=args.round_id,
+            tasks=tasks,
+            claims=claims,
+            observations=observations,
+            evidence_cards=evidence_cards,
+            role=role,
+        )
+        context_path = default_context_dir(run_dir_path, args.round_id, role) / f"context_{role}.json"
+        write_json(context_path, payload, pretty=args.pretty)
+        outputs[role] = str(context_path)
+
+    snapshot = build_round_snapshot(
+        mission=mission,
+        round_id=args.round_id,
+        tasks=tasks,
+        claims=claims,
+        observations=observations,
+        evidence_cards=evidence_cards,
+        role="moderator",
+    )
+    shared_snapshot_path = round_dir(run_dir_path, args.round_id) / "shared" / "contexts" / "round_snapshot.json"
+    write_json(shared_snapshot_path, snapshot, pretty=args.pretty)
+    outputs["shared_snapshot"] = str(shared_snapshot_path)
+
+    return {
+        "claim_count": len(claims),
+        "observation_count": len(observations),
+        "evidence_count": len(evidence_cards),
+        "outputs": outputs,
+    }
+
+
+def add_pretty_flag(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--pretty", action="store_true", help="Pretty-print JSON output.")
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Deterministic normalization pipeline for eco-council runs.")
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    init_run = sub.add_parser("init-run", help="Initialize normalization databases and derived directories.")
+    init_run.add_argument("--run-dir", required=True, help="Eco-council run directory.")
+    init_run.add_argument("--round-id", default="round-001", help="Round identifier.")
+    init_run.add_argument("--public-db", default="", help="Override public-signals SQLite path.")
+    init_run.add_argument("--environment-db", default="", help="Override environment-signals SQLite path.")
+    add_pretty_flag(init_run)
+
+    normalize_public = sub.add_parser("normalize-public", help="Normalize sociologist-side raw artifacts.")
+    normalize_public.add_argument("--run-dir", required=True, help="Eco-council run directory.")
+    normalize_public.add_argument("--round-id", required=True, help="Round identifier.")
+    normalize_public.add_argument(
+        "--input",
+        action="append",
+        default=[],
+        help="Input artifact in source-skill=/path form. Repeat for multiple artifacts.",
+    )
+    normalize_public.add_argument("--public-db", default="", help="Override public-signals SQLite path.")
+    normalize_public.add_argument("--max-claims", type=int, default=8, help="Maximum canonical claims to emit.")
+    add_pretty_flag(normalize_public)
+
+    normalize_environment = sub.add_parser("normalize-environment", help="Normalize environment raw artifacts.")
+    normalize_environment.add_argument("--run-dir", required=True, help="Eco-council run directory.")
+    normalize_environment.add_argument("--round-id", required=True, help="Round identifier.")
+    normalize_environment.add_argument(
+        "--input",
+        action="append",
+        default=[],
+        help="Input artifact in source-skill=/path form. Repeat for multiple artifacts.",
+    )
+    normalize_environment.add_argument("--environment-db", default="", help="Override environment-signals SQLite path.")
+    add_pretty_flag(normalize_environment)
+
+    link_evidence = sub.add_parser("link-evidence", help="Link shared claims and observations into evidence cards.")
+    link_evidence.add_argument("--run-dir", required=True, help="Eco-council run directory.")
+    link_evidence.add_argument("--round-id", required=True, help="Round identifier.")
+    add_pretty_flag(link_evidence)
+
+    build_context = sub.add_parser("build-round-context", help="Build role-specific round context payloads.")
+    build_context.add_argument("--run-dir", required=True, help="Eco-council run directory.")
+    build_context.add_argument("--round-id", required=True, help="Round identifier.")
+    add_pretty_flag(build_context)
+
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    handlers = {
+        "init-run": command_init_run,
+        "normalize-public": command_normalize_public,
+        "normalize-environment": command_normalize_environment,
+        "link-evidence": command_link_evidence,
+        "build-round-context": command_build_round_context,
+    }
+    try:
+        payload = handlers[args.command](args)
+    except Exception as exc:  # noqa: BLE001
+        result = {"command": args.command, "ok": False, "error": str(exc)}
+        print(pretty_json(result, pretty=getattr(args, "pretty", False)))
+        return 1
+
+    result = {"command": args.command, "ok": True, "payload": payload}
+    print(pretty_json(result, pretty=getattr(args, "pretty", False)))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

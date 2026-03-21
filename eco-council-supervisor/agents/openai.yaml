@@ -1,0 +1,4 @@
+interface:
+  display_name: "Eco Council Supervisor"
+  short_description: "Stage-gated eco council runner"
+  default_prompt: "Use $eco-council-supervisor to run an eco-council workflow with approval gates and fixed moderator/sociologist/environmentalist handoffs."

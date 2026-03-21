@@ -1,0 +1,49 @@
+# Fetch Plan Format
+
+`prepare-round` writes `round_xxx/moderator/derived/fetch_plan.json`.
+
+## Top-Level Shape
+
+```json
+{
+  "plan_kind": "eco-council-fetch-plan",
+  "schema_version": "1.0.0",
+  "generated_at_utc": "2026-03-21T08:00:00Z",
+  "run": {},
+  "roles": {},
+  "steps": []
+}
+```
+
+## Step Fields
+
+Each step includes:
+
+- `step_id`
+- `role`
+- `source_skill`
+- `task_ids`
+- `depends_on`
+- `artifact_path`
+- `stdout_path`
+- `stderr_path`
+- `cwd`
+- `command`
+- `notes`
+- `skill_refs`
+- `normalizer_input`
+
+## Intended Usage
+
+- `command` is the exact shell snippet the expert agent or local runner should execute.
+- `artifact_path` is the contract path that downstream normalization expects.
+- `depends_on` is used for chained steps such as:
+  - `youtube-video-search` -> `youtube-comments-fetch`
+  - `regulationsgov-comments-fetch` -> `regulationsgov-comment-detail-fetch`
+- `normalizer_input` can be passed directly to `$eco-council-normalize --input`.
+
+## Editing Rule
+
+Do not change artifact paths casually after `prepare-round`.
+
+If the moderator changes task scope enough to require different sources or different raw paths, rerun `prepare-round` and let the new plan replace the old one.

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Eco Council Reporting"
+  short_description: "Draft eco-council reports and decisions"
+  default_prompt: "Use $eco-council-reporting to build expert-report packets and moderator decision drafts from normalized eco-council rounds."
