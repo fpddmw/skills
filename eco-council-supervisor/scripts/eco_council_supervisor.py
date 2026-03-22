@@ -53,6 +53,12 @@ def read_json(path: Path) -> Any:
         return json.load(handle)
 
 
+def load_json_if_exists(path: Path) -> Any | None:
+    if not path.exists():
+        return None
+    return read_json(path)
+
+
 def write_json(path: Path, payload: Any, *, pretty: bool = True) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(pretty_json(payload, pretty=pretty) + "\n", encoding="utf-8")
@@ -128,8 +134,16 @@ def fetch_plan_path(run_dir: Path, round_id: str) -> Path:
     return round_dir(run_dir, round_id) / "moderator" / "derived" / "fetch_plan.json"
 
 
+def fetch_execution_path(run_dir: Path, round_id: str) -> Path:
+    return round_dir(run_dir, round_id) / "moderator" / "derived" / "fetch_execution.json"
+
+
 def report_draft_path(run_dir: Path, round_id: str, role: str) -> Path:
     return round_dir(run_dir, round_id) / role / "derived" / f"{role}_report_draft.json"
+
+
+def report_target_path(run_dir: Path, round_id: str, role: str) -> Path:
+    return round_dir(run_dir, round_id) / role / f"{role}_report.json"
 
 
 def report_prompt_path(run_dir: Path, round_id: str, role: str) -> Path:
@@ -156,6 +170,26 @@ def decision_target_path(run_dir: Path, round_id: str) -> Path:
     return round_dir(run_dir, round_id) / "moderator" / "council_decision.json"
 
 
+def shared_claims_path(run_dir: Path, round_id: str) -> Path:
+    return round_dir(run_dir, round_id) / "shared" / "claims.json"
+
+
+def shared_observations_path(run_dir: Path, round_id: str) -> Path:
+    return round_dir(run_dir, round_id) / "shared" / "observations.json"
+
+
+def shared_evidence_cards_path(run_dir: Path, round_id: str) -> Path:
+    return round_dir(run_dir, round_id) / "shared" / "evidence_cards.json"
+
+
+def public_signals_path(run_dir: Path, round_id: str) -> Path:
+    return round_dir(run_dir, round_id) / "sociologist" / "normalized" / "public_signals.jsonl"
+
+
+def environment_signals_path(run_dir: Path, round_id: str) -> Path:
+    return round_dir(run_dir, round_id) / "environmentalist" / "normalized" / "environment_signals.jsonl"
+
+
 def supervisor_dir(run_dir: Path) -> Path:
     return run_dir / "supervisor"
 
@@ -178,6 +212,10 @@ def supervisor_responses_dir(run_dir: Path) -> Path:
 
 def supervisor_current_step_path(run_dir: Path) -> Path:
     return supervisor_dir(run_dir) / "CURRENT_STEP.txt"
+
+
+def reports_dir(run_dir: Path) -> Path:
+    return run_dir / "reports"
 
 
 def response_base_path(run_dir: Path, round_id: str, role: str, kind: str) -> Path:
@@ -612,6 +650,573 @@ def build_status_payload(run_dir: Path, state: dict[str, Any]) -> dict[str, Any]
     }
 
 
+def maybe_int(value: Any) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return 0
+
+
+def count_json_list(path: Path) -> int:
+    payload = load_json_if_exists(path)
+    return len(payload) if isinstance(payload, list) else 0
+
+
+def count_jsonl_records(path: Path) -> int:
+    if not path.exists():
+        return 0
+    with path.open("r", encoding="utf-8") as handle:
+        return sum(1 for line in handle if line.strip())
+
+
+def role_label_zh(role: str) -> str:
+    return {
+        "moderator": "议长",
+        "sociologist": "社会学家",
+        "environmentalist": "环境数据学家",
+    }.get(role, role)
+
+
+def stage_label_zh(stage: str) -> str:
+    return {
+        STAGE_AWAITING_TASK_REVIEW: "等待议长复审任务",
+        STAGE_READY_PREPARE: "等待生成本轮抓取计划",
+        STAGE_READY_FETCH: "等待执行抓取计划",
+        STAGE_READY_DATA_PLANE: "等待归一化与报告草稿生成",
+        STAGE_AWAITING_REPORTS: "等待专家报告",
+        STAGE_AWAITING_DECISION: "等待议长作出决议",
+        STAGE_READY_PROMOTE: "等待正式写入本轮产物",
+        STAGE_READY_ADVANCE: "等待推进到下一轮",
+        STAGE_COMPLETED: "流程已完成",
+    }.get(stage, stage or "未知阶段")
+
+
+def report_status_label_zh(report: dict[str, Any] | None) -> str:
+    if not isinstance(report, dict):
+        return "未生成"
+    summary = maybe_text(report.get("summary")).lower()
+    if summary.startswith("pending "):
+        return "待执行"
+    return {
+        "needs-more-evidence": "需要更多证据",
+        "supported": "已支持",
+        "not-supported": "不支持",
+        "blocked": "阻塞",
+        "complete": "完成",
+    }.get(maybe_text(report.get("status")), maybe_text(report.get("status")) or "未知")
+
+
+def sufficiency_label_zh(value: str) -> str:
+    return {
+        "insufficient": "不足",
+        "partial": "部分充分",
+        "sufficient": "充分",
+    }.get(value, value or "未知")
+
+
+def bool_label_zh(value: Any) -> str:
+    return "是" if bool(value) else "否"
+
+
+def first_nonempty(items: list[str]) -> str:
+    for item in items:
+        text = maybe_text(item)
+        if text:
+            return text
+    return ""
+
+
+def format_list_zh(values: list[Any]) -> str:
+    items = [maybe_text(value) for value in values if maybe_text(value)]
+    return "、".join(items) if items else "无"
+
+
+def round_number(round_id: str) -> int:
+    require_round_id(round_id)
+    return int(round_id.split("-")[1])
+
+
+def infer_fetch_role(status: dict[str, Any]) -> str:
+    step_id = maybe_text(status.get("step_id"))
+    artifact_path = maybe_text(status.get("artifact_path"))
+    for role in REPORT_ROLES:
+        if role in step_id or f"/{role}/" in artifact_path:
+            return role
+    return ""
+
+
+def round_status_label_zh(*, round_id: str, current_round_id: str, current_stage: str, decision: dict[str, Any] | None, fetch_execution: dict[str, Any] | None) -> str:
+    if round_id == current_round_id:
+        return stage_label_zh(current_stage)
+    if isinstance(decision, dict):
+        return "已完成并形成议长决议"
+    if isinstance(fetch_execution, dict):
+        return "已抓取数据，但尚未形成决议"
+    return "已创建，尚未开始"
+
+
+def default_summary_output_path(run_dir: Path, round_id: str = "", lang: str = "zh") -> Path:
+    suffix = "" if lang == "zh" else f".{lang}"
+    filename = f"eco_council_record{suffix}.md"
+    if round_id:
+        filename = f"eco_council_record_{round_id}{suffix}.md"
+    return reports_dir(run_dir) / filename
+
+
+def recommended_commands_for_stage(run_dir: Path, state: dict[str, Any]) -> list[str]:
+    stage = maybe_text(state.get("stage"))
+    script = f"python3 {SCRIPT_DIR / 'eco_council_supervisor.py'}"
+    current_run = str(run_dir)
+    if stage == STAGE_AWAITING_TASK_REVIEW:
+        return [f"{script} run-agent-step --run-dir {current_run} --role moderator --yes --pretty"]
+    if stage in {STAGE_READY_PREPARE, STAGE_READY_FETCH, STAGE_READY_DATA_PLANE, STAGE_READY_PROMOTE, STAGE_READY_ADVANCE}:
+        return [f"{script} continue-run --run-dir {current_run} --yes --pretty"]
+    if stage == STAGE_AWAITING_REPORTS:
+        return [
+            f"{script} run-agent-step --run-dir {current_run} --role sociologist --yes --pretty",
+            f"{script} run-agent-step --run-dir {current_run} --role environmentalist --yes --pretty",
+        ]
+    if stage == STAGE_AWAITING_DECISION:
+        return [f"{script} run-agent-step --run-dir {current_run} --role moderator --yes --pretty"]
+    return []
+
+
+def collect_round_summary(run_dir: Path, state: dict[str, Any], round_id: str) -> dict[str, Any]:
+    current_round_id = maybe_text(state.get("current_round_id"))
+    current_stage = maybe_text(state.get("stage"))
+
+    tasks_payload = load_json_if_exists(tasks_path(run_dir, round_id))
+    tasks = tasks_payload if isinstance(tasks_payload, list) else []
+    fetch_payload = load_json_if_exists(fetch_execution_path(run_dir, round_id))
+    fetch = fetch_payload if isinstance(fetch_payload, dict) else {}
+    fetch_statuses = fetch.get("statuses") if isinstance(fetch.get("statuses"), list) else []
+    decision_payload = load_json_if_exists(decision_target_path(run_dir, round_id))
+    decision = decision_payload if isinstance(decision_payload, dict) else None
+    reports: dict[str, dict[str, Any] | None] = {}
+    for role in REPORT_ROLES:
+        report_payload = load_json_if_exists(report_target_path(run_dir, round_id, role))
+        reports[role] = report_payload if isinstance(report_payload, dict) else None
+
+    return {
+        "round_id": round_id,
+        "round_number": round_number(round_id),
+        "is_current_round": round_id == current_round_id,
+        "status_label": round_status_label_zh(
+            round_id=round_id,
+            current_round_id=current_round_id,
+            current_stage=current_stage,
+            decision=decision,
+            fetch_execution=fetch,
+        ),
+        "tasks": tasks,
+        "task_count": len(tasks),
+        "fetch": {
+            "step_count": maybe_int(fetch.get("step_count")) if fetch else 0,
+            "completed_count": maybe_int(fetch.get("completed_count")) if fetch else 0,
+            "failed_count": maybe_int(fetch.get("failed_count")) if fetch else 0,
+            "statuses": [item for item in fetch_statuses if isinstance(item, dict)],
+        },
+        "shared": {
+            "claim_count": count_json_list(shared_claims_path(run_dir, round_id)),
+            "observation_count": count_json_list(shared_observations_path(run_dir, round_id)),
+            "evidence_count": count_json_list(shared_evidence_cards_path(run_dir, round_id)),
+        },
+        "normalized": {
+            "public_signal_count": count_jsonl_records(public_signals_path(run_dir, round_id)),
+            "environment_signal_count": count_jsonl_records(environment_signals_path(run_dir, round_id)),
+        },
+        "reports": reports,
+        "decision": decision,
+    }
+
+
+def build_current_issues_zh(round_summaries: list[dict[str, Any]], state: dict[str, Any]) -> list[str]:
+    issues: list[str] = []
+    current_round_id = maybe_text(state.get("current_round_id"))
+    latest_decision_round = first_nonempty(
+        [summary["round_id"] for summary in reversed(round_summaries) if isinstance(summary.get("decision"), dict)]
+    )
+    latest_decision = next(
+        (summary.get("decision") for summary in reversed(round_summaries) if isinstance(summary.get("decision"), dict)),
+        None,
+    )
+    if isinstance(latest_decision, dict):
+        missing = latest_decision.get("missing_evidence_types")
+        if isinstance(missing, list) and missing:
+            issues.append(
+                f"最新已完成决议（{latest_decision_round}）认为仍缺少这些证据类型：{format_list_zh(missing)}。"
+            )
+
+    for summary in round_summaries:
+        fetch = summary.get("fetch", {})
+        shared = summary.get("shared", {})
+        if maybe_int(fetch.get("completed_count")) > 0 and maybe_int(shared.get("claim_count")) == 0 and maybe_int(shared.get("evidence_count")) == 0:
+            issues.append(
+                f"{summary['round_id']} 已完成 {maybe_int(fetch.get('completed_count'))} 个抓取步骤，但共享层仍是 claims=0、evidence_cards=0。"
+            )
+
+    current_summary = next((summary for summary in round_summaries if summary["round_id"] == current_round_id), None)
+    if isinstance(current_summary, dict) and maybe_int(current_summary.get("fetch", {}).get("step_count")) == 0:
+        issues.append(f"{current_round_id} 当前停在“{current_summary['status_label']}”，还没有开始本轮抓取。")
+
+    if not issues:
+        issues.append("当前未检测到结构性阻塞，但仍需按阶段继续执行。")
+    return issues
+
+
+def render_run_summary_markdown(
+    *,
+    run_dir: Path,
+    state: dict[str, Any],
+    mission: dict[str, Any],
+    round_summaries: list[dict[str, Any]],
+    lang: str,
+) -> str:
+    region = mission.get("region", {}) if isinstance(mission.get("region"), dict) else {}
+    window = mission.get("window", {}) if isinstance(mission.get("window"), dict) else {}
+    constraints = mission.get("constraints", {}) if isinstance(mission.get("constraints"), dict) else {}
+    source_policy = mission.get("source_policy", {}) if isinstance(mission.get("source_policy"), dict) else {}
+    current_round_id = maybe_text(state.get("current_round_id"))
+    current_stage = maybe_text(state.get("stage"))
+    latest_decision_summary = next((summary for summary in reversed(round_summaries) if isinstance(summary.get("decision"), dict)), None)
+    latest_decision = latest_decision_summary.get("decision") if isinstance(latest_decision_summary, dict) else None
+    if lang not in {"zh", "en"}:
+        raise ValueError(f"Unsupported summary language: {lang}")
+
+    def role_label(role: str) -> str:
+        if lang == "en":
+            return {
+                "moderator": "Moderator",
+                "sociologist": "Sociologist",
+                "environmentalist": "Environmentalist",
+            }.get(role, role)
+        return role_label_zh(role)
+
+    def stage_label(stage: str) -> str:
+        if lang == "en":
+            return {
+                STAGE_AWAITING_TASK_REVIEW: "Waiting for moderator task review",
+                STAGE_READY_PREPARE: "Waiting to prepare the round fetch plan",
+                STAGE_READY_FETCH: "Waiting to execute the fetch plan",
+                STAGE_READY_DATA_PLANE: "Waiting to run normalization and report draft generation",
+                STAGE_AWAITING_REPORTS: "Waiting for expert reports",
+                STAGE_AWAITING_DECISION: "Waiting for moderator decision",
+                STAGE_READY_PROMOTE: "Waiting to promote canonical outputs",
+                STAGE_READY_ADVANCE: "Waiting to advance to the next round",
+                STAGE_COMPLETED: "Workflow completed",
+            }.get(stage, stage or "Unknown stage")
+        return stage_label_zh(stage)
+
+    def report_status_label(report: dict[str, Any] | None) -> str:
+        if lang == "en":
+            if not isinstance(report, dict):
+                return "Not generated"
+            summary_text = maybe_text(report.get("summary")).lower()
+            if summary_text.startswith("pending "):
+                return "Pending"
+            return {
+                "needs-more-evidence": "Needs more evidence",
+                "supported": "Supported",
+                "not-supported": "Not supported",
+                "blocked": "Blocked",
+                "complete": "Complete",
+            }.get(maybe_text(report.get("status")), maybe_text(report.get("status")) or "Unknown")
+        return report_status_label_zh(report)
+
+    def sufficiency_label(value: str) -> str:
+        if lang == "en":
+            return {
+                "insufficient": "Insufficient",
+                "partial": "Partially sufficient",
+                "sufficient": "Sufficient",
+            }.get(value, value or "Unknown")
+        return sufficiency_label_zh(value)
+
+    def bool_label(value: Any) -> str:
+        if lang == "en":
+            return "Yes" if bool(value) else "No"
+        return bool_label_zh(value)
+
+    def format_list(values: list[Any]) -> str:
+        items = [maybe_text(value) for value in values if maybe_text(value)]
+        if not items:
+            return "None" if lang == "en" else "无"
+        return ", ".join(items) if lang == "en" else "、".join(items)
+
+    def round_status_label(summary: dict[str, Any]) -> str:
+        if lang == "en":
+            if summary.get("is_current_round"):
+                return stage_label(current_stage)
+            if isinstance(summary.get("decision"), dict):
+                return "Completed with moderator decision"
+            if maybe_int(summary.get("fetch", {}).get("step_count")) > 0:
+                return "Fetched data, decision not completed"
+            return "Scaffolded, not started"
+        return summary["status_label"]
+
+    def current_issues() -> list[str]:
+        if lang == "zh":
+            return build_current_issues_zh(round_summaries, state)
+        issues: list[str] = []
+        latest_decision_round = first_nonempty(
+            [summary["round_id"] for summary in reversed(round_summaries) if isinstance(summary.get("decision"), dict)]
+        )
+        latest_decision_local = next(
+            (summary.get("decision") for summary in reversed(round_summaries) if isinstance(summary.get("decision"), dict)),
+            None,
+        )
+        if isinstance(latest_decision_local, dict):
+            missing = latest_decision_local.get("missing_evidence_types")
+            if isinstance(missing, list) and missing:
+                issues.append(
+                    f"The latest completed decision ({latest_decision_round}) still marks these evidence types as missing: {format_list(missing)}."
+                )
+        for summary in round_summaries:
+            fetch = summary.get("fetch", {})
+            shared = summary.get("shared", {})
+            if maybe_int(fetch.get("completed_count")) > 0 and maybe_int(shared.get("claim_count")) == 0 and maybe_int(shared.get("evidence_count")) == 0:
+                issues.append(
+                    f"{summary['round_id']} completed {maybe_int(fetch.get('completed_count'))} fetch steps, but the shared layer still has claims=0 and evidence_cards=0."
+                )
+        current_summary = next((summary for summary in round_summaries if summary["round_id"] == current_round_id), None)
+        if isinstance(current_summary, dict) and maybe_int(current_summary.get("fetch", {}).get("step_count")) == 0:
+            issues.append(
+                f"{current_round_id} is currently at '{round_status_label(current_summary)}' and has not started round-level fetching yet."
+            )
+        if not issues:
+            issues.append("No structural blocker is currently detected, but the workflow still needs to advance stage by stage.")
+        return issues
+
+    labels = {
+        "title": "# Eco Council Meeting Record" if lang == "en" else "# 生态议会记录报告",
+        "generated_at": "Generated at" if lang == "en" else "生成时间",
+        "topic": "Topic" if lang == "en" else "主题",
+        "objective": "Objective" if lang == "en" else "目标",
+        "region": "Region" if lang == "en" else "区域",
+        "window": "Time window" if lang == "en" else "时间窗口",
+        "current_round": "Current round" if lang == "en" else "当前轮次",
+        "current_stage": "Current stage" if lang == "en" else "当前阶段",
+        "round_count": "Round count" if lang == "en" else "轮次数量",
+        "state_file": "State file" if lang == "en" else "运行状态文件",
+        "constraints": "## Constraints" if lang == "en" else "## 任务边界",
+        "max_rounds": "Max rounds" if lang == "en" else "最多轮次",
+        "max_tasks": "Max tasks per round" if lang == "en" else "每轮最多任务",
+        "max_claims": "Max claims per round" if lang == "en" else "每轮最多 claims",
+        "sociologist_sources": "Allowed sociologist sources" if lang == "en" else "社会学家允许源",
+        "environmentalist_sources": "Allowed environmentalist sources" if lang == "en" else "环境数据学家允许源",
+        "overall": "## Overall Assessment" if lang == "en" else "## 总体判断",
+        "latest_decision_round": "Latest completed decision round" if lang == "en" else "最新完成决议轮次",
+        "needs_next_round": "Requires next round" if lang == "en" else "是否要求下一轮",
+        "evidence_sufficiency": "Evidence sufficiency" if lang == "en" else "证据充分性",
+        "completion_score": "Completion score" if lang == "en" else "完成度评分",
+        "decision_summary": "Decision summary" if lang == "en" else "决议摘要",
+        "missing_evidence": "Missing evidence types" if lang == "en" else "缺失证据类型",
+        "no_decision": "- No completed moderator decision is available yet." if lang == "en" else "- 当前尚无已完成的议长决议。",
+        "round_records": "## Round Records" if lang == "en" else "## 各轮记录",
+        "round_status": "Round status" if lang == "en" else "轮次状态",
+        "is_current_round": "Is current round" if lang == "en" else "是否当前轮",
+        "task_count": "Task count" if lang == "en" else "任务数量",
+        "task_list": "#### Tasks" if lang == "en" else "#### 任务列表",
+        "no_tasks": "- No tasks are available for this round yet." if lang == "en" else "- 本轮尚无任务清单。",
+        "source": "Sources" if lang == "en" else "来源",
+        "depends_on": "Depends on" if lang == "en" else "依赖",
+        "fetch": "#### Fetch Execution" if lang == "en" else "#### 数据抓取",
+        "fetch_summary": "Total steps" if lang == "en" else "总步骤",
+        "completed": "completed" if lang == "en" else "完成",
+        "failed": "failed" if lang == "en" else "失败",
+        "unknown_role": "Unknown role" if lang == "en" else "未知角色",
+        "no_fetch": "- No fetch execution record exists for this round yet." if lang == "en" else "- 本轮尚未生成抓取执行记录。",
+        "normalized": "#### Normalization and Shared Layer" if lang == "en" else "#### 归一化与共享层",
+        "shared_claims": "Shared claims" if lang == "en" else "共享 claims",
+        "shared_observations": "Shared observations" if lang == "en" else "共享 observations",
+        "shared_evidence": "Shared evidence cards" if lang == "en" else "共享 evidence cards",
+        "public_signals": "Sociologist public signals" if lang == "en" else "社会学家 public signals",
+        "environment_signals": "Environmentalist environment signals" if lang == "en" else "环境数据学家 environment signals",
+        "reports": "#### Expert Reports" if lang == "en" else "#### 专家报告",
+        "no_report": "No report generated." if lang == "en" else "未生成报告。",
+        "finding": "Finding" if lang == "en" else "发现",
+        "decision": "#### Moderator Decision" if lang == "en" else "#### 议长决议",
+        "approved_next_round_tasks": "Approved next-round task count" if lang == "en" else "批准的下一轮任务数",
+        "no_round_decision": "- No moderator decision has been finalized for this round yet." if lang == "en" else "- 本轮尚未形成议长决议。",
+        "issues": "## Current Issues" if lang == "en" else "## 当前主要问题",
+        "next_steps": "## Recommended Next Steps" if lang == "en" else "## 建议下一步",
+        "current_action": "Current recommended action" if lang == "en" else "当前建议动作",
+        "reference_file": "Reference file" if lang == "en" else "参考文件",
+        "recommended_command": "Recommended command" if lang == "en" else "推荐命令",
+        "no_command": "- No mandatory follow-up command is required right now." if lang == "en" else "- 当前没有必须执行的后续命令。",
+    }
+
+    lines = [
+        labels["title"],
+        "",
+        f"- {labels['generated_at']}：{utc_now_iso()}",
+        f"- Run ID：`{maybe_text(mission.get('run_id'))}`",
+        f"- {labels['topic']}：{maybe_text(mission.get('topic'))}",
+        f"- {labels['objective']}：{maybe_text(mission.get('objective'))}",
+        f"- {labels['region']}：{maybe_text(region.get('label'))}",
+        f"- {labels['window']}：{maybe_text(window.get('start_utc'))} -> {maybe_text(window.get('end_utc'))}",
+        f"- {labels['current_round']}：`{current_round_id}`",
+        f"- {labels['current_stage']}：{stage_label(current_stage)}（`{current_stage}`）",
+        f"- {labels['round_count']}：{len(round_summaries)}",
+        f"- {labels['state_file']}：`{supervisor_state_path(run_dir)}`",
+        "",
+        labels["constraints"],
+        "",
+        f"- {labels['max_rounds']}：{maybe_int(constraints.get('max_rounds'))}",
+        f"- {labels['max_tasks']}：{maybe_int(constraints.get('max_tasks_per_round'))}",
+        f"- {labels['max_claims']}：{maybe_int(constraints.get('max_claims_per_round'))}",
+        f"- {labels['sociologist_sources']}：{format_list(source_policy.get('sociologist') if isinstance(source_policy.get('sociologist'), list) else [])}",
+        f"- {labels['environmentalist_sources']}：{format_list(source_policy.get('environmentalist') if isinstance(source_policy.get('environmentalist'), list) else [])}",
+        "",
+        labels["overall"],
+        "",
+    ]
+    if isinstance(latest_decision, dict):
+        lines.extend(
+            [
+                f"- {labels['latest_decision_round']}：`{latest_decision_summary['round_id']}`",
+                f"- {labels['needs_next_round']}：{bool_label(latest_decision.get('next_round_required'))}",
+                f"- {labels['evidence_sufficiency']}：{sufficiency_label(maybe_text(latest_decision.get('evidence_sufficiency')))}",
+                f"- {labels['completion_score']}：{latest_decision.get('completion_score')}",
+                f"- {labels['decision_summary']}：{maybe_text(latest_decision.get('decision_summary'))}",
+                f"- {labels['missing_evidence']}：{format_list(latest_decision.get('missing_evidence_types') if isinstance(latest_decision.get('missing_evidence_types'), list) else [])}",
+            ]
+        )
+    else:
+        lines.append(labels["no_decision"])
+
+    lines.extend(["", labels["round_records"], ""])
+    for summary in round_summaries:
+        round_heading = (
+            f"### Round {summary['round_number']} (`{summary['round_id']}`)"
+            if lang == "en"
+            else f"### 第 {summary['round_number']} 轮（`{summary['round_id']}`）"
+        )
+        lines.extend(
+            [
+                round_heading,
+                "",
+                f"- {labels['round_status']}：{round_status_label(summary)}",
+                f"- {labels['is_current_round']}：{bool_label(summary['is_current_round'])}",
+                f"- {labels['task_count']}：{summary['task_count']}",
+                "",
+                labels["task_list"],
+                "",
+            ]
+        )
+        tasks = summary.get("tasks", [])
+        if isinstance(tasks, list) and tasks:
+            for task in tasks:
+                if not isinstance(task, dict):
+                    continue
+                line = (
+                    f"- [{role_label(maybe_text(task.get('assigned_role')))}] `{maybe_text(task.get('task_id'))}`: "
+                    if lang == "en"
+                    else f"- [{role_label(maybe_text(task.get('assigned_role')))}] `{maybe_text(task.get('task_id'))}`："
+                )
+                line += (
+                    f"{maybe_text(task.get('objective'))} {labels['source']}: "
+                    f"{format_list(task.get('inputs', {}).get('preferred_sources') if isinstance(task.get('inputs'), dict) and isinstance(task.get('inputs', {}).get('preferred_sources'), list) else [])}; "
+                    f"{labels['depends_on']}: {format_list(task.get('depends_on') if isinstance(task.get('depends_on'), list) else [])}."
+                )
+                lines.append(line)
+        else:
+            lines.append(labels["no_tasks"])
+
+        lines.extend(["", labels["fetch"], ""])
+        fetch = summary.get("fetch", {})
+        statuses = fetch.get("statuses", []) if isinstance(fetch.get("statuses"), list) else []
+        if maybe_int(fetch.get("step_count")) > 0:
+            if lang == "en":
+                lines.append(
+                    f"- {labels['fetch_summary']}: {maybe_int(fetch.get('step_count'))}; {labels['completed']}: {maybe_int(fetch.get('completed_count'))}; {labels['failed']}: {maybe_int(fetch.get('failed_count'))}."
+                )
+            else:
+                lines.append(
+                    f"- {labels['fetch_summary']}：{maybe_int(fetch.get('step_count'))}；{labels['completed']}：{maybe_int(fetch.get('completed_count'))}；{labels['failed']}：{maybe_int(fetch.get('failed_count'))}。"
+                )
+            for status in statuses:
+                if not isinstance(status, dict):
+                    continue
+                prefix = role_label(infer_fetch_role(status)) or labels["unknown_role"]
+                if lang == "en":
+                    lines.append(f"- [{prefix}] `{maybe_text(status.get('source_skill'))}`: {maybe_text(status.get('status'))}.")
+                else:
+                    lines.append(f"- [{prefix}] `{maybe_text(status.get('source_skill'))}`：{maybe_text(status.get('status'))}。")
+        else:
+            lines.append(labels["no_fetch"])
+
+        shared = summary.get("shared", {})
+        normalized = summary.get("normalized", {})
+        lines.extend(
+            [
+                "",
+                labels["normalized"],
+                "",
+                f"- {labels['shared_claims']}：{maybe_int(shared.get('claim_count'))}",
+                f"- {labels['shared_observations']}：{maybe_int(shared.get('observation_count'))}",
+                f"- {labels['shared_evidence']}：{maybe_int(shared.get('evidence_count'))}",
+                f"- {labels['public_signals']}：{maybe_int(normalized.get('public_signal_count'))}",
+                f"- {labels['environment_signals']}：{maybe_int(normalized.get('environment_signal_count'))}",
+                "",
+                labels["reports"],
+                "",
+            ]
+        )
+        for role in REPORT_ROLES:
+            report = summary.get("reports", {}).get(role) if isinstance(summary.get("reports"), dict) else None
+            if not isinstance(report, dict):
+                lines.append(f"- [{role_label(role)}] {labels['no_report']}")
+                continue
+            if lang == "en":
+                lines.append(f"- [{role_label(role)}] {report_status_label(report)}: {maybe_text(report.get('summary'))}")
+            else:
+                lines.append(f"- [{role_label(role)}] {report_status_label(report)}：{maybe_text(report.get('summary'))}")
+            findings = report.get("findings") if isinstance(report.get("findings"), list) else []
+            for finding in findings[:2]:
+                if not isinstance(finding, dict):
+                    continue
+                title = maybe_text(finding.get("title"))
+                summary_text = first_nonempty([title, maybe_text(finding.get("summary"))])
+                if summary_text:
+                    if lang == "en":
+                        lines.append(f"- [{role_label(role)}/{labels['finding']}] {summary_text}")
+                    else:
+                        lines.append(f"- [{role_label(role)}/{labels['finding']}] {summary_text}")
+
+        lines.extend(["", labels["decision"], ""])
+        decision = summary.get("decision")
+        if isinstance(decision, dict):
+            lines.extend(
+                [
+                    f"- {labels['needs_next_round']}：{bool_label(decision.get('next_round_required'))}",
+                    f"- {labels['evidence_sufficiency']}：{sufficiency_label(maybe_text(decision.get('evidence_sufficiency')))}",
+                    f"- {labels['completion_score']}：{decision.get('completion_score')}",
+                    f"- {labels['decision_summary']}：{maybe_text(decision.get('decision_summary'))}",
+                    f"- {labels['missing_evidence']}：{format_list(decision.get('missing_evidence_types') if isinstance(decision.get('missing_evidence_types'), list) else [])}",
+                    f"- {labels['approved_next_round_tasks']}：{len(decision.get('next_round_tasks', [])) if isinstance(decision.get('next_round_tasks'), list) else 0}",
+                ]
+            )
+        else:
+            lines.append(labels["no_round_decision"])
+        lines.append("")
+
+    lines.extend([labels["issues"], ""])
+    for issue in current_issues():
+        lines.append(f"- {issue}")
+
+    lines.extend(["", labels["next_steps"], ""])
+    lines.append(f"- {labels['current_action']}：{stage_label(current_stage)}。")
+    lines.append(f"- {labels['reference_file']}：`{supervisor_current_step_path(run_dir)}`")
+    commands = recommended_commands_for_stage(run_dir, state)
+    if commands:
+        for command in commands:
+            lines.append(f"- {labels['recommended_command']}：`{command}`")
+    else:
+        lines.append(labels["no_command"])
+    return "\n".join(lines).rstrip() + "\n"
+
+
 def ask_for_approval(summary: str, *, assume_yes: bool) -> bool:
     if assume_yes:
         return True
@@ -930,6 +1535,62 @@ def command_status(args: argparse.Namespace) -> dict[str, Any]:
     refresh_supervisor_files(run_dir, state)
     write_json(supervisor_state_path(run_dir), state, pretty=True)
     return build_status_payload(run_dir, state)
+
+
+def command_summarize_run(args: argparse.Namespace) -> dict[str, Any]:
+    run_dir = Path(args.run_dir).expanduser().resolve()
+    state = load_state(run_dir)
+    mission = read_json(mission_path(run_dir))
+    if not isinstance(mission, dict):
+        raise ValueError(f"Mission payload is not a JSON object: {mission_path(run_dir)}")
+
+    if args.round_id:
+        require_round_id(args.round_id)
+        target_round_dir = round_dir(run_dir, args.round_id)
+        if not target_round_dir.exists():
+            raise ValueError(f"Round directory does not exist: {target_round_dir}")
+        round_ids = [args.round_id]
+    else:
+        round_ids = discover_round_ids(run_dir)
+    if not round_ids:
+        raise ValueError(f"No round_* directories found in {run_dir}")
+
+    round_summaries = [collect_round_summary(run_dir, state, round_id) for round_id in round_ids]
+    report_text = render_run_summary_markdown(
+        run_dir=run_dir,
+        state=state,
+        mission=mission,
+        round_summaries=round_summaries,
+        lang=args.lang,
+    )
+
+    if args.output:
+        output_path = Path(args.output).expanduser().resolve()
+    else:
+        output_path = default_summary_output_path(run_dir, args.round_id, args.lang)
+    write_text(output_path, report_text)
+
+    latest_decision_round = first_nonempty(
+        [summary["round_id"] for summary in reversed(round_summaries) if isinstance(summary.get("decision"), dict)]
+    )
+    latest_decision = next(
+        (summary.get("decision") for summary in reversed(round_summaries) if isinstance(summary.get("decision"), dict)),
+        None,
+    )
+    return {
+        "ok": True,
+        "run_dir": str(run_dir),
+        "output_path": str(output_path),
+        "lang": args.lang,
+        "current_round_id": maybe_text(state.get("current_round_id")),
+        "stage": maybe_text(state.get("stage")),
+        "stage_label": stage_label_zh(maybe_text(state.get("stage"))) if args.lang == "zh" else maybe_text(state.get("stage")),
+        "round_count": len(round_summaries),
+        "round_ids": [summary["round_id"] for summary in round_summaries],
+        "latest_decision_round_id": latest_decision_round,
+        "latest_decision_requires_next_round": bool(latest_decision.get("next_round_required")) if isinstance(latest_decision, dict) else None,
+        "preview": "\n".join(report_text.splitlines()[:20]),
+    }
 
 
 def continue_prepare_round(run_dir: Path, state: dict[str, Any]) -> dict[str, Any]:
@@ -1320,6 +1981,13 @@ def build_parser() -> argparse.ArgumentParser:
     status.add_argument("--run-dir", required=True, help="Eco-council run directory.")
     status.add_argument("--pretty", action="store_true", help="Pretty-print JSON output.")
 
+    summarize = sub.add_parser("summarize-run", help="Render one human-readable run report from the run directory.")
+    summarize.add_argument("--run-dir", required=True, help="Eco-council run directory.")
+    summarize.add_argument("--round-id", default="", help="Optional round id filter, for example round-001.")
+    summarize.add_argument("--lang", default="zh", choices=("zh", "en"), help="Human-readable report language.")
+    summarize.add_argument("--output", default="", help="Optional output markdown path.")
+    summarize.add_argument("--pretty", action="store_true", help="Pretty-print JSON output.")
+
     continue_run = sub.add_parser("continue-run", help="Run the next approved local shell stage.")
     continue_run.add_argument("--run-dir", required=True, help="Eco-council run directory.")
     continue_run.add_argument("--timeout-seconds", type=int, default=600, help="Timeout for execute-fetch-plan.")
@@ -1360,6 +2028,7 @@ def main(argv: list[str] | None = None) -> int:
         "init-run": command_init_run,
         "provision-openclaw-agents": command_provision_openclaw_agents,
         "status": command_status,
+        "summarize-run": command_summarize_run,
         "continue-run": command_continue_run,
         "run-agent-step": command_run_agent_step,
         "import-task-review": command_import_task_review,

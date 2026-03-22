@@ -1,6 +1,6 @@
 ---
 name: eco-council-supervisor
-description: Run an eco-council workflow through one stage-gated local supervisor. Use when you want to bootstrap a run from mission JSON, provision fixed OpenClaw moderator/sociologist/environmentalist agents, require human approval before each shell stage, import agent JSON replies safely, and advance rounds with minimal manual freedom.
+description: Run an eco-council workflow through one stage-gated local supervisor. Use when you want to bootstrap a run from mission JSON, provision fixed OpenClaw moderator/sociologist/environmentalist agents, require human approval before each shell stage, import agent JSON replies safely, advance rounds with minimal manual freedom, and render a human-readable meeting record from the run directory.
 ---
 
 # Eco Council Supervisor
@@ -27,6 +27,9 @@ Use this skill when the eco-council flow should be driven by one deterministic l
   - Creates or reuses fixed OpenClaw agent ids for moderator, sociologist, and environmentalist.
 - `python3 scripts/eco_council_supervisor.py status --run-dir ... --pretty`
   - Shows current round, stage, outbox prompts, and `CURRENT_STEP.txt`.
+- `python3 scripts/eco_council_supervisor.py summarize-run --run-dir ... --lang zh --pretty`
+  - Renders one human-readable Markdown meeting record under `RUN_DIR/reports/`.
+  - Supports `--lang zh|en` for report language only; workflow payloads remain in English.
 - `python3 scripts/eco_council_supervisor.py continue-run --run-dir ... --pretty`
   - Runs exactly one approved shell stage.
 - `python3 scripts/eco_council_supervisor.py run-agent-step --run-dir ... --pretty`
