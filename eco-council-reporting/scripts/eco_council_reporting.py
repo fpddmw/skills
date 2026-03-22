@@ -907,6 +907,7 @@ def build_report_instructions(role: str) -> list[str]:
         "Do not invent coordinates, timestamps, or raw-source facts outside the packet.",
         "If evidence remains partial or mixed, keep status as needs-more-evidence.",
         "Keep each finding traceable to specific canonical objects.",
+        "If you include recommended_next_actions, each item must be an object with assigned_role, objective, and reason.",
     ]
     if role == "sociologist":
         instructions.append("Emphasize claim phrasing, public narrative concentration, and what still needs corroboration.")
@@ -1202,7 +1203,8 @@ def report_prompt_text(*, role: str, packet_path: Path, packet: dict[str, Any]) 
         "3. Start from `draft_report` inside the packet.",
         "4. Return only one JSON object shaped like expert-report.",
         "5. Keep `schema_version`, `run_id`, `round_id`, and `agent_role` consistent with the packet.",
-        "6. Do not return markdown, prose, code fences, or extra commentary.",
+        "6. `recommended_next_actions` must be a list of objects with `assigned_role`, `objective`, and `reason`; do not emit strings there.",
+        "7. Do not return markdown, prose, code fences, or extra commentary.",
         "",
         "If you persist the result locally, write it to:",
         maybe_text(validation.get("draft_report_path")),

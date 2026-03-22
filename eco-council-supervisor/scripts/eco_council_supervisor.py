@@ -307,6 +307,7 @@ def session_prompt_text(*, role: str, agent_id: str) -> str:
             "4. Never add markdown, prose, or code fences.",
             "5. Do not invent new raw data fetch results in the report stage.",
             "6. If a referenced local skill is unavailable in this OpenClaw instance, follow the referenced file as the source of truth anyway.",
+            "7. `recommended_next_actions` must be a list of objects with `assigned_role`, `objective`, and `reason`; use [] when there are no recommendations.",
         ]
     return "\n".join(header + rules)
 
@@ -621,7 +622,7 @@ def ask_for_approval(summary: str, *, assume_yes: bool) -> bool:
 
 
 def validate_input_file(kind: str, input_path: Path) -> None:
-    run_check_command(
+    payload = run_json_command(
         [
             "python3",
             str(CONTRACT_SCRIPT),
@@ -630,9 +631,26 @@ def validate_input_file(kind: str, input_path: Path) -> None:
             kind,
             "--input",
             str(input_path),
+            "--pretty",
         ],
         cwd=REPO_DIR,
     )
+    validation_payload = payload.get("payload") if isinstance(payload.get("payload"), dict) else payload
+    validation = validation_payload.get("validation") if isinstance(validation_payload, dict) else None
+    if not isinstance(validation, dict):
+        raise RuntimeError(f"Schema validation returned an unexpected payload for {input_path}")
+    if validation.get("ok"):
+        return
+    issues = validation.get("issues") if isinstance(validation.get("issues"), list) else []
+    snippets: list[str] = []
+    for issue in issues[:5]:
+        if not isinstance(issue, dict):
+            continue
+        path = maybe_text(issue.get("path")) or "<root>"
+        message = maybe_text(issue.get("message")) or "Validation failed."
+        snippets.append(f"{path}: {message}")
+    detail = "; ".join(snippets) if snippets else "Validation failed without issue details."
+    raise ValueError(f"Invalid {kind}: {detail}")
 
 
 def load_text(path: Path) -> str:
@@ -951,9 +969,10 @@ def continue_execute_fetch(run_dir: Path, state: dict[str, Any], timeout_seconds
         ],
         cwd=REPO_DIR,
     )
+    execution_payload = payload.get("payload") if isinstance(payload.get("payload"), dict) else payload
     failures = [
         item
-        for item in payload.get("statuses", [])
+        for item in execution_payload.get("statuses", [])
         if isinstance(item, dict) and maybe_text(item.get("status")) == "failed"
     ]
     if failures:

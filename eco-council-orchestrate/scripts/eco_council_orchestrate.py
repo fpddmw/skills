@@ -965,7 +965,7 @@ def build_environmentalist_steps(
                 "--max-pages",
                 merged_task_scalar(role_tasks, "openaq_max_pages") or "5",
                 "--radius-meters",
-                merged_task_scalar(role_tasks, "openaq_radius_meters") or "50000",
+                merged_task_scalar(role_tasks, "openaq_radius_meters") or "25000",
             ]
             for parameter_name in merged_task_string_list(role_tasks, "openaq_parameter_names") or DEFAULT_OPENAQ_PARAMETER_NAMES:
                 argv.extend(["--parameter-name", parameter_name])
@@ -2014,7 +2014,7 @@ def build_parser() -> argparse.ArgumentParser:
     collect_openaq.add_argument("--max-locations", type=int, default=4, help="Maximum nearby locations to keep.")
     collect_openaq.add_argument("--max-sensors-per-location", type=int, default=3, help="Maximum sensors to keep per location.")
     collect_openaq.add_argument("--max-pages", type=int, default=5, help="Maximum pages per OpenAQ API request.")
-    collect_openaq.add_argument("--radius-meters", type=int, default=50000, help="Radius used for point-based location discovery.")
+    collect_openaq.add_argument("--radius-meters", type=int, default=25000, help="Radius used for point-based location discovery.")
     collect_openaq.add_argument(
         "--parameter-name",
         action="append",
