@@ -20,20 +20,27 @@ description: Analyze river outfall Excel workbooks and build report-ready river 
 - Start from a `.xlsx` workbook.
 - Prefer the mixed single-sheet format documented in [references/data-schema.md](references/data-schema.md):
 - Outfall rows carry code, size, base elevation, mileage, bank side, and scenario water levels.
-- Control-node rows carry reach or gate names, mileage, and scenario water levels.
+- Control-node rows carry reach or gate names, mileage, scenario water levels, and optionally `河底高程` / `堤顶高程`.
 - If `当前水位` is missing, ask for it or state clearly that the output only supports the available scenarios.
 - If the workbook lacks riverbed or channel-bottom data, describe the output as a river outfall status chart, not a true riverbed longitudinal profile.
 
 ## Quick Start
 
-1. Generate or inspect a workbook:
+1. Generate a directly usable input template:
+
+```bash
+python3 scripts/generate_input_template_excel.py \
+  --output assets/templates/river-outfall-input-template.xlsx
+```
+
+2. Generate or inspect a mock workbook:
 
 ```bash
 python3 scripts/generate_mock_example_excel.py \
   --output assets/examples/example-river-sample.xlsx
 ```
 
-2. Compute scenario summaries:
+3. Compute scenario summaries:
 
 ```bash
 python3 scripts/calc_submergence.py \
@@ -41,7 +48,7 @@ python3 scripts/calc_submergence.py \
   --pretty
 ```
 
-3. Render a standalone HTML report:
+4. Render a standalone HTML report:
 
 ```bash
 python3 scripts/render_status_report.py \
@@ -57,7 +64,8 @@ python3 scripts/render_status_report.py \
 4. Use `scripts/calc_submergence.py` first when the request is analytical.
 5. Use `scripts/render_status_report.py` when the request needs a deliverable chart.
 6. Use `scripts/generate_mock_example_excel.py` to create a regression fixture or explain the expected workbook shape.
-7. Report validation warnings explicitly. Do not silently coerce missing elevations, missing sizes, or ambiguous bank-side values.
+7. Use `scripts/generate_input_template_excel.py` when the user needs a blank workbook they can fill directly in Excel.
+8. Report validation warnings explicitly. Do not silently coerce missing elevations, missing sizes, or ambiguous bank-side values.
 
 ## Visual Rules
 
@@ -66,6 +74,8 @@ python3 scripts/render_status_report.py \
 - Keep the page free of browser-level horizontal scrolling. Use wheel zoom in the chart plus the timeline overview for navigation.
 - Allow horizontal zoom or compression for layout, but keep outfall symbol widths fixed during zoom.
 - Anchor each outfall at its true mileage and base elevation.
+- When `河底高程` is present, draw a brown riverbed step profile and fill the active scenario water body above it with blue.
+- When `堤顶高程` is present, draw the levee crest as a separate contextual step profile.
 - Draw the outfall crown from true geometry height when size data is available.
 - Use shape to distinguish geometry type:
 - Rectangle for box culverts or rectangular outfalls.
@@ -85,6 +95,8 @@ python3 scripts/render_status_report.py \
 
 - `scripts/generate_mock_example_excel.py`
 - Create an anonymized example workbook with mixed outfall and control-node rows.
+- `scripts/generate_input_template_excel.py`
+- Create a multi-sheet Excel template whose first sheet can be filled directly and whose second sheet explains the fields.
 - `scripts/calc_submergence.py`
 - Read a workbook, normalize the rows, compute scenario statuses, and print or export a summary.
 - `scripts/render_status_report.py`
@@ -107,4 +119,4 @@ python3 scripts/render_status_report.py \
 - Report total outfall count and counts by status for the highlighted scenario.
 - List fully submerged outfall codes explicitly.
 - Call out left-bank and right-bank counts when they matter to the request.
-- Mention missing riverbed data when the chart is a status visualization rather than a true riverbed longitudinal profile.
+- Mention whether `河底高程` / `堤顶高程` were present, because that determines whether the chart includes channel background context or only water lines plus outfalls.

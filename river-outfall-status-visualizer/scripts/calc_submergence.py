@@ -29,6 +29,11 @@ def render_pretty_summary(report: dict[str, object]) -> str:
         f"河道: {report['river_name']}",
         f"排口总数: {len(report['outfalls'])}",
         (
+            "河道背景: "
+            f"河底{'已提供' if report.get('has_bed_profile') else '未提供'}, "
+            f"堤顶{'已提供' if report.get('has_levee_profile') else '未提供'}"
+        ),
+        (
             "左右岸分布: "
             f"左岸 {report['bank_counts']['left']} 个, "
             f"右岸 {report['bank_counts']['right']} 个, "

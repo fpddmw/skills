@@ -12,6 +12,8 @@ HEADERS = [
     "代码",
     "尺寸",
     "底高程",
+    "河底高程",
+    "堤顶高程",
     "里程",
     "位置",
     "所属河道名称",
@@ -23,16 +25,16 @@ HEADERS = [
 ]
 
 CONTROL_NODES = [
-    {"name": "样例起点", "mileage": 0, "current": 22.10, "normal": 21.70, "flood20": 23.05, "flood50": 23.85},
-    {"name": "样例上游一", "mileage": 1500, "current": 21.15, "normal": 20.75, "flood20": 22.50, "flood50": 23.20},
-    {"name": "样例上游二", "mileage": 2900, "current": 20.20, "normal": 19.75, "flood20": 21.55, "flood50": 22.35},
-    {"name": "样例中上段", "mileage": 4200, "current": 19.20, "normal": 18.70, "flood20": 20.80, "flood50": 21.70},
-    {"name": "样例中段", "mileage": 5600, "current": 18.25, "normal": 17.80, "flood20": 19.95, "flood50": 20.90},
-    {"name": "样例中下段", "mileage": 7100, "current": 17.40, "normal": 16.95, "flood20": 18.95, "flood50": 20.05},
-    {"name": "样例下游一", "mileage": 8600, "current": 16.55, "normal": 16.05, "flood20": 17.90, "flood50": 18.95},
-    {"name": "样例下游二", "mileage": 10050, "current": 15.80, "normal": 15.30, "flood20": 17.10, "flood50": 18.25},
-    {"name": "样例出口前", "mileage": 11250, "current": 15.10, "normal": 14.65, "flood20": 16.10, "flood50": 17.20},
-    {"name": "样例出口", "mileage": 12000, "current": 14.90, "normal": 14.40, "flood20": 15.80, "flood50": 16.90},
+    {"name": "样例起点", "mileage": 0, "current": 22.10, "normal": 21.70, "flood20": 23.05, "flood50": 23.85, "bed": 18.20, "levee": 25.40},
+    {"name": "样例上游一", "mileage": 1500, "current": 21.15, "normal": 20.75, "flood20": 22.50, "flood50": 23.20, "bed": 17.35, "levee": 24.75},
+    {"name": "样例上游二", "mileage": 2900, "current": 20.20, "normal": 19.75, "flood20": 21.55, "flood50": 22.35, "bed": 16.40, "levee": 23.90},
+    {"name": "样例中上段", "mileage": 4200, "current": 19.20, "normal": 18.70, "flood20": 20.80, "flood50": 21.70, "bed": 15.50, "levee": 23.05},
+    {"name": "样例中段", "mileage": 5600, "current": 18.25, "normal": 17.80, "flood20": 19.95, "flood50": 20.90, "bed": 14.65, "levee": 22.10},
+    {"name": "样例中下段", "mileage": 7100, "current": 17.40, "normal": 16.95, "flood20": 18.95, "flood50": 20.05, "bed": 13.90, "levee": 21.15},
+    {"name": "样例下游一", "mileage": 8600, "current": 16.55, "normal": 16.05, "flood20": 17.90, "flood50": 18.95, "bed": 13.10, "levee": 20.15},
+    {"name": "样例下游二", "mileage": 10050, "current": 15.80, "normal": 15.30, "flood20": 17.10, "flood50": 18.25, "bed": 12.40, "levee": 19.40},
+    {"name": "样例出口前", "mileage": 11250, "current": 15.10, "normal": 14.65, "flood20": 16.10, "flood50": 17.20, "bed": 11.85, "levee": 18.50},
+    {"name": "样例出口", "mileage": 12000, "current": 14.90, "normal": 14.40, "flood20": 15.80, "flood50": 16.90, "bed": 11.60, "levee": 18.15},
 ]
 
 OUTFALL_MILEAGES = [
@@ -65,6 +67,8 @@ def make_row(
     code: str = "",
     size: str = "",
     base_elev: float | str = "",
+    bed_elev: float | str = "",
+    levee_elev: float | str = "",
     mileage: float | int,
     bank: str = "",
     river_name: str = "",
@@ -80,6 +84,8 @@ def make_row(
         "代码": code,
         "尺寸": size,
         "底高程": base_elev,
+        "河底高程": bed_elev,
+        "堤顶高程": levee_elev,
         "里程": mileage,
         "位置": bank,
         "所属河道名称": river_name,
@@ -110,6 +116,8 @@ def build_rows() -> list[dict[str, object]]:
             make_row(
                 mileage=node["mileage"],
                 reach_name=node["name"],
+                bed_elev=node["bed"],
+                levee_elev=node["levee"],
                 current_level=node["current"],
                 normal_level=node["normal"],
                 flood20_level=node["flood20"],
@@ -138,6 +146,8 @@ def build_rows() -> list[dict[str, object]]:
                 code=f"A{index:04d}",
                 size=size,
                 base_elev=base_elev,
+                bed_elev=segment["bed"],
+                levee_elev=segment["levee"],
                 mileage=mileage,
                 bank=bank,
                 river_name=river,
@@ -154,7 +164,7 @@ def build_rows() -> list[dict[str, object]]:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Generate a 12 km anonymized example river outfall workbook with 40 outfalls."
+        description="Generate a 12 km anonymized example river outfall workbook with 40 outfalls and channel bed/levee elevations."
     )
     parser.add_argument(
         "--output",

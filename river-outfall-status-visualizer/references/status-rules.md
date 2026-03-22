@@ -13,6 +13,12 @@ Interpret `尺寸` in millimeters:
 - `2000*1000` means width `2000 mm`, height `1000 mm`.
 - `1500` means diameter `1500 mm`.
 
+Context-only channel geometry inputs:
+
+- `河底高程` describes the riverbed or channel-bottom elevation at the row mileage.
+- `堤顶高程` describes the levee or bank-crest elevation at the row mileage.
+- These fields support background profile rendering only. They do not change the outfall submergence classification logic below.
+
 ## Scenario Status Logic
 
 For each scenario water level:
@@ -38,4 +44,5 @@ For each scenario water level:
 - Warn on non-numeric mileage.
 - Warn on duplicate outfall codes.
 - Warn on outfalls with unresolved crown elevation.
+- Warn when `堤顶高程 < 河底高程` on the same row.
 - Warn on scenarios that exist globally but are missing on specific rows.

@@ -2,7 +2,14 @@
 
 ## Supported Workbook Pattern
 
-Use one mixed worksheet unless the user provides a cleaner multi-sheet template. The first non-empty worksheet is the input source.
+Use one mixed worksheet unless the user provides a cleaner multi-sheet template. The parser reads the first worksheet as the input source, so the actual data-entry sheet must stay first.
+
+The packaged input template uses:
+
+- Sheet 1: `录入模板`
+- Direct data entry sheet. This is the sheet consumed by the parser.
+- Sheet 2: `填写说明`
+- Human-readable instructions only. It is ignored because the parser reads only the first sheet for data input.
 
 The preferred columns are:
 
@@ -14,6 +21,8 @@ The preferred columns are:
 | 尺寸 | `宽*高` for rectangular outfalls or `直径` for circular outfalls, in millimeters | Yes unless 口顶高程 is present |
 | 底高程 | Outfall invert elevation | Yes for outfall rows |
 | 口顶高程 | Explicit crown elevation | Optional |
+| 河底高程 | Riverbed or channel-bottom elevation at this mileage | Recommended for profile rendering |
+| 堤顶高程 | Levee or bank-crest elevation at this mileage | Recommended for channel context rendering |
 | 里程 | Along-river mileage | Yes |
 | 位置 | `左岸` or `右岸` | Yes for left/right distinction |
 | 所属河道名称 | River name | Recommended |
@@ -28,6 +37,7 @@ The preferred columns are:
 - Treat a row as a control node when `所属河段名称` is present and outfall-defining columns such as `代码`, `尺寸`, and `底高程` are empty.
 - Treat a row as an outfall when at least one of `代码`, `排河口编号`, `尺寸`, or `底高程` is present.
 - Keep water-level columns on both row types. Outfall rows can still contribute profile points for the water lines.
+- Any row with `里程` plus `河底高程` and/or `堤顶高程` can contribute to the channel background profile, regardless of whether it is a control-node row or an outfall row.
 
 ## Column Alias Rules
 
@@ -35,6 +45,8 @@ The preferred columns are:
 - Accept normal-water aliases: `常水位`, `所属河道常水位`.
 - Accept 20-year aliases: `20年一遇水位`, `20年一遇常水位`, `所属河道20年一遇水位`, `所属河道20年一遇常水位`.
 - Accept 50-year aliases: `50年一遇水位`, `50年一遇常水位`, `所属河道50年一遇水位`, `所属河道50年一遇常水位`.
+- Accept riverbed aliases: `河底高程`, `河床高程`, `河底`, `槽底高程`.
+- Accept levee aliases: `堤顶高程`, `堤顶`, `岸顶高程`, `岸顶`.
 - Accept bank-side aliases: `位置`, `岸别`, `左右岸`, `所在岸`.
 - Accept outfall-name aliases: `排口名称`, `排河口名称`, `名称`.
 
@@ -44,4 +56,5 @@ The preferred columns are:
 - Keep empty numeric cells empty. Do not replace them with `0`.
 - Warn when bank-side text cannot be normalized to `左岸` or `右岸`.
 - Warn when size is missing and crown elevation cannot be inferred.
+- Warn when `堤顶高程 < 河底高程` on the same row.
 - Warn when scenario columns are missing, but continue with the scenarios that are present.

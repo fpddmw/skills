@@ -8,6 +8,10 @@
 - Do not rely on browser-level horizontal scrollbars for chart browsing.
 - Do not let horizontal zoom resize outfall symbol widths.
 - Keep every outfall anchored to its true mileage and base elevation.
+- When the workbook provides `河底高程`, render the riverbed as a brown step profile.
+- Treat the area below the riverbed as context soil, not data ink: a restrained brown fill or light texture is acceptable if it improves readability.
+- When the workbook provides `堤顶高程`, render the levee crest as a distinct background step profile.
+- Fill the channel zone between the active scenario water line and the riverbed with blue, but do not invent channel geometry if `河底高程` is missing.
 
 ## Left/Right Bank Encoding
 
@@ -22,6 +26,7 @@
 - Use one dominant scenario at a time.
 - Keep the selected scenario water line strongest.
 - Render water levels as continuous step lines: horizontal within a reach, vertical transition at gates or control nodes.
+- Keep the selected scenario water fill continuous underneath the outfalls as a river-context layer, then show additional water inside each outfall symbol for local submergence depth.
 - Use outfall border and badge color for the selected scenario status.
 - Show submerged depth inside the outfall symbol with a water-colored fill overlay when possible.
 - Keep non-selected scenarios visible with thinner or lighter water lines.
@@ -34,6 +39,7 @@
 - Prefer code plus size on the chart and keep full `排口名称` in the detail table when the view contains many outfalls.
 - Add staggered label offsets only when local density makes overlap unavoidable.
 - Use the detail table below the chart for full attributes rather than overloading the drawing.
+- If the detail table is already used for verification, include `河底高程` and `堤顶高程` there as contextual columns rather than forcing those values onto the drawing.
 
 ## Summary Rules
 

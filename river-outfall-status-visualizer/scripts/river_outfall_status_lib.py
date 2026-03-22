@@ -62,6 +62,8 @@ FIELD_ALIASES = {
     "size": ("尺寸", "孔径", "管径"),
     "base_elev": ("底高程", "底部高程", "管底高程"),
     "crown_elev": ("口顶高程", "顶高程"),
+    "bed_elev": ("河底高程", "河床高程", "河底", "槽底高程"),
+    "levee_elev": ("堤顶高程", "堤顶", "岸顶高程", "岸顶"),
     "mileage": ("里程", "桩号"),
     "bank": ("位置", "左右岸", "岸别", "所在岸"),
     "river_name": ("所属河道名称", "河道名称", "河道"),
@@ -180,25 +182,11 @@ def read_simple_xlsx(path: str | Path) -> list[dict[str, str]]:
     return records
 
 
-def write_simple_xlsx(
-    path: str | Path,
+def _sheet_rows_xml(
     headers: list[str],
     rows: list[dict[str, object]],
-    *,
-    sheet_name: str = "Sheet1",
-) -> Path:
-    output_path = Path(path)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-
-    shared_strings: list[str] = []
-    shared_index: dict[str, int] = {}
-
-    def register_shared(value: str) -> int:
-        if value not in shared_index:
-            shared_index[value] = len(shared_strings)
-            shared_strings.append(value)
-        return shared_index[value]
-
+    register_shared: callable,
+) -> str:
     def is_numeric(value: object) -> bool:
         return isinstance(value, (int, float)) and not isinstance(value, bool)
 
@@ -222,10 +210,61 @@ def write_simple_xlsx(
             if is_numeric(value):
                 cells.append(f'<c r="{ref}"><v>{format_numeric(value)}</v></c>')
             else:
-                cells.append(
-                    f'<c r="{ref}" t="s"><v>{register_shared(str(value))}</v></c>'
-                )
+                cells.append(f'<c r="{ref}" t="s"><v>{register_shared(str(value))}</v></c>')
         row_xml_parts.append(f'<row r="{row_number}">{"".join(cells)}</row>')
+    return "".join(row_xml_parts)
+
+
+def write_workbook_xlsx(
+    path: str | Path,
+    sheets: list[dict[str, object]],
+) -> Path:
+    if not sheets:
+        raise ValueError("Workbook must contain at least one sheet.")
+
+    output_path = Path(path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    shared_strings: list[str] = []
+    shared_index: dict[str, int] = {}
+
+    def register_shared(value: str) -> int:
+        if value not in shared_index:
+            shared_index[value] = len(shared_strings)
+            shared_strings.append(value)
+        return shared_index[value]
+
+    worksheets: list[tuple[str, str]] = []
+    workbook_sheet_nodes: list[str] = []
+    workbook_rel_nodes: list[str] = []
+    content_override_nodes: list[str] = []
+
+    for sheet_index, sheet in enumerate(sheets, start=1):
+        sheet_name = str(sheet.get("name", f"Sheet{sheet_index}")).strip() or f"Sheet{sheet_index}"
+        headers = [str(item) for item in sheet.get("headers", [])]
+        rows = list(sheet.get("rows", []))
+
+        worksheet_xml = (
+            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            f'<worksheet xmlns="{XML_NS}" xmlns:r="{REL_NS}"><sheetData>'
+            + _sheet_rows_xml(headers, rows, register_shared)
+            + "</sheetData></worksheet>"
+        )
+        worksheets.append((f"xl/worksheets/sheet{sheet_index}.xml", worksheet_xml))
+        workbook_sheet_nodes.append(
+            f'<sheet name="{escape(sheet_name)}" sheetId="{sheet_index}" r:id="rId{sheet_index}"/>'
+        )
+        workbook_rel_nodes.append(
+            '<Relationship '
+            f'Id="rId{sheet_index}" '
+            'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" '
+            f'Target="worksheets/sheet{sheet_index}.xml"/>'
+        )
+        content_override_nodes.append(
+            '<Override '
+            f'PartName="/xl/worksheets/sheet{sheet_index}.xml" '
+            'ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'
+        )
 
     shared_xml = (
         '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
@@ -235,31 +274,27 @@ def write_simple_xlsx(
         )
         + "</sst>"
     )
-    worksheet_xml = (
-        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-        f'<worksheet xmlns="{XML_NS}" xmlns:r="{REL_NS}"><sheetData>'
-        + "".join(row_xml_parts)
-        + "</sheetData></worksheet>"
-    )
     workbook_xml = (
         '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
         f'<workbook xmlns="{XML_NS}" xmlns:r="{REL_NS}"><sheets>'
-        f'<sheet name="{escape(sheet_name)}" sheetId="1" r:id="rId1"/>'
-        "</sheets></workbook>"
+        + "".join(workbook_sheet_nodes)
+        + "</sheets></workbook>"
     )
+    styles_rel_id = len(sheets) + 1
+    shared_rel_id = len(sheets) + 2
     workbook_rels_xml = (
         '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
         f'<Relationships xmlns="{PKG_REL_NS}">'
-        '<Relationship Id="rId1" '
-        'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" '
-        'Target="worksheets/sheet1.xml"/>'
-        '<Relationship Id="rId2" '
+        + "".join(workbook_rel_nodes)
+        + '<Relationship '
+        f'Id="rId{styles_rel_id}" '
         'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" '
         'Target="styles.xml"/>'
-        '<Relationship Id="rId3" '
+        + '<Relationship '
+        f'Id="rId{shared_rel_id}" '
         'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" '
         'Target="sharedStrings.xml"/>'
-        "</Relationships>"
+        + "</Relationships>"
     )
     package_rels_xml = (
         '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
@@ -297,8 +332,8 @@ def write_simple_xlsx(
         '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
         '<Default Extension="xml" ContentType="application/xml"/>'
         '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'
-        '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'
-        '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'
+        + "".join(content_override_nodes)
+        + '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'
         '<Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/>'
         '<Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>'
         '<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>'
@@ -333,8 +368,28 @@ def write_simple_xlsx(
         archive.writestr("xl/_rels/workbook.xml.rels", workbook_rels_xml)
         archive.writestr("xl/styles.xml", styles_xml)
         archive.writestr("xl/sharedStrings.xml", shared_xml)
-        archive.writestr("xl/worksheets/sheet1.xml", worksheet_xml)
+        for worksheet_path, worksheet_xml in worksheets:
+            archive.writestr(worksheet_path, worksheet_xml)
     return output_path
+
+
+def write_simple_xlsx(
+    path: str | Path,
+    headers: list[str],
+    rows: list[dict[str, object]],
+    *,
+    sheet_name: str = "Sheet1",
+) -> Path:
+    return write_workbook_xlsx(
+        path,
+        [
+            {
+                "name": sheet_name,
+                "headers": headers,
+                "rows": rows,
+            }
+        ],
+    )
 
 
 def parse_float(value: object) -> float | None:
@@ -463,7 +518,10 @@ def normalize_workbook_rows(rows: list[dict[str, str]], *, source_name: str = ""
     outfalls: list[dict[str, object]] = []
     controls: list[dict[str, object]] = []
     profile_points: list[dict[str, object]] = []
+    channel_points: list[dict[str, object]] = []
     river_name = ""
+    has_bed_profile = False
+    has_levee_profile = False
 
     for row_index, row in enumerate(rows, start=2):
         mileage = parse_float(row.get(mileage_header, ""))
@@ -510,6 +568,16 @@ def normalize_workbook_rows(rows: list[dict[str, str]], *, source_name: str = ""
             if resolved_fields["crown_elev"]
             else None
         )
+        bed_elev = (
+            parse_float(row.get(resolved_fields["bed_elev"], ""))
+            if resolved_fields["bed_elev"]
+            else None
+        )
+        levee_elev = (
+            parse_float(row.get(resolved_fields["levee_elev"], ""))
+            if resolved_fields["levee_elev"]
+            else None
+        )
         reach_name = (
             str(row.get(resolved_fields["reach_name"], "")).strip()
             if resolved_fields["reach_name"]
@@ -520,6 +588,18 @@ def normalize_workbook_rows(rows: list[dict[str, str]], *, source_name: str = ""
             if resolved_fields["bank"]
             else ""
         )
+        if bed_elev is not None or levee_elev is not None:
+            channel_points.append(
+                {
+                    "mileage": mileage,
+                    "bed_elev": bed_elev,
+                    "levee_elev": levee_elev,
+                }
+            )
+            has_bed_profile = has_bed_profile or bed_elev is not None
+            has_levee_profile = has_levee_profile or levee_elev is not None
+            if bed_elev is not None and levee_elev is not None and levee_elev < bed_elev:
+                warnings.append(f"第 {row_index} 行堤顶高程低于河底高程，请核对。")
 
         has_outfall_payload = any(
             [
@@ -536,6 +616,8 @@ def normalize_workbook_rows(rows: list[dict[str, str]], *, source_name: str = ""
                     "name": reach_name,
                     "mileage": mileage,
                     "levels": levels,
+                    "bed_elev": bed_elev,
+                    "levee_elev": levee_elev,
                 }
             )
             continue
@@ -599,6 +681,8 @@ def normalize_workbook_rows(rows: list[dict[str, str]], *, source_name: str = ""
                 "mileage": mileage,
                 "base_elev": base_elev,
                 "crown_elev": crown_elev,
+                "bed_elev": bed_elev,
+                "levee_elev": levee_elev,
                 "levels": levels,
                 "statuses": statuses,
                 "reach_name": reach_name,
@@ -614,6 +698,7 @@ def normalize_workbook_rows(rows: list[dict[str, str]], *, source_name: str = ""
     outfalls.sort(key=lambda item: (item["mileage"], item["code"]))
     controls.sort(key=lambda item: (item["mileage"], item["name"]))
     profile_points.sort(key=lambda item: (item["mileage"], len(item["levels"])))
+    channel_points.sort(key=lambda item: item["mileage"])
 
     bank_counts = {
         key: sum(1 for outfall in outfalls if outfall["bank"] == key)
@@ -648,10 +733,20 @@ def normalize_workbook_rows(rows: list[dict[str, str]], *, source_name: str = ""
             elevation_values.append(float(outfall["base_elev"]))
         if outfall["crown_elev"] is not None:
             elevation_values.append(float(outfall["crown_elev"]))
+        if outfall["bed_elev"] is not None:
+            elevation_values.append(float(outfall["bed_elev"]))
+        if outfall["levee_elev"] is not None:
+            elevation_values.append(float(outfall["levee_elev"]))
         mileage_values.append(float(outfall["mileage"]))
     for point in profile_points:
         mileage_values.append(float(point["mileage"]))
         elevation_values.extend(float(level) for level in point["levels"].values())
+    for point in channel_points:
+        mileage_values.append(float(point["mileage"]))
+        if point["bed_elev"] is not None:
+            elevation_values.append(float(point["bed_elev"]))
+        if point["levee_elev"] is not None:
+            elevation_values.append(float(point["levee_elev"]))
     if controls:
         mileage_values.extend(float(control["mileage"]) for control in controls)
 
@@ -669,6 +764,18 @@ def normalize_workbook_rows(rows: list[dict[str, str]], *, source_name: str = ""
         for scenario in scenario_headers
     ]
     default_scenario = "current" if any(s["key"] == "current" for s in available_scenarios) else available_scenarios[0]["key"]
+    notes = [
+        "Y轴按真实高程展示，不做垂向夸张。",
+        (
+            "工作簿已提供河底/堤顶高程，主图按真实高程叠加河底线、堤顶线；"
+            "当前选中场景的河道水体以蓝色填充。"
+            if has_bed_profile or has_levee_profile
+            else "当前工作簿未提供河底/堤顶高程，主图仅显示水位线与排口状态。"
+        ),
+        "页面不依赖浏览器横向滚动条；在纵断图区域滚动鼠标滚轮可做横向缩放，排口符号宽度不随缩放变化。",
+        "下方时间轴式总览条用于定位当前视窗范围。",
+        "左岸排口向轴线左侧偏置，右岸排口向轴线右侧偏置，并可按岸别单独筛选。",
+    ]
 
     return {
         "source_name": source_name,
@@ -676,24 +783,22 @@ def normalize_workbook_rows(rows: list[dict[str, str]], *, source_name: str = ""
         "outfalls": outfalls,
         "controls": controls,
         "profile_points": profile_points,
+        "channel_points": channel_points,
         "scenarios": available_scenarios,
         "summary": summary,
         "warnings": warnings,
         "bank_counts": bank_counts,
         "status_meta": STATUS_META,
         "bank_meta": BANK_META,
+        "has_bed_profile": has_bed_profile,
+        "has_levee_profile": has_levee_profile,
         "bounds": {
             "min_elev": min_elev - padding,
             "max_elev": max_elev + padding,
             "min_mileage": min(mileage_values),
             "max_mileage": max(mileage_values),
         },
-        "notes": [
-            "Y轴按真实高程展示，不做垂向夸张。",
-            "页面不依赖浏览器横向滚动条；在纵断图区域滚动鼠标滚轮可做横向缩放，排口符号宽度不随缩放变化。",
-            "下方时间轴式总览条用于定位当前视窗范围。",
-            "左岸排口向轴线左侧偏置，右岸排口向轴线右侧偏置，并可按岸别单独筛选。",
-        ],
+        "notes": notes,
         "default_scenario": default_scenario,
     }
 

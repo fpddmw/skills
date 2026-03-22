@@ -28,6 +28,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       --unknown: #64748b;
       --left-bank: #0f766e;
       --right-bank: #1d4ed8;
+      --riverbed: #8b5a2b;
+      --levee: #64748b;
       --water-fill: rgba(59, 130, 246, 0.24);
       --shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
       font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
@@ -137,6 +139,13 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       height: 3px;
       border-radius: 999px;
       background: currentColor;
+    }
+    .chip.fill-chip::before {
+      width: 12px;
+      height: 12px;
+      border-radius: 4px;
+      background: var(--water-fill);
+      border: 1px solid rgba(37, 99, 235, 0.24);
     }
 
     .chip-toggle {
@@ -445,6 +454,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
               <th>里程</th>
               <th>底高程</th>
               <th>口顶高程</th>
+              <th>河底高程</th>
+              <th>堤顶高程</th>
               <th id="scenarioLevelHeader">当前水位</th>
               <th id="scenarioStatusHeader">当前状态</th>
             </tr>
@@ -459,6 +470,13 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     const REPORT = __REPORT_DATA__;
     const STATUS_META = REPORT.status_meta;
     const BANK_META = REPORT.bank_meta;
+    const CONTEXT_COLORS = {
+      bed: "#8b5a2b",
+      bedFill: "rgba(139, 90, 43, 0.14)",
+      bedStripe: "rgba(110, 74, 33, 0.18)",
+      levee: "#64748b",
+      waterFill: "rgba(59, 130, 246, 0.24)",
+    };
 
     let activeScenario = "__INITIAL_SCENARIO__";
     let horizontalScale = Number(__DEFAULT_HORIZONTAL_SCALE__);
@@ -621,6 +639,27 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         legendRow.appendChild(button);
       });
 
+      if (REPORT.has_bed_profile) {
+        const span = document.createElement("span");
+        span.className = "chip line-chip";
+        span.style.color = CONTEXT_COLORS.bed;
+        span.textContent = "河底线";
+        legendRow.appendChild(span);
+      }
+      if (REPORT.has_levee_profile) {
+        const span = document.createElement("span");
+        span.className = "chip line-chip";
+        span.style.color = CONTEXT_COLORS.levee;
+        span.textContent = "堤顶线";
+        legendRow.appendChild(span);
+      }
+      if (REPORT.has_bed_profile) {
+        const span = document.createElement("span");
+        span.className = "chip fill-chip";
+        span.textContent = "当前场景水体";
+        legendRow.appendChild(span);
+      }
+
       ["safe", "partial", "submerged", "unknown"].forEach((statusKey) => {
         const span = document.createElement("span");
         span.className = `chip ${statusKey}`;
@@ -639,13 +678,16 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
     function updateHero() {
       const scenario = currentScenario();
+      const channelText = REPORT.has_bed_profile || REPORT.has_levee_profile
+        ? "图中同步叠加河底/堤顶背景剖面，当前场景的河道水体区间以蓝色填充。"
+        : "源数据未提供河底/堤顶高程，主图仅显示水位线与排口状态。";
       const bankText = selectedBankLabels().length
         ? `当前显示 ${selectedBankLabels().join("、")}排口。`
         : "当前已取消全部岸别显示。";
       document.getElementById("heroText").textContent =
         `${REPORT.river_name}排口状态可视化图。高亮场景为 ${scenario.label}，` +
         `纵向始终使用真实高程；横向通过滚轮缩放与时间轴总览联动；` +
-        `${bankText}`;
+        `${channelText}${bankText}`;
 
       const noteRow = document.getElementById("noteRow");
       noteRow.innerHTML = "";
@@ -716,6 +758,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
           <td>${formatMileage(outfall.mileage, 2)}</td>
           <td>${formatNumber(outfall.base_elev, 2)}</td>
           <td>${formatNumber(outfall.crown_elev, 2)}</td>
+          <td>${formatNumber(outfall.bed_elev, 2)}</td>
+          <td>${formatNumber(outfall.levee_elev, 2)}</td>
           <td>${formatNumber(statusInfo.level, 2)}</td>
           <td><span class="status-pill" style="background:${pillColor};">${statusInfo.status_label}</span></td>
         `;
@@ -832,9 +876,16 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       ctx.restore();
     }
 
-    function buildStepPoints(scenarioKey) {
-      const rawPoints = REPORT.profile_points
-        .filter((point) => point.levels && point.levels[scenarioKey] !== undefined)
+    function buildSeriesPoints(sourcePoints, valueAccessor) {
+      const rawPoints = (sourcePoints || [])
+        .map((point) => {
+          const value = valueAccessor(point);
+          return {
+            mileage: Number(point.mileage),
+            value: value === null || value === undefined ? null : Number(value),
+          };
+        })
+        .filter((point) => Number.isFinite(point.mileage) && Number.isFinite(point.value))
         .sort((a, b) => a.mileage - b.mileage);
       if (!rawPoints.length) {
         return [];
@@ -842,28 +893,38 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       const deduped = [];
       rawPoints.forEach((point) => {
         if (deduped.length && Math.abs(deduped[deduped.length - 1].mileage - point.mileage) < 1e-6) {
-          deduped[deduped.length - 1] = { mileage: point.mileage, level: point.levels[scenarioKey] };
+          deduped[deduped.length - 1] = point;
         } else {
-          deduped.push({ mileage: point.mileage, level: point.levels[scenarioKey] });
+          deduped.push(point);
         }
       });
-      const firstLevel = deduped[0].level;
-      const lastLevel = deduped[deduped.length - 1].level;
+      const firstValue = deduped[0].value;
+      const lastValue = deduped[deduped.length - 1].value;
       if (deduped[0].mileage > REPORT.bounds.min_mileage) {
-        deduped.unshift({ mileage: REPORT.bounds.min_mileage, level: firstLevel });
+        deduped.unshift({ mileage: REPORT.bounds.min_mileage, value: firstValue });
       } else {
-        deduped[0] = { mileage: REPORT.bounds.min_mileage, level: firstLevel };
+        deduped[0] = { mileage: REPORT.bounds.min_mileage, value: firstValue };
       }
       if (deduped[deduped.length - 1].mileage < REPORT.bounds.max_mileage) {
-        deduped.push({ mileage: REPORT.bounds.max_mileage, level: lastLevel });
+        deduped.push({ mileage: REPORT.bounds.max_mileage, value: lastValue });
       } else {
-        deduped[deduped.length - 1] = { mileage: REPORT.bounds.max_mileage, level: lastLevel };
+        deduped[deduped.length - 1] = { mileage: REPORT.bounds.max_mileage, value: lastValue };
       }
       return deduped;
     }
 
-    function drawStepLine(scenarioKey, color, isActive) {
-      const points = buildStepPoints(scenarioKey);
+    function buildStepPoints(scenarioKey) {
+      return buildSeriesPoints(
+        REPORT.profile_points,
+        (point) => point.levels && point.levels[scenarioKey]
+      );
+    }
+
+    function buildChannelPoints(fieldKey) {
+      return buildSeriesPoints(REPORT.channel_points, (point) => point[fieldKey]);
+    }
+
+    function drawStepSeries(points, color, options = {}) {
       if (points.length < 2) {
         return;
       }
@@ -878,26 +939,179 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       ctx.clip();
       ctx.beginPath();
       const first = points[0];
-      let previousLevel = first.level;
-      ctx.moveTo(chartLayout.xForMileage(first.mileage), chartLayout.yForElev(previousLevel));
+      let previousValue = first.value;
+      ctx.moveTo(chartLayout.xForMileage(first.mileage), chartLayout.yForElev(previousValue));
       for (let index = 1; index < points.length; index += 1) {
         const point = points[index];
         const x = chartLayout.xForMileage(point.mileage);
-        const previousY = chartLayout.yForElev(previousLevel);
+        const previousY = chartLayout.yForElev(previousValue);
         ctx.lineTo(x, previousY);
-        if (Math.abs(point.level - previousLevel) > 1e-6) {
-          ctx.lineTo(x, chartLayout.yForElev(point.level));
+        if (Math.abs(point.value - previousValue) > 1e-6) {
+          ctx.lineTo(x, chartLayout.yForElev(point.value));
         }
-        previousLevel = point.level;
+        previousValue = point.value;
       }
       ctx.strokeStyle = color;
-      ctx.lineWidth = isActive ? 3 : 1.6;
-      ctx.globalAlpha = isActive ? 0.96 : 0.42;
-      if (!isActive) {
-        ctx.setLineDash([7, 5]);
+      ctx.lineWidth = options.lineWidth || 2;
+      ctx.globalAlpha = options.alpha ?? 1;
+      if (options.dash?.length) {
+        ctx.setLineDash(options.dash);
       }
       ctx.stroke();
       ctx.restore();
+    }
+
+    function drawStepLine(scenarioKey, color, isActive) {
+      drawStepSeries(buildStepPoints(scenarioKey), color, {
+        lineWidth: isActive ? 3 : 1.6,
+        alpha: isActive ? 0.96 : 0.42,
+        dash: isActive ? [] : [7, 5],
+      });
+    }
+
+    function uniqueBreakpoints(pointSets) {
+      const values = [];
+      pointSets.forEach((points) => {
+        (points || []).forEach((point) => {
+          if (Number.isFinite(point.mileage)) {
+            values.push(Number(point.mileage));
+          }
+        });
+      });
+      values.sort((a, b) => a - b);
+      const unique = [];
+      values.forEach((value) => {
+        if (!unique.length || Math.abs(unique[unique.length - 1] - value) > 1e-6) {
+          unique.push(value);
+        }
+      });
+      return unique;
+    }
+
+    function stepValueAt(points, mileage) {
+      if (!points.length) {
+        return null;
+      }
+      let activeValue = points[0].value;
+      for (let index = 1; index < points.length; index += 1) {
+        if (mileage < points[index].mileage - 1e-6) {
+          break;
+        }
+        activeValue = points[index].value;
+      }
+      return activeValue;
+    }
+
+    function drawActiveWaterFill() {
+      if (!REPORT.has_bed_profile) {
+        return;
+      }
+      const waterPoints = buildStepPoints(activeScenario);
+      const bedPoints = buildChannelPoints("bed_elev");
+      if (waterPoints.length < 2 || bedPoints.length < 2) {
+        return;
+      }
+      const breakpoints = uniqueBreakpoints([waterPoints, bedPoints]);
+      if (breakpoints.length < 2) {
+        return;
+      }
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(
+        chartLayout.frame.left,
+        chartLayout.frame.top,
+        chartLayout.frame.width,
+        chartLayout.frame.height
+      );
+      ctx.clip();
+      ctx.fillStyle = CONTEXT_COLORS.waterFill;
+
+      for (let index = 0; index < breakpoints.length - 1; index += 1) {
+        const startMileage = breakpoints[index];
+        const endMileage = breakpoints[index + 1];
+        if (endMileage - startMileage <= 1e-6) {
+          continue;
+        }
+        const sampleMileage = startMileage + (endMileage - startMileage) / 2;
+        const waterLevel = stepValueAt(waterPoints, sampleMileage);
+        const bedLevel = stepValueAt(bedPoints, sampleMileage);
+        if (!Number.isFinite(waterLevel) || !Number.isFinite(bedLevel) || waterLevel <= bedLevel) {
+          continue;
+        }
+        const leftX = chartLayout.xForMileage(startMileage);
+        const rightX = chartLayout.xForMileage(endMileage);
+        const topY = chartLayout.yForElev(waterLevel);
+        const bottomY = chartLayout.yForElev(bedLevel);
+        ctx.fillRect(leftX, topY, Math.max(1, rightX - leftX), Math.max(1, bottomY - topY));
+      }
+      ctx.restore();
+    }
+
+    function drawRiverbedBackdrop() {
+      if (!REPORT.has_bed_profile) {
+        return;
+      }
+      const bedPoints = buildChannelPoints("bed_elev");
+      if (bedPoints.length < 2) {
+        return;
+      }
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(
+        chartLayout.frame.left,
+        chartLayout.frame.top,
+        chartLayout.frame.width,
+        chartLayout.frame.height
+      );
+      ctx.clip();
+
+      for (let index = 0; index < bedPoints.length - 1; index += 1) {
+        const startPoint = bedPoints[index];
+        const endPoint = bedPoints[index + 1];
+        const leftX = chartLayout.xForMileage(startPoint.mileage);
+        const rightX = chartLayout.xForMileage(endPoint.mileage);
+        const bedY = chartLayout.yForElev(startPoint.value);
+        const segmentHeight = chartLayout.frame.bottom - bedY;
+        if (segmentHeight <= 1 || rightX <= leftX) {
+          continue;
+        }
+
+        ctx.fillStyle = CONTEXT_COLORS.bedFill;
+        ctx.fillRect(leftX, bedY, rightX - leftX, segmentHeight);
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(leftX, bedY, rightX - leftX, segmentHeight);
+        ctx.clip();
+        ctx.strokeStyle = CONTEXT_COLORS.bedStripe;
+        ctx.lineWidth = 0.9;
+        ctx.beginPath();
+        const stripeGap = 14;
+        for (let stripeX = leftX - segmentHeight; stripeX < rightX + segmentHeight; stripeX += stripeGap) {
+          ctx.moveTo(stripeX, chartLayout.frame.bottom);
+          ctx.lineTo(stripeX + segmentHeight, bedY);
+        }
+        ctx.stroke();
+        ctx.restore();
+      }
+      ctx.restore();
+    }
+
+    function drawChannelProfiles() {
+      if (REPORT.has_bed_profile) {
+        drawStepSeries(buildChannelPoints("bed_elev"), CONTEXT_COLORS.bed, {
+          lineWidth: 2.8,
+          alpha: 0.95,
+        });
+      }
+      if (REPORT.has_levee_profile) {
+        drawStepSeries(buildChannelPoints("levee_elev"), CONTEXT_COLORS.levee, {
+          lineWidth: 2.1,
+          alpha: 0.9,
+        });
+      }
     }
 
     function outfallPath(geom) {
@@ -991,7 +1205,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
           ctx.save();
           outfallPath(geom);
           ctx.clip();
-          ctx.fillStyle = "rgba(59, 130, 246, 0.26)";
+          ctx.fillStyle = CONTEXT_COLORS.waterFill;
           ctx.fillRect(geom.left - 2, waterY, geom.widthPx + 4, geom.bottomY - waterY + 2);
           ctx.restore();
         }
@@ -1050,6 +1264,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       ctx.clearRect(0, 0, chartLayout.viewportWidth, chartLayout.viewportHeight);
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, chartLayout.viewportWidth, chartLayout.viewportHeight);
+      drawRiverbedBackdrop();
+      drawActiveWaterFill();
 
       const yStep = niceStep(REPORT.bounds.max_elev - REPORT.bounds.min_elev, 8);
       const xStep = niceStep(REPORT.bounds.max_mileage - REPORT.bounds.min_mileage, 8);
@@ -1127,6 +1343,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         });
       });
 
+      drawChannelProfiles();
       drawOutfalls();
     }
 
