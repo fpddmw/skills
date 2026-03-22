@@ -1679,6 +1679,7 @@ def continue_promote(run_dir: Path, state: dict[str, Any]) -> dict[str, Any]:
             str(run_dir),
             "--round-id",
             round_id,
+            "--allow-overwrite",
             "--pretty",
         ],
         cwd=REPO_DIR,

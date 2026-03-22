@@ -1115,10 +1115,21 @@ def public_signals_to_claims(
     run_id = mission_run_id(mission)
     groups: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for signal in signals:
-        source_text = maybe_text(signal.get("title")) or maybe_text(signal.get("text"))
+        source_text = normalize_space(
+            " ".join(
+                part
+                for part in (
+                    maybe_text(signal.get("title")),
+                    maybe_text(signal.get("text")),
+                )
+                if part
+            )
+        )
         if not source_text:
             continue
         claim_type = claim_type_from_text(source_text)
+        if claim_type == "other":
+            continue
         fingerprint = semantic_fingerprint(source_text)
         if not fingerprint:
             fingerprint = signal["signal_id"]

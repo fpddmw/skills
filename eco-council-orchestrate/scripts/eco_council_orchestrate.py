@@ -86,7 +86,7 @@ DEFAULT_OPEN_METEO_HIST_HOURLY_VARS = [
 ]
 DEFAULT_OPEN_METEO_HIST_DAILY_VARS = [
     "precipitation_sum",
-    "evapotranspiration",
+    "et0_fao_evapotranspiration",
 ]
 DEFAULT_OPENAQ_PARAMETER_NAMES = [
     "pm25",
@@ -683,6 +683,7 @@ def build_sociologist_steps(
             ]
             notes.append("Collect seed posts plus cascades for diffusion structure.")
         elif source_skill == "youtube-video-search":
+            youtube_comment_count_min = maybe_text(merged_task_scalar(role_tasks, "youtube_comment_count_min"))
             argv = [
                 "python3",
                 str(FETCH_SCRIPT_PATHS[source_skill]),
@@ -699,14 +700,21 @@ def build_sociologist_steps(
                 merged_task_scalar(role_tasks, "youtube_max_pages") or "4",
                 "--max-results",
                 merged_task_scalar(role_tasks, "youtube_max_results") or "80",
-                "--comment-count-min",
-                merged_task_scalar(role_tasks, "youtube_comment_count_min") or "5",
                 "--save-records",
                 "--output-file",
                 str(artifact_path),
                 "--overwrite",
                 "--pretty",
             ]
+            if youtube_comment_count_min:
+                argv.extend(["--comment-count-min", youtube_comment_count_min])
+                notes.append(
+                    f"Apply explicit YouTube comment-count floor >= {youtube_comment_count_min} from task inputs."
+                )
+            else:
+                notes.append(
+                    "Do not filter out low-comment videos by default; sparse mission-relevant videos can still form auditable public claims."
+                )
             notes.append("Persist candidate video IDs so comment fetch can chain from the saved JSONL artifact.")
         elif source_skill == "youtube-comments-fetch":
             video_ids_file = merged_task_scalar(role_tasks, "youtube_video_ids_file")
@@ -1377,12 +1385,16 @@ def execute_fetch_plan(
     succeeded: set[str] = set()
     for step in steps:
         step_id = maybe_text(step.get("step_id"))
-        artifact_path = Path(maybe_text(step.get("artifact_path"))).expanduser().resolve()
+        artifact_text = str(step.get("artifact_path") or "").strip()
+        artifact_path = Path(artifact_text).expanduser().resolve() if artifact_text else None
         stdout_path = Path(maybe_text(step.get("stdout_path"))).expanduser().resolve()
         stderr_path = Path(maybe_text(step.get("stderr_path"))).expanduser().resolve()
         cwd = Path(maybe_text(step.get("cwd")) or str(REPO_DIR)).expanduser().resolve()
         depends_on = [maybe_text(item) for item in step.get("depends_on", []) if maybe_text(item)]
-        command = maybe_text(step.get("command"))
+        raw_command = step.get("command")
+        if not isinstance(raw_command, str) or not raw_command.strip():
+            raise ValueError(f"Fetch step {step_id} is missing a shell command.")
+        command = raw_command.strip()
 
         if any(dep not in succeeded for dep in depends_on):
             status = {
@@ -1396,7 +1408,7 @@ def execute_fetch_plan(
                 break
             continue
 
-        if skip_existing and artifact_path.exists():
+        if skip_existing and artifact_path is not None and artifact_path.exists():
             statuses.append(
                 {
                     "step_id": step_id,
@@ -1427,32 +1439,51 @@ def execute_fetch_plan(
             except subprocess.TimeoutExpired:
                 returncode = 124
                 timed_out = True
-        if returncode == 0:
+        artifact_missing = artifact_path is not None and not artifact_path.exists()
+        if returncode == 0 and not artifact_missing:
             succeeded.add(step_id)
-            statuses.append(
-                {
-                    "step_id": step_id,
-                    "source_skill": maybe_text(step.get("source_skill")),
-                    "status": "completed",
-                    "artifact_path": str(artifact_path),
-                    "stdout_path": str(stdout_path),
-                    "stderr_path": str(stderr_path),
-                }
-            )
+            completed_status = {
+                "step_id": step_id,
+                "source_skill": maybe_text(step.get("source_skill")),
+                "status": "completed",
+                "stdout_path": str(stdout_path),
+                "stderr_path": str(stderr_path),
+            }
+            if artifact_path is not None:
+                completed_status["artifact_path"] = str(artifact_path)
+            statuses.append(completed_status)
             continue
 
-        statuses.append(
-            {
+        if artifact_missing:
+            failure_status = {
                 "step_id": step_id,
                 "source_skill": maybe_text(step.get("source_skill")),
                 "status": "failed",
-                "artifact_path": str(artifact_path),
+                "reason": "artifact_missing",
                 "stdout_path": str(stdout_path),
                 "stderr_path": str(stderr_path),
                 "returncode": returncode,
                 "timed_out": timed_out,
             }
-        )
+            if artifact_path is not None:
+                failure_status["artifact_path"] = str(artifact_path)
+            statuses.append(failure_status)
+            if not continue_on_error:
+                break
+            continue
+
+        failure_status = {
+            "step_id": step_id,
+            "source_skill": maybe_text(step.get("source_skill")),
+            "status": "failed",
+            "stdout_path": str(stdout_path),
+            "stderr_path": str(stderr_path),
+            "returncode": returncode,
+            "timed_out": timed_out,
+        }
+        if artifact_path is not None:
+            failure_status["artifact_path"] = str(artifact_path)
+        statuses.append(failure_status)
         if not continue_on_error:
             break
 

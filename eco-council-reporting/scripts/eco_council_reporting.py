@@ -23,6 +23,7 @@ PROMOTABLE_REPORT_ROLES = ("sociologist", "environmentalist", "historian")
 VERDICT_SCORES = {"supports": 1.0, "contradicts": 1.0, "mixed": 0.6, "insufficient": 0.25}
 METEOROLOGY_METRICS = {"temperature_2m", "wind_speed_10m", "relative_humidity_2m", "precipitation_sum", "precipitation"}
 PRECIPITATION_METRICS = {"precipitation", "precipitation_sum", "river_discharge", "soil_moisture_0_to_7cm"}
+MAX_SOURCES_PER_NEXT_TASK = 2
 QUESTION_RULES = (
     ("station-grade corroboration is missing", "Can station-grade air-quality measurements be added for the same mission window?"),
     ("modeled background fields should be cross-checked", "Can modeled air-quality fields be cross-checked with station or local observations?"),
@@ -71,6 +72,12 @@ NEXT_ACTION_LIBRARY: dict[str, dict[str, Any]] = {
     },
 }
 SOURCE_KEYWORDS = (
+    ("youtube comments", ["youtube-comments-fetch"]),
+    ("youtube comment", ["youtube-comments-fetch"]),
+    ("youtube videos", ["youtube-video-search"]),
+    ("youtube video", ["youtube-video-search"]),
+    ("public discussion", ["gdelt-doc-search", "bluesky-cascade-fetch", "youtube-video-search"]),
+    ("air quality", ["openaq-data-fetch", "open-meteo-air-quality-fetch"]),
     ("openaq", ["openaq-data-fetch"]),
     ("station", ["openaq-data-fetch"]),
     ("firms", ["nasa-firms-fire-fetch"]),
@@ -268,6 +275,10 @@ def tasks_path(run_dir: Path, round_id: str) -> Path:
     return round_dir(run_dir, round_id) / "moderator" / "tasks.json"
 
 
+def fetch_execution_path(run_dir: Path, round_id: str) -> Path:
+    return round_dir(run_dir, round_id) / "moderator" / "derived" / "fetch_execution.json"
+
+
 def load_contract_module() -> Any | None:
     if not CONTRACT_SCRIPT_PATH.exists():
         return None
@@ -326,6 +337,73 @@ def current_round_number(round_id: str) -> int | None:
     if components is None:
         return None
     return components[1]
+
+
+def round_sort_key(round_id: str) -> tuple[str, int, str]:
+    components = parse_round_components(round_id)
+    if components is None:
+        return (round_id, 10**9, round_id)
+    prefix, number, _width = components
+    return (prefix, number, round_id)
+
+
+def discover_round_ids(run_dir: Path) -> list[str]:
+    round_ids: list[str] = []
+    for child in run_dir.iterdir():
+        if not child.is_dir():
+            continue
+        if not child.name.startswith("round_"):
+            continue
+        round_ids.append(child.name.replace("_", "-"))
+    return sorted(unique_strings(round_ids), key=round_sort_key)
+
+
+def round_ids_through(run_dir: Path, round_id: str) -> list[str]:
+    current = parse_round_components(round_id)
+    if current is None:
+        return [item for item in discover_round_ids(run_dir) if item <= round_id]
+    prefix, number, _width = current
+    selected: list[str] = []
+    for item in discover_round_ids(run_dir):
+        components = parse_round_components(item)
+        if components is None:
+            continue
+        item_prefix, item_number, _item_width = components
+        if item_prefix == prefix and item_number <= number:
+            selected.append(item)
+    return selected
+
+
+def fetch_status_role(status: dict[str, Any]) -> str:
+    role = maybe_text(status.get("assigned_role"))
+    if role:
+        return role
+    step_id = maybe_text(status.get("step_id"))
+    match = re.match(r"^step-([a-z]+)-", step_id)
+    if match is None:
+        return ""
+    return maybe_text(match.group(1))
+
+
+def completed_sources_history(run_dir: Path, round_id: str) -> dict[str, set[str]]:
+    history: dict[str, set[str]] = defaultdict(set)
+    for item in round_ids_through(run_dir, round_id):
+        payload = load_json_if_exists(fetch_execution_path(run_dir, item))
+        if not isinstance(payload, dict):
+            continue
+        statuses = payload.get("statuses")
+        if not isinstance(statuses, list):
+            continue
+        for status in statuses:
+            if not isinstance(status, dict):
+                continue
+            if maybe_text(status.get("status")) != "completed":
+                continue
+            role = fetch_status_role(status)
+            source = maybe_text(status.get("source_skill")) or maybe_text(status.get("source"))
+            if role and source:
+                history[role].add(source)
+    return history
 
 
 def build_fallback_context(
@@ -425,7 +503,7 @@ def load_report_for_decision(run_dir: Path, round_id: str, role: str, *, prefer_
     draft_report = load_json_if_exists(report_draft_path(run_dir, round_id, role))
     if not isinstance(draft_report, dict):
         draft_report = None
-    if prefer_drafts and draft_report is not None and (final_report is None or report_is_placeholder(final_report)):
+    if prefer_drafts and draft_report is not None:
         return draft_report, "draft"
     if final_report is not None:
         return final_report, "final"
@@ -620,8 +698,23 @@ def combine_recommendations(*, reports: list[dict[str, Any]], missing_types: lis
     return list(deduped.values())
 
 
-def build_task_notes(current_round_id: str, reason: str) -> str:
+def select_task_sources(
+    *,
+    mission: dict[str, Any],
+    role: str,
+    objective: str,
+    reason: str,
+    completed_sources: set[str],
+) -> list[str]:
+    inferred = infer_sources_from_text(f"{objective} {reason}", mission=mission, role=role)
+    novel = [item for item in inferred if item not in completed_sources]
+    return novel[:MAX_SOURCES_PER_NEXT_TASK]
+
+
+def build_task_notes(current_round_id: str, reason: str, novelty_sources: list[str]) -> str:
     base = f"Keep the same mission geometry and UTC window. Derived from {current_round_id}."
+    if novelty_sources:
+        base = f"{base} Novel sources only: {', '.join(novelty_sources)}."
     if maybe_text(reason):
         return f"{base} Reason: {maybe_text(reason)}"
     return base
@@ -629,6 +722,7 @@ def build_task_notes(current_round_id: str, reason: str) -> str:
 
 def build_next_round_tasks(
     *,
+    run_dir: Path,
     mission: dict[str, Any],
     current_round_id: str,
     next_round_id: str,
@@ -638,19 +732,33 @@ def build_next_round_tasks(
     run_id = mission_run_id(mission)
     counters: dict[str, int] = defaultdict(int)
     tasks: list[dict[str, Any]] = []
+    seen_signatures: set[tuple[str, tuple[str, ...]]] = set()
     geometry = mission.get("region", {}).get("geometry") if isinstance(mission.get("region"), dict) else None
     window = mission.get("window")
     max_tasks = mission_constraints(mission).get("max_tasks_per_round", 4)
+    source_history = completed_sources_history(run_dir, current_round_id)
 
     for recommendation in recommendations:
         role = maybe_text(recommendation.get("assigned_role"))
         if not role:
             continue
-        counters[role] += 1
-        task_id = f"task-{role}-{next_round_id}-{counters[role]:02d}"
         objective = maybe_text(recommendation.get("objective"))
         reason = maybe_text(recommendation.get("reason"))
-        preferred_sources = infer_sources_from_text(f"{objective} {reason}", mission=mission, role=role)
+        preferred_sources = select_task_sources(
+            mission=mission,
+            role=role,
+            objective=objective,
+            reason=reason,
+            completed_sources=source_history.get(role, set()),
+        )
+        if not preferred_sources:
+            continue
+        signature = (role, tuple(sorted(preferred_sources)))
+        if signature in seen_signatures:
+            continue
+        seen_signatures.add(signature)
+        counters[role] += 1
+        task_id = f"task-{role}-{next_round_id}-{counters[role]:02d}"
         task = {
             "schema_version": SCHEMA_VERSION,
             "task_id": task_id,
@@ -668,7 +776,7 @@ def build_next_round_tasks(
                 "preferred_sources": preferred_sources,
                 "upstream_round_id": current_round_id,
             },
-            "notes": build_task_notes(current_round_id, reason),
+            "notes": build_task_notes(current_round_id, reason, preferred_sources),
         }
         validate_payload("round-task", task)
         tasks.append(task)
@@ -1049,6 +1157,7 @@ def build_final_brief(*, moderator_status: str, decision_summary: str, reports: 
 
 def build_decision_draft(
     *,
+    run_dir: Path,
     mission: dict[str, Any],
     round_id: str,
     next_round_id: str,
@@ -1073,6 +1182,7 @@ def build_decision_draft(
     usable_reports = [report for report in reports.values() if isinstance(report, dict)]
     recommendations = combine_recommendations(reports=usable_reports, missing_types=missing_types)
     next_round_tasks = build_next_round_tasks(
+        run_dir=run_dir,
         mission=mission,
         current_round_id=round_id,
         next_round_id=next_round_id,
@@ -1095,8 +1205,13 @@ def build_decision_draft(
         blocked_reason = f"The round still has unresolved evidence, but the configured max_rounds={max_rounds} would be exceeded by {next_round_id}."
         next_round_tasks = []
     elif unresolved_entries or missing_types:
-        moderator_status = "continue"
-        next_round_required = True
+        if next_round_tasks:
+            moderator_status = "continue"
+            next_round_required = True
+        else:
+            moderator_status = "blocked"
+            next_round_required = False
+            blocked_reason = "The remaining gaps would require repeating already completed sources without adding a new evidence angle."
     else:
         moderator_status = "complete"
         next_round_required = False
@@ -1168,6 +1283,7 @@ def build_decision_packet(
             "Base the decision on evidence_cards and expert-report content, not on raw fetch artifacts.",
             "If another round is required, add new round-task objects for next_round_id instead of editing current tasks in place.",
             "Respect mission constraints such as max_rounds and max_tasks_per_round.",
+            "Only keep next_round_tasks that introduce at least one not-yet-used source skill for this run; do not repeat the same role/source bundle for the same geometry and window.",
             "Keep final_brief empty unless the council is complete or blocked.",
         ],
         "validation": {
@@ -1232,9 +1348,10 @@ def decision_prompt_text(*, packet_path: Path, packet: dict[str, Any]) -> str:
         "1. Treat packet `instructions` as binding.",
         "2. Review `round_context`, `reports`, `unresolved_claims`, and `proposed_next_round_tasks` before editing.",
         "3. Start from `draft_decision` inside the packet.",
-        "4. Return only one JSON object shaped like council-decision.",
-        "5. Keep `schema_version`, `run_id`, and `round_id` consistent with the packet.",
-        "6. Do not return markdown, prose, code fences, or extra commentary.",
+        "4. Do not invent another round if that would only repeat previously completed collection sources without a new evidence angle.",
+        "5. Return only one JSON object shaped like council-decision.",
+        "6. Keep `schema_version`, `run_id`, and `round_id` consistent with the packet.",
+        "7. Do not return markdown, prose, code fences, or extra commentary.",
         "",
         "If you persist the result locally, write it to:",
         maybe_text(validation.get("draft_decision_path")),
@@ -1434,6 +1551,7 @@ def decision_artifacts(
         evidence_cards=evidence_cards,
     )
     draft_decision, next_round_tasks, missing_types = build_decision_draft(
+        run_dir=run_dir,
         mission=mission,
         round_id=round_id,
         next_round_id=next_round_id,
@@ -1585,14 +1703,14 @@ def build_parser() -> argparse.ArgumentParser:
     decision_packet.add_argument("--run-dir", required=True, help="Eco-council run directory.")
     decision_packet.add_argument("--round-id", required=True, help="Round identifier.")
     decision_packet.add_argument("--next-round-id", default="", help="Optional explicit next round identifier.")
-    decision_packet.add_argument("--prefer-draft-reports", action="store_true", help="Prefer derived report drafts when final expert reports are still placeholders.")
+    decision_packet.add_argument("--prefer-draft-reports", action="store_true", help="Prefer derived report drafts over canonical expert reports whenever drafts are present.")
     add_pretty_flag(decision_packet)
 
     build_all = sub.add_parser("build-all", help="Build expert report packets and moderator decision packet together.")
     build_all.add_argument("--run-dir", required=True, help="Eco-council run directory.")
     build_all.add_argument("--round-id", required=True, help="Round identifier.")
     build_all.add_argument("--next-round-id", default="", help="Optional explicit next round identifier.")
-    build_all.add_argument("--prefer-draft-reports", action="store_true", help="Prefer derived report drafts when final expert reports are still placeholders.")
+    build_all.add_argument("--prefer-draft-reports", action="store_true", help="Prefer derived report drafts over canonical expert reports whenever drafts are present.")
     add_pretty_flag(build_all)
 
     render_prompts = sub.add_parser("render-openclaw-prompts", help="Render OpenClaw text prompts from existing report and decision packets.")
