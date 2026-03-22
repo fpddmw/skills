@@ -4,12 +4,16 @@
 from __future__ import annotations
 
 import argparse
+import fcntl
+import hashlib
 import json
 import os
 import re
 import shlex
 import subprocess
 import sys
+import tempfile
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -120,13 +124,39 @@ def read_json(path: Path) -> Any:
 
 
 def write_json(path: Path, payload: Any, *, pretty: bool) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(pretty_json(payload, pretty=pretty) + "\n", encoding="utf-8")
+    atomic_write_text_file(path, pretty_json(payload, pretty=pretty) + "\n")
 
 
 def write_text(path: Path, content: str) -> None:
+    atomic_write_text_file(path, content.rstrip() + "\n")
+
+
+def atomic_write_text_file(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(content.rstrip() + "\n", encoding="utf-8")
+    fd, temp_path = tempfile.mkstemp(prefix=f".{path.name}.tmp-", dir=str(path.parent))
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(content)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temp_path, path)
+    except Exception:
+        try:
+            os.unlink(temp_path)
+        except FileNotFoundError:
+            pass
+        raise
+
+
+@contextmanager
+def exclusive_file_lock(path: Path) -> Any:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a+", encoding="utf-8") as handle:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
 
 
 def normalize_space(value: str) -> str:
@@ -262,6 +292,10 @@ def fetch_plan_path(run_dir: Path, round_id: str) -> Path:
     return moderator_derived_dir(run_dir, round_id) / "fetch_plan.json"
 
 
+def fetch_execution_path(run_dir: Path, round_id: str) -> Path:
+    return moderator_derived_dir(run_dir, round_id) / "fetch_execution.json"
+
+
 def round_manifest_path(run_dir: Path, round_id: str) -> Path:
     return moderator_derived_dir(run_dir, round_id) / "openclaw_round_manifest.json"
 
@@ -280,6 +314,10 @@ def reporting_handoff_path(run_dir: Path, round_id: str) -> Path:
 
 def approved_next_round_tasks_path(run_dir: Path, round_id: str) -> Path:
     return moderator_derived_dir(run_dir, round_id) / "approved_next_round_tasks.json"
+
+
+def fetch_lock_path(run_dir: Path, round_id: str) -> Path:
+    return moderator_derived_dir(run_dir, round_id) / "fetch.lock"
 
 
 def default_raw_artifact_path(run_dir: Path, round_id: str, role: str, source_skill: str) -> Path:
@@ -339,6 +377,80 @@ def load_source_selection(run_dir: Path, round_id: str, role: str) -> dict[str, 
     if not path.exists():
         return None
     return ensure_object(read_json(path), f"{path}")
+
+
+def load_json_if_exists(path: Path) -> Any | None:
+    if not path.exists():
+        return None
+    return read_json(path)
+
+
+def file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(65536), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def file_snapshot(path: Path) -> dict[str, Any]:
+    exists = path.exists()
+    return {
+        "path": str(path),
+        "exists": exists,
+        "sha256": file_sha256(path) if exists else "",
+    }
+
+
+def fetch_plan_input_snapshot(
+    *,
+    run_dir: Path,
+    round_id: str,
+    sociologist_selection: dict[str, Any] | None,
+    environmentalist_selection: dict[str, Any] | None,
+) -> dict[str, Any]:
+    tasks_file = round_dir(run_dir, round_id) / "moderator" / "tasks.json"
+    sociologist_path = source_selection_path(run_dir, round_id, "sociologist")
+    environmentalist_path = source_selection_path(run_dir, round_id, "environmentalist")
+    return {
+        "tasks": file_snapshot(tasks_file),
+        "source_selections": {
+            "sociologist": {
+                **file_snapshot(sociologist_path),
+                "status": maybe_text((sociologist_selection or {}).get("status")),
+            },
+            "environmentalist": {
+                **file_snapshot(environmentalist_path),
+                "status": maybe_text((environmentalist_selection or {}).get("status")),
+            },
+        },
+    }
+
+
+def ensure_fetch_plan_inputs_match(*, run_dir: Path, round_id: str, plan: dict[str, Any]) -> None:
+    snapshot = ensure_object(plan.get("input_snapshot"), "fetch_plan.input_snapshot")
+    task_snapshot = ensure_object(snapshot.get("tasks"), "fetch_plan.input_snapshot.tasks")
+    task_path = round_dir(run_dir, round_id) / "moderator" / "tasks.json"
+    current_task_snapshot = file_snapshot(task_path)
+    issues: list[str] = []
+    if maybe_text(task_snapshot.get("sha256")) != maybe_text(current_task_snapshot.get("sha256")):
+        issues.append(f"tasks.json changed ({task_path})")
+
+    source_snapshots = ensure_object(snapshot.get("source_selections"), "fetch_plan.input_snapshot.source_selections")
+    for role in ("sociologist", "environmentalist"):
+        expected = ensure_object(source_snapshots.get(role), f"fetch_plan.input_snapshot.source_selections.{role}")
+        path = source_selection_path(run_dir, round_id, role)
+        current = file_snapshot(path)
+        current_payload = load_source_selection(run_dir, round_id, role)
+        current_status = maybe_text((current_payload or {}).get("status"))
+        if maybe_text(expected.get("sha256")) != maybe_text(current.get("sha256")):
+            issues.append(f"{role} source_selection changed ({path})")
+        if maybe_text(expected.get("status")) != current_status:
+            issues.append(
+                f"{role} source_selection status changed (expected {maybe_text(expected.get('status')) or '<empty>'}, found {current_status or '<empty>'})"
+            )
+    if issues:
+        raise RuntimeError("Fetch plan inputs changed since prepare-round. Rerun prepare-round. " + "; ".join(issues))
 
 
 def tasks_for_role(tasks: list[dict[str, Any]], role: str) -> list[dict[str, Any]]:
@@ -1117,6 +1229,12 @@ def build_fetch_plan(
         "plan_kind": "eco-council-fetch-plan",
         "schema_version": "1.0.0",
         "generated_at_utc": utc_now_iso(),
+        "input_snapshot": fetch_plan_input_snapshot(
+            run_dir=run_dir,
+            round_id=round_id,
+            sociologist_selection=sociologist_selection,
+            environmentalist_selection=environmentalist_selection,
+        ),
         "run": {
             "run_id": maybe_text(mission.get("run_id")),
             "round_id": round_id,
@@ -1184,7 +1302,7 @@ def render_moderator_task_review_prompt(*, run_dir: Path, round_id: str) -> Path
         "2. Keep run_id and round_id unchanged.",
         "3. Use only moderator-owned task assignment; do not write claims, observations, evidence cards, or reports here.",
         "4. Keep task.inputs.preferred_sources as guidance only; they do not auto-run any source.",
-        "5. Use task.inputs.required_sources only for sources that must be forced even if the expert would otherwise skip them.",
+        "5. Use task.inputs.required_sources only for moderator-authored overrides or rare system-level hard constraints.",
         "6. Keep objectives concrete enough that sociologist and environmentalist can choose and fetch raw artifacts deterministically.",
         "",
         "After editing, validate with:",
@@ -1478,89 +1596,113 @@ def execute_fetch_plan(
 ) -> dict[str, Any]:
     run_path = run_dir.expanduser().resolve()
     current_round_id = resolve_round_id(run_path, round_id)
-    plan_path = fetch_plan_path(run_path, current_round_id)
-    plan = ensure_object(read_json(plan_path), f"{plan_path}")
-    steps = ensure_object_list(plan.get("steps"), f"{plan_path}.steps")
+    with exclusive_file_lock(fetch_lock_path(run_path, current_round_id)):
+        plan_path = fetch_plan_path(run_path, current_round_id)
+        plan = ensure_object(read_json(plan_path), f"{plan_path}")
+        ensure_fetch_plan_inputs_match(run_dir=run_path, round_id=current_round_id, plan=plan)
+        steps = ensure_object_list(plan.get("steps"), f"{plan_path}.steps")
 
-    statuses: list[dict[str, Any]] = []
-    succeeded: set[str] = set()
-    for step in steps:
-        step_id = maybe_text(step.get("step_id"))
-        artifact_text = str(step.get("artifact_path") or "").strip()
-        artifact_path = Path(artifact_text).expanduser().resolve() if artifact_text else None
-        stdout_path = Path(maybe_text(step.get("stdout_path"))).expanduser().resolve()
-        stderr_path = Path(maybe_text(step.get("stderr_path"))).expanduser().resolve()
-        cwd = Path(maybe_text(step.get("cwd")) or str(REPO_DIR)).expanduser().resolve()
-        depends_on = [maybe_text(item) for item in step.get("depends_on", []) if maybe_text(item)]
-        raw_command = step.get("command")
-        if not isinstance(raw_command, str) or not raw_command.strip():
-            raise ValueError(f"Fetch step {step_id} is missing a shell command.")
-        command = raw_command.strip()
+        statuses: list[dict[str, Any]] = []
+        succeeded: set[str] = set()
+        for step in steps:
+            step_id = maybe_text(step.get("step_id"))
+            role = maybe_text(step.get("role"))
+            artifact_text = str(step.get("artifact_path") or "").strip()
+            artifact_path = Path(artifact_text).expanduser().resolve() if artifact_text else None
+            stdout_path = Path(maybe_text(step.get("stdout_path"))).expanduser().resolve()
+            stderr_path = Path(maybe_text(step.get("stderr_path"))).expanduser().resolve()
+            cwd = Path(maybe_text(step.get("cwd")) or str(REPO_DIR)).expanduser().resolve()
+            depends_on = [maybe_text(item) for item in step.get("depends_on", []) if maybe_text(item)]
+            raw_command = step.get("command")
+            if not isinstance(raw_command, str) or not raw_command.strip():
+                raise ValueError(f"Fetch step {step_id} is missing a shell command.")
+            command = raw_command.strip()
 
-        if any(dep not in succeeded for dep in depends_on):
-            status = {
-                "step_id": step_id,
-                "source_skill": maybe_text(step.get("source_skill")),
-                "status": "skipped",
-                "reason": f"Unmet dependencies: {depends_on}",
-            }
-            statuses.append(status)
-            if not continue_on_error:
-                break
-            continue
-
-        if skip_existing and artifact_path is not None and artifact_path.exists():
-            statuses.append(
-                {
+            if any(dep not in succeeded for dep in depends_on):
+                status = {
                     "step_id": step_id,
+                    "role": role,
                     "source_skill": maybe_text(step.get("source_skill")),
                     "status": "skipped",
-                    "reason": "artifact_exists",
-                    "artifact_path": str(artifact_path),
+                    "reason": f"Unmet dependencies: {depends_on}",
                 }
-            )
-            succeeded.add(step_id)
-            continue
+                statuses.append(status)
+                if not continue_on_error:
+                    break
+                continue
 
-        stdout_path.parent.mkdir(parents=True, exist_ok=True)
-        stderr_path.parent.mkdir(parents=True, exist_ok=True)
-        with stdout_path.open("w", encoding="utf-8") as stdout_handle, stderr_path.open("w", encoding="utf-8") as stderr_handle:
-            try:
-                completed = subprocess.run(
-                    ["/bin/bash", "-lc", command],
-                    cwd=str(cwd),
-                    check=False,
-                    stdout=stdout_handle,
-                    stderr=stderr_handle,
-                    text=True,
-                    timeout=timeout_seconds,
+            if skip_existing and artifact_path is not None and artifact_path.exists():
+                statuses.append(
+                    {
+                        "step_id": step_id,
+                        "role": role,
+                        "source_skill": maybe_text(step.get("source_skill")),
+                        "status": "skipped",
+                        "reason": "artifact_exists",
+                        "artifact_path": str(artifact_path),
+                    }
                 )
-                returncode = completed.returncode
-                timed_out = False
-            except subprocess.TimeoutExpired:
-                returncode = 124
-                timed_out = True
-        artifact_missing = artifact_path is not None and not artifact_path.exists()
-        if returncode == 0 and not artifact_missing:
-            succeeded.add(step_id)
-            completed_status = {
-                "step_id": step_id,
-                "source_skill": maybe_text(step.get("source_skill")),
-                "status": "completed",
-                "stdout_path": str(stdout_path),
-                "stderr_path": str(stderr_path),
-            }
-            if artifact_path is not None:
-                completed_status["artifact_path"] = str(artifact_path)
-            statuses.append(completed_status)
-            continue
+                succeeded.add(step_id)
+                continue
 
-        if artifact_missing:
+            stdout_path.parent.mkdir(parents=True, exist_ok=True)
+            stderr_path.parent.mkdir(parents=True, exist_ok=True)
+            with stdout_path.open("w", encoding="utf-8") as stdout_handle, stderr_path.open("w", encoding="utf-8") as stderr_handle:
+                try:
+                    completed = subprocess.run(
+                        ["/bin/bash", "-lc", command],
+                        cwd=str(cwd),
+                        check=False,
+                        stdout=stdout_handle,
+                        stderr=stderr_handle,
+                        text=True,
+                        timeout=timeout_seconds,
+                    )
+                    returncode = completed.returncode
+                    timed_out = False
+                except subprocess.TimeoutExpired:
+                    returncode = 124
+                    timed_out = True
+            artifact_missing = artifact_path is not None and not artifact_path.exists()
+            if returncode == 0 and not artifact_missing:
+                succeeded.add(step_id)
+                completed_status = {
+                    "step_id": step_id,
+                    "role": role,
+                    "source_skill": maybe_text(step.get("source_skill")),
+                    "status": "completed",
+                    "stdout_path": str(stdout_path),
+                    "stderr_path": str(stderr_path),
+                }
+                if artifact_path is not None:
+                    completed_status["artifact_path"] = str(artifact_path)
+                statuses.append(completed_status)
+                continue
+
+            if artifact_missing:
+                failure_status = {
+                    "step_id": step_id,
+                    "role": role,
+                    "source_skill": maybe_text(step.get("source_skill")),
+                    "status": "failed",
+                    "reason": "artifact_missing",
+                    "stdout_path": str(stdout_path),
+                    "stderr_path": str(stderr_path),
+                    "returncode": returncode,
+                    "timed_out": timed_out,
+                }
+                if artifact_path is not None:
+                    failure_status["artifact_path"] = str(artifact_path)
+                statuses.append(failure_status)
+                if not continue_on_error:
+                    break
+                continue
+
             failure_status = {
                 "step_id": step_id,
+                "role": role,
                 "source_skill": maybe_text(step.get("source_skill")),
                 "status": "failed",
-                "reason": "artifact_missing",
                 "stdout_path": str(stdout_path),
                 "stderr_path": str(stderr_path),
                 "returncode": returncode,
@@ -1571,42 +1713,68 @@ def execute_fetch_plan(
             statuses.append(failure_status)
             if not continue_on_error:
                 break
-            continue
 
-        failure_status = {
-            "step_id": step_id,
-            "source_skill": maybe_text(step.get("source_skill")),
-            "status": "failed",
-            "stdout_path": str(stdout_path),
-            "stderr_path": str(stderr_path),
-            "returncode": returncode,
-            "timed_out": timed_out,
+        result = {
+            "run_dir": str(run_path),
+            "round_id": current_round_id,
+            "plan_path": str(plan_path),
+            "step_count": len(steps),
+            "completed_count": sum(1 for status in statuses if status.get("status") == "completed"),
+            "failed_count": sum(1 for status in statuses if status.get("status") == "failed"),
+            "statuses": statuses,
         }
-        if artifact_path is not None:
-            failure_status["artifact_path"] = str(artifact_path)
-        statuses.append(failure_status)
-        if not continue_on_error:
-            break
+        execution_path = moderator_derived_dir(run_path, current_round_id) / "fetch_execution.json"
+        write_json(execution_path, result, pretty=True)
+        result["execution_path"] = str(execution_path)
+        return result
 
-    result = {
-        "run_dir": str(run_path),
-        "round_id": current_round_id,
-        "plan_path": str(plan_path),
-        "step_count": len(steps),
-        "completed_count": sum(1 for status in statuses if status.get("status") == "completed"),
-        "failed_count": sum(1 for status in statuses if status.get("status") == "failed"),
-        "statuses": statuses,
-    }
-    execution_path = moderator_derived_dir(run_path, current_round_id) / "fetch_execution.json"
-    write_json(execution_path, result, pretty=True)
-    result["execution_path"] = str(execution_path)
-    return result
+
+def fetch_status_role(status: dict[str, Any]) -> str:
+    role = maybe_text(status.get("role")) or maybe_text(status.get("assigned_role"))
+    if role:
+        return role
+    step_id = maybe_text(status.get("step_id"))
+    match = re.match(r"^step-([a-z]+)-", step_id)
+    if match is None:
+        return ""
+    return maybe_text(match.group(1))
+
+
+def fetch_status_has_usable_artifact(status: dict[str, Any]) -> bool:
+    state = maybe_text(status.get("status"))
+    if state == "completed":
+        return True
+    return state == "skipped" and maybe_text(status.get("reason")) == "artifact_exists"
+
+
+def usable_fetch_artifacts(run_dir: Path, round_id: str, *, role: str) -> tuple[dict[str, Path], bool]:
+    payload = load_json_if_exists(fetch_execution_path(run_dir, round_id))
+    if not isinstance(payload, dict):
+        return {}, False
+    statuses = payload.get("statuses")
+    if not isinstance(statuses, list):
+        return {}, False
+    artifacts: dict[str, Path] = {}
+    for status in statuses:
+        if not isinstance(status, dict):
+            continue
+        if fetch_status_role(status) != role or not fetch_status_has_usable_artifact(status):
+            continue
+        source_skill = maybe_text(status.get("source_skill"))
+        artifact_text = maybe_text(status.get("artifact_path"))
+        if not source_skill or not artifact_text:
+            continue
+        artifacts[source_skill] = Path(artifact_text).expanduser().resolve()
+    return artifacts, True
 
 
 def discover_normalize_inputs(run_dir: Path, round_id: str, *, role: str, sources: tuple[str, ...]) -> list[str]:
     input_specs: list[str] = []
+    usable_artifacts, _has_execution_record = usable_fetch_artifacts(run_dir, round_id, role=role)
     for source_skill in sources:
-        artifact_path = default_raw_artifact_path(run_dir, round_id, role, source_skill)
+        artifact_path = usable_artifacts.get(source_skill)
+        if artifact_path is None:
+            continue
         if artifact_path.exists():
             input_specs.append(f"{source_skill}={artifact_path}")
     return input_specs

@@ -4,10 +4,14 @@
 from __future__ import annotations
 
 import argparse
+import fcntl
 import json
+import os
 import re
 import subprocess
 import sys
+import tempfile
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -65,13 +69,28 @@ def load_json_if_exists(path: Path) -> Any | None:
 
 
 def write_json(path: Path, payload: Any, *, pretty: bool = True) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(pretty_json(payload, pretty=pretty) + "\n", encoding="utf-8")
+    atomic_write_text_file(path, pretty_json(payload, pretty=pretty) + "\n")
 
 
 def write_text(path: Path, content: str) -> None:
+    atomic_write_text_file(path, content.rstrip() + "\n")
+
+
+def atomic_write_text_file(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(content.rstrip() + "\n", encoding="utf-8")
+    fd, temp_path = tempfile.mkstemp(prefix=f".{path.name}.tmp-", dir=str(path.parent))
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(content)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temp_path, path)
+    except Exception:
+        try:
+            os.unlink(temp_path)
+        except FileNotFoundError:
+            pass
+        raise
 
 
 def maybe_text(value: Any) -> str:
@@ -215,6 +234,10 @@ def supervisor_state_path(run_dir: Path) -> Path:
     return supervisor_dir(run_dir) / "state.json"
 
 
+def supervisor_state_lock_path(run_dir: Path) -> Path:
+    return supervisor_dir(run_dir) / "state.lock"
+
+
 def supervisor_sessions_dir(run_dir: Path) -> Path:
     return supervisor_dir(run_dir) / "sessions"
 
@@ -246,6 +269,17 @@ def history_context_path(run_dir: Path, round_id: str) -> Path:
 def response_base_path(run_dir: Path, round_id: str, role: str, kind: str) -> Path:
     safe_kind = kind.replace("-", "_")
     return supervisor_responses_dir(run_dir) / f"{round_id}_{role}_{safe_kind}"
+
+
+@contextmanager
+def exclusive_file_lock(path: Path) -> Any:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a+", encoding="utf-8") as handle:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
 
 
 def extract_json_suffix(text: str) -> Any:
@@ -352,6 +386,14 @@ def apply_history_cli_config(state: dict[str, Any], args: argparse.Namespace) ->
         history["top_k"] = normalize_history_top_k(top_k_value)
     state["history_context"] = history
     return history
+
+
+def history_cli_updates_requested(args: argparse.Namespace) -> bool:
+    return bool(
+        getattr(args, "disable_history_context", False)
+        or maybe_text(getattr(args, "history_db", ""))
+        or int(getattr(args, "history_top_k", 0) or 0) > 0
+    )
 
 
 def render_history_context_text(*, mission: dict[str, Any], search_payload: dict[str, Any]) -> str:
@@ -573,7 +615,7 @@ def render_source_selection_prompt(run_dir: Path, round_id: str, role: str) -> P
         "4. Include one source_decisions entry for every allowed source with selected=true or selected=false and one concrete reason.",
         "5. If no raw fetch is needed, keep selected_sources as [] and explain why in summary.",
         "6. Treat task.inputs.preferred_sources only as hints. They do not auto-run.",
-        "7. Treat task.inputs.required_sources as mandatory forced sources unless the moderator changes tasks upstream.",
+        "7. If the moderator explicitly set task.inputs.required_sources upstream, treat those sources as mandatory forced sources.",
         "",
         "After editing, validate with:",
         validate_command,
@@ -1979,8 +2021,8 @@ def run_openclaw_agent_turn(
         text=True,
         check=False,
     )
-    stdout_path.write_text(completed.stdout, encoding="utf-8")
-    stderr_path.write_text(completed.stderr, encoding="utf-8")
+    atomic_write_text_file(stdout_path, completed.stdout)
+    atomic_write_text_file(stderr_path, completed.stderr)
     if completed.returncode != 0:
         raise RuntimeError(
             f"OpenClaw agent turn failed for role={role}. "
@@ -2021,15 +2063,20 @@ def command_init_run(args: argparse.Namespace) -> dict[str, Any]:
     round_id = latest_round_id(run_dir)
     state = build_state_payload(run_dir=run_dir, round_id=round_id, agent_prefix=args.agent_prefix)
     apply_history_cli_config(state, args)
-    save_state(run_dir, state)
+    with exclusive_file_lock(supervisor_state_lock_path(run_dir)):
+        save_state(run_dir, state)
     return build_status_payload(run_dir, state)
 
 
 def command_status(args: argparse.Namespace) -> dict[str, Any]:
     run_dir = Path(args.run_dir).expanduser().resolve()
+    if history_cli_updates_requested(args):
+        with exclusive_file_lock(supervisor_state_lock_path(run_dir)):
+            state = load_state(run_dir)
+            apply_history_cli_config(state, args)
+            save_state(run_dir, state)
+        return build_status_payload(run_dir, state)
     state = load_state(run_dir)
-    apply_history_cli_config(state, args)
-    save_state(run_dir, state)
     return build_status_payload(run_dir, state)
 
 
@@ -2245,7 +2292,12 @@ def command_continue_run(args: argparse.Namespace) -> dict[str, Any]:
             "stage": stage,
             "state": build_status_payload(run_dir, state),
         }
-    result = handler(run_dir, state)
+    with exclusive_file_lock(supervisor_state_lock_path(run_dir)):
+        locked_state = load_state(run_dir)
+        locked_stage = maybe_text(locked_state.get("stage"))
+        if locked_stage != stage:
+            raise ValueError(f"Stage changed during approval window: expected {stage}, found {locked_stage}. Rerun continue-run.")
+        result = handler(run_dir, locked_state)
     result["approved"] = True
     return result
 
@@ -2253,58 +2305,61 @@ def command_continue_run(args: argparse.Namespace) -> dict[str, Any]:
 def command_import_task_review(args: argparse.Namespace) -> dict[str, Any]:
     run_dir = Path(args.run_dir).expanduser().resolve()
     input_path = Path(args.input).expanduser().resolve()
-    state = load_state(run_dir)
-    if maybe_text(state.get("stage")) != STAGE_AWAITING_TASK_REVIEW:
-        raise ValueError("import-task-review is only allowed while waiting for moderator task review.")
-    round_id = maybe_text(state.get("current_round_id"))
     validate_input_file("round-task", input_path)
     payload = read_json(input_path)
-    return import_task_review_payload(run_dir=run_dir, state=state, payload=payload, source_path=input_path)
+    with exclusive_file_lock(supervisor_state_lock_path(run_dir)):
+        state = load_state(run_dir)
+        if maybe_text(state.get("stage")) != STAGE_AWAITING_TASK_REVIEW:
+            raise ValueError("import-task-review is only allowed while waiting for moderator task review.")
+        return import_task_review_payload(run_dir=run_dir, state=state, payload=payload, source_path=input_path)
 
 
 def command_import_source_selection(args: argparse.Namespace) -> dict[str, Any]:
     run_dir = Path(args.run_dir).expanduser().resolve()
     input_path = Path(args.input).expanduser().resolve()
     role = args.role
-    state = load_state(run_dir)
-    if maybe_text(state.get("stage")) != STAGE_AWAITING_SOURCE_SELECTION:
-        raise ValueError("import-source-selection is only allowed while waiting for expert source selection.")
     validate_input_file("source-selection", input_path)
     payload = read_json(input_path)
-    return import_source_selection_payload(run_dir=run_dir, state=state, role=role, payload=payload, source_path=input_path)
+    with exclusive_file_lock(supervisor_state_lock_path(run_dir)):
+        state = load_state(run_dir)
+        if maybe_text(state.get("stage")) != STAGE_AWAITING_SOURCE_SELECTION:
+            raise ValueError("import-source-selection is only allowed while waiting for expert source selection.")
+        return import_source_selection_payload(run_dir=run_dir, state=state, role=role, payload=payload, source_path=input_path)
 
 
 def command_import_report(args: argparse.Namespace) -> dict[str, Any]:
     run_dir = Path(args.run_dir).expanduser().resolve()
     input_path = Path(args.input).expanduser().resolve()
     role = args.role
-    state = load_state(run_dir)
-    if maybe_text(state.get("stage")) not in {STAGE_AWAITING_REPORTS, STAGE_AWAITING_DECISION}:
-        raise ValueError("import-report is only allowed while waiting for expert reports.")
-    round_id = maybe_text(state.get("current_round_id"))
     validate_input_file("expert-report", input_path)
     payload = read_json(input_path)
-    return import_report_payload(run_dir=run_dir, state=state, role=role, payload=payload, source_path=input_path)
+    with exclusive_file_lock(supervisor_state_lock_path(run_dir)):
+        state = load_state(run_dir)
+        if maybe_text(state.get("stage")) not in {STAGE_AWAITING_REPORTS, STAGE_AWAITING_DECISION}:
+            raise ValueError("import-report is only allowed while waiting for expert reports.")
+        return import_report_payload(run_dir=run_dir, state=state, role=role, payload=payload, source_path=input_path)
 
 
 def command_import_decision(args: argparse.Namespace) -> dict[str, Any]:
     run_dir = Path(args.run_dir).expanduser().resolve()
     input_path = Path(args.input).expanduser().resolve()
-    state = load_state(run_dir)
-    if maybe_text(state.get("stage")) != STAGE_AWAITING_DECISION:
-        raise ValueError("import-decision is only allowed while waiting for the moderator decision.")
-    round_id = maybe_text(state.get("current_round_id"))
     validate_input_file("council-decision", input_path)
     payload = read_json(input_path)
-    return import_decision_payload(run_dir=run_dir, state=state, payload=payload, source_path=input_path)
+    with exclusive_file_lock(supervisor_state_lock_path(run_dir)):
+        state = load_state(run_dir)
+        if maybe_text(state.get("stage")) != STAGE_AWAITING_DECISION:
+            raise ValueError("import-decision is only allowed while waiting for the moderator decision.")
+        return import_decision_payload(run_dir=run_dir, state=state, payload=payload, source_path=input_path)
 
 
 def command_run_agent_step(args: argparse.Namespace) -> dict[str, Any]:
     run_dir = Path(args.run_dir).expanduser().resolve()
     state = load_state(run_dir)
     role, turn_kind, schema_kind = current_agent_turn(state=state, requested_role=args.role)
+    round_id = maybe_text(state.get("current_round_id"))
+    stage = maybe_text(state.get("stage"))
     approved = ask_for_approval(
-        f"About to run OpenClaw agent turn {turn_kind} for role={role} in {maybe_text(state.get('current_round_id'))}.",
+        f"About to run OpenClaw agent turn {turn_kind} for role={role} in {round_id}.",
         assume_yes=args.yes,
     )
     if not approved:
@@ -2313,35 +2368,57 @@ def command_run_agent_step(args: argparse.Namespace) -> dict[str, Any]:
             "state": build_status_payload(run_dir, state),
         }
 
-    message = build_agent_message(run_dir=run_dir, state=state, role=role, turn_kind=turn_kind)
-    result = run_openclaw_agent_turn(
-        run_dir=run_dir,
-        state=state,
-        role=role,
-        turn_kind=turn_kind,
-        schema_kind=schema_kind,
-        message=message,
-        timeout_seconds=args.timeout_seconds,
-        thinking=args.thinking,
-    )
-    response_path = Path(result["response_json_path"]).resolve()
-    payload = result["payload"]
-    if schema_kind == "round-task":
-        imported = import_task_review_payload(run_dir=run_dir, state=state, payload=payload, source_path=response_path)
-    elif schema_kind == "source-selection":
-        imported = import_source_selection_payload(
+    with exclusive_file_lock(supervisor_state_lock_path(run_dir)):
+        locked_state = load_state(run_dir)
+        locked_round_id = maybe_text(locked_state.get("current_round_id"))
+        locked_stage = maybe_text(locked_state.get("stage"))
+        if locked_round_id != round_id or locked_stage != stage:
+            raise ValueError(
+                f"Supervisor state changed during approval window: expected round={round_id}, stage={stage}; "
+                f"found round={locked_round_id}, stage={locked_stage}. Rerun run-agent-step."
+            )
+        locked_role, locked_turn_kind, locked_schema_kind = current_agent_turn(state=locked_state, requested_role=args.role)
+        if (locked_role, locked_turn_kind, locked_schema_kind) != (role, turn_kind, schema_kind):
+            raise ValueError(
+                "Requested agent turn is no longer current. "
+                f"Expected {(role, turn_kind, schema_kind)!r}, found {(locked_role, locked_turn_kind, locked_schema_kind)!r}."
+            )
+
+        message = build_agent_message(run_dir=run_dir, state=locked_state, role=role, turn_kind=turn_kind)
+        result = run_openclaw_agent_turn(
             run_dir=run_dir,
-            state=state,
+            state=locked_state,
             role=role,
-            payload=payload,
-            source_path=response_path,
+            turn_kind=turn_kind,
+            schema_kind=schema_kind,
+            message=message,
+            timeout_seconds=args.timeout_seconds,
+            thinking=args.thinking,
         )
-    elif schema_kind == "expert-report":
-        imported = import_report_payload(run_dir=run_dir, state=state, role=role, payload=payload, source_path=response_path)
-    elif schema_kind == "council-decision":
-        imported = import_decision_payload(run_dir=run_dir, state=state, payload=payload, source_path=response_path)
-    else:
-        raise ValueError(f"Unsupported schema kind: {schema_kind}")
+        response_path = Path(result["response_json_path"]).resolve()
+        payload = result["payload"]
+        if schema_kind == "round-task":
+            imported = import_task_review_payload(run_dir=run_dir, state=locked_state, payload=payload, source_path=response_path)
+        elif schema_kind == "source-selection":
+            imported = import_source_selection_payload(
+                run_dir=run_dir,
+                state=locked_state,
+                role=role,
+                payload=payload,
+                source_path=response_path,
+            )
+        elif schema_kind == "expert-report":
+            imported = import_report_payload(
+                run_dir=run_dir,
+                state=locked_state,
+                role=role,
+                payload=payload,
+                source_path=response_path,
+            )
+        elif schema_kind == "council-decision":
+            imported = import_decision_payload(run_dir=run_dir, state=locked_state, payload=payload, source_path=response_path)
+        else:
+            raise ValueError(f"Unsupported schema kind: {schema_kind}")
 
     return {
         "approved": True,

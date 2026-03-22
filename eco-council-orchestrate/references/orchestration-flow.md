@@ -9,7 +9,7 @@ Keep these phases separate:
    - moderator edits `tasks.json` only
 2. expert source selection
    - sociologist and environmentalist decide whether any source is needed
-   - only explicitly selected sources or task-level `required_sources` may run
+   - only explicitly selected sources may run, plus any moderator-authored task-level `required_sources`
    - canonical outputs live at `round_xxx/<role>/source_selection.json`
 3. expert raw collection
    - sociologist and environmentalist execute fetch commands

@@ -6,9 +6,11 @@ from __future__ import annotations
 import argparse
 import copy
 import json
+import os
 import re
 import sqlite3
 import sys
+import tempfile
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -78,10 +80,24 @@ def read_json(path: Path) -> Any:
 
 
 def write_json(path: Path, payload: Any, *, pretty: bool) -> None:
+    atomic_write_text_file(path, pretty_json(payload, pretty=pretty) + "\n")
+
+
+def atomic_write_text_file(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8") as handle:
-        handle.write(pretty_json(payload, pretty=pretty))
-        handle.write("\n")
+    fd, temp_path = tempfile.mkstemp(prefix=f".{path.name}.tmp-", dir=str(path.parent))
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(content)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temp_path, path)
+    except Exception:
+        try:
+            os.unlink(temp_path)
+        except FileNotFoundError:
+            pass
+        raise
 
 
 def parse_utc_datetime(value: str) -> datetime | None:

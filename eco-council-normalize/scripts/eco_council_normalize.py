@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import os
 import gzip
 import hashlib
 import importlib.util
@@ -14,6 +15,7 @@ import re
 import sqlite3
 import statistics
 import sys
+import tempfile
 import zipfile
 from collections import Counter, defaultdict
 from datetime import date, datetime, timezone
@@ -200,8 +202,24 @@ def read_jsonl(path: Path) -> list[Any]:
 
 
 def write_json(path: Path, payload: Any, *, pretty: bool) -> None:
+    atomic_write_text_file(path, pretty_json(payload, pretty=pretty) + "\n")
+
+
+def atomic_write_text_file(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(pretty_json(payload, pretty=pretty) + "\n", encoding="utf-8")
+    fd, temp_path = tempfile.mkstemp(prefix=f".{path.name}.tmp-", dir=str(path.parent))
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(content)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temp_path, path)
+    except Exception:
+        try:
+            os.unlink(temp_path)
+        except FileNotFoundError:
+            pass
+        raise
 
 
 def load_json_if_exists(path: Path) -> Any | None:
@@ -212,10 +230,8 @@ def load_json_if_exists(path: Path) -> Any | None:
 
 def write_jsonl(path: Path, records: list[dict[str, Any]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8") as handle:
-        for record in records:
-            handle.write(json.dumps(record, ensure_ascii=True, sort_keys=True))
-            handle.write("\n")
+    lines = [json.dumps(record, ensure_ascii=True, sort_keys=True) for record in records]
+    atomic_write_text_file(path, "\n".join(lines) + ("\n" if lines else ""))
 
 
 def normalize_space(value: str) -> str:

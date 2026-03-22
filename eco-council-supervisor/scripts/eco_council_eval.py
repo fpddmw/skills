@@ -218,10 +218,10 @@ def evaluate_expectations(case: dict[str, Any], run_dir: Path, round_id: str) ->
     expect = case.get("expect")
     if not isinstance(expect, dict):
         return issues
+    decision = read_json(round_dir(run_dir, round_id) / "moderator" / "council_decision.json")
 
     decision_expect = expect.get("decision")
     if isinstance(decision_expect, dict):
-        decision = read_json(round_dir(run_dir, round_id) / "moderator" / "council_decision.json")
         for key, expected in decision_expect.items():
             actual = decision.get(key)
             if isinstance(expected, list):
@@ -247,7 +247,79 @@ def evaluate_expectations(case: dict[str, Any], run_dir: Path, round_id: str) ->
         max_claims = context_expect.get("max_claims")
         if isinstance(max_claims, int) and len(context.get("claims", [])) > max_claims:
             issues.append(f"context.claims length expected <= {max_claims}, got {len(context.get('claims', []))}")
+
+    next_round_tasks_expect = expect.get("next_round_tasks")
+    if isinstance(next_round_tasks_expect, list):
+        actual_tasks = decision.get("next_round_tasks")
+        if not isinstance(actual_tasks, list):
+            actual_tasks = []
+        for index, expected_task in enumerate(next_round_tasks_expect):
+            if not isinstance(expected_task, dict):
+                issues.append(f"expect.next_round_tasks[{index}] must be an object.")
+                continue
+            if not any(task_contains_expected_subset(actual_task, expected_task) for actual_task in actual_tasks):
+                issues.append(f"next_round_tasks missing expected subset at index {index}: {expected_task!r}")
+
+    forbidden_fields_expect = expect.get("next_round_tasks_forbidden_fields")
+    if isinstance(forbidden_fields_expect, list):
+        actual_tasks = decision.get("next_round_tasks")
+        if not isinstance(actual_tasks, list):
+            actual_tasks = []
+        for index, item in enumerate(forbidden_fields_expect):
+            if not isinstance(item, dict):
+                issues.append(f"expect.next_round_tasks_forbidden_fields[{index}] must be an object.")
+                continue
+            match = item.get("match")
+            fields = item.get("fields")
+            if not isinstance(match, dict):
+                issues.append(f"expect.next_round_tasks_forbidden_fields[{index}].match must be an object.")
+                continue
+            if not isinstance(fields, list) or not all(isinstance(field, str) and field.strip() for field in fields):
+                issues.append(f"expect.next_round_tasks_forbidden_fields[{index}].fields must be a non-empty string list.")
+                continue
+            matched_tasks = [task for task in actual_tasks if task_contains_expected_subset(task, match)]
+            if not matched_tasks:
+                issues.append(f"next_round_tasks_forbidden_fields[{index}] matched no tasks: {match!r}")
+                continue
+            for field_path in fields:
+                offenders = [task for task in matched_tasks if has_nested_field(task, field_path)]
+                if offenders:
+                    issues.append(
+                        f"next_round_tasks_forbidden_fields[{index}] expected {field_path!r} to be absent for tasks matching {match!r}"
+                    )
     return issues
+
+
+def task_contains_expected_subset(actual: Any, expected: Any) -> bool:
+    if isinstance(expected, dict):
+        if not isinstance(actual, dict):
+            return False
+        return all(key in actual and task_contains_expected_subset(actual[key], value) for key, value in expected.items())
+    if isinstance(expected, list):
+        if not isinstance(actual, list):
+            return False
+        if expected and all(isinstance(item, dict) for item in expected):
+            remaining = list(actual)
+            for expected_item in expected:
+                match_index = next(
+                    (idx for idx, candidate in enumerate(remaining) if task_contains_expected_subset(candidate, expected_item)),
+                    None,
+                )
+                if match_index is None:
+                    return False
+                remaining.pop(match_index)
+            return True
+        return actual == expected
+    return actual == expected
+
+
+def has_nested_field(payload: Any, dotted_path: str) -> bool:
+    current = payload
+    for part in dotted_path.split("."):
+        if not isinstance(current, dict) or part not in current:
+            return False
+        current = current[part]
+    return True
 
 
 def run_case(case_path: Path, *, output_root: Path, pretty: bool, overwrite: bool) -> dict[str, Any]:

@@ -32,6 +32,7 @@ The supervisor keeps a strict split:
 - `awaiting-source-selection`
   - Prefer `run-agent-step --role sociologist` and `run-agent-step --role environmentalist`.
   - Manual fallback: send the two expert source-selection outbox prompts, then use `import-source-selection`.
+  - `task.inputs.required_sources` should be rare and moderator-authored; experts otherwise decide whether any source is needed.
 - `ready-to-prepare-round`
   - Run `continue-run`.
 - `ready-to-execute-fetch-plan`

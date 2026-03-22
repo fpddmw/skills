@@ -6,8 +6,10 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import os
 import re
 import sys
+import tempfile
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -44,42 +46,54 @@ NEXT_ACTION_LIBRARY: dict[str, dict[str, Any]] = {
         "assigned_role": "environmentalist",
         "objective": "Fetch station-based air-quality corroboration for the same mission window and geometry.",
         "reason": "Station-grade corroboration remains incomplete or modeled fields still need cross-checking.",
+        "preferred_sources": ["openaq-data-fetch"],
     },
     "fire-detection": {
         "assigned_role": "environmentalist",
         "objective": "Fetch fire-detection evidence aligned with the mission window and geometry.",
         "reason": "Wildfire-related claims still lack direct fire-detection corroboration.",
+        "preferred_sources": ["nasa-firms-fire-fetch"],
     },
     "meteorology-background": {
         "assigned_role": "environmentalist",
         "objective": "Add meteorology background such as wind, humidity, and precipitation for the same mission window.",
         "reason": "Physical interpretation still needs weather context.",
+        "preferred_sources": ["open-meteo-historical-fetch"],
     },
     "precipitation-hydrology": {
         "assigned_role": "environmentalist",
         "objective": "Add precipitation or flood-related evidence for the same mission window and geometry.",
         "reason": "Flood or water-related claims still lack direct hydrometeorological corroboration.",
+        "preferred_sources": ["open-meteo-flood-fetch", "open-meteo-historical-fetch"],
     },
     "temperature-extremes": {
         "assigned_role": "environmentalist",
         "objective": "Add temperature-extreme evidence for the same mission window and geometry.",
         "reason": "Heat-related claims still lack direct thermal corroboration.",
+        "preferred_sources": ["open-meteo-historical-fetch"],
     },
     "precipitation-soil-moisture": {
         "assigned_role": "environmentalist",
         "objective": "Add precipitation and soil-moisture evidence for the same mission window and geometry.",
         "reason": "Drought-related claims still lack direct precipitation or soil-moisture corroboration.",
+        "preferred_sources": ["open-meteo-historical-fetch"],
     },
     "policy-comment-coverage": {
         "assigned_role": "sociologist",
         "objective": "Collect more policy-comment or docket evidence for the same environmental issue.",
         "reason": "Policy-reaction claims still need stronger docket or public-comment coverage.",
+        "preferred_sources": ["regulationsgov-comments-fetch", "regulationsgov-comment-detail-fetch"],
     },
     "public-discussion-coverage": {
         "assigned_role": "sociologist",
         "objective": "Collect more independent public-discussion evidence for the same mission window.",
         "reason": "Current public-claim coverage is too thin or concentrated in too few channels.",
+        "preferred_sources": ["gdelt-doc-search", "bluesky-cascade-fetch", "youtube-video-search"],
     },
+}
+SOURCE_DEPENDENCIES: dict[str, list[str]] = {
+    "youtube-comments-fetch": ["youtube-video-search"],
+    "regulationsgov-comment-detail-fetch": ["regulationsgov-comments-fetch"],
 }
 SOURCE_KEYWORDS = (
     ("youtube comments", ["youtube-comments-fetch"]),
@@ -145,13 +159,28 @@ def read_json(path: Path) -> Any:
 
 
 def write_json(path: Path, payload: Any, *, pretty: bool) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(pretty_json(payload, pretty=pretty) + "\n", encoding="utf-8")
+    atomic_write_text_file(path, pretty_json(payload, pretty=pretty) + "\n")
 
 
 def write_text(path: Path, text: str) -> None:
+    atomic_write_text_file(path, text)
+
+
+def atomic_write_text_file(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(text, encoding="utf-8")
+    fd, temp_path = tempfile.mkstemp(prefix=f".{path.name}.tmp-", dir=str(path.parent))
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(text)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temp_path, path)
+    except Exception:
+        try:
+            os.unlink(temp_path)
+        except FileNotFoundError:
+            pass
+        raise
 
 
 def load_json_if_exists(path: Path) -> Any | None:
@@ -179,6 +208,25 @@ def unique_strings(values: list[str]) -> list[str]:
         seen.add(text)
         result.append(text)
     return result
+
+
+def expand_source_dependencies(sources: list[str]) -> list[str]:
+    expanded: list[str] = []
+    visiting: set[str] = set()
+
+    def visit(source: str) -> None:
+        text = maybe_text(source)
+        if not text or text in visiting:
+            return
+        visiting.add(text)
+        for dependency in SOURCE_DEPENDENCIES.get(text, []):
+            visit(dependency)
+        expanded.append(text)
+        visiting.remove(text)
+
+    for source in unique_strings(sources):
+        visit(source)
+    return unique_strings(expanded)
 
 
 def counter_dict(values: list[str]) -> dict[str, int]:
@@ -658,7 +706,33 @@ def infer_sources_from_text(text: str, *, mission: dict[str, Any], role: str) ->
         policy_sources = mission_source_policy(mission, role)
         if policy_sources:
             sources.extend(policy_sources[:3])
-    return filter_sources_for_role(mission, role, sources)
+    return filter_sources_for_role(mission, role, expand_source_dependencies(sources))
+
+
+def recommendation_template(recommendation: dict[str, Any]) -> dict[str, Any] | None:
+    role = maybe_text(recommendation.get("assigned_role"))
+    objective = maybe_text(recommendation.get("objective")).casefold()
+    if not role or not objective:
+        return None
+    for template in NEXT_ACTION_LIBRARY.values():
+        if maybe_text(template.get("assigned_role")) != role:
+            continue
+        if maybe_text(template.get("objective")).casefold() == objective:
+            return template
+    return None
+
+
+def recommendation_source_list(template: dict[str, Any] | None, key: str) -> list[str]:
+    if not isinstance(template, dict):
+        return []
+    values = template.get(key)
+    if not isinstance(values, list):
+        return []
+    return [maybe_text(item) for item in values if maybe_text(item)]
+
+
+def novel_sources(sources: list[str], completed_sources: set[str]) -> list[str]:
+    return [item for item in unique_strings(sources) if item not in completed_sources]
 
 
 def recommendation_key(recommendation: dict[str, Any]) -> tuple[str, str]:
@@ -711,20 +785,29 @@ def combine_recommendations(*, reports: list[dict[str, Any]], missing_types: lis
 def select_task_sources(
     *,
     mission: dict[str, Any],
+    recommendation: dict[str, Any],
     role: str,
     objective: str,
     reason: str,
     completed_sources: set[str],
 ) -> list[str]:
-    inferred = infer_sources_from_text(f"{objective} {reason}", mission=mission, role=role)
-    novel = [item for item in inferred if item not in completed_sources]
-    return novel[:MAX_SOURCES_PER_NEXT_TASK]
+    template = recommendation_template(recommendation)
+    preferred_candidates = recommendation_source_list(template, "preferred_sources")
+    if not preferred_candidates:
+        preferred_candidates = infer_sources_from_text(f"{objective} {reason}", mission=mission, role=role)
+    else:
+        preferred_candidates = filter_sources_for_role(
+            mission,
+            role,
+            expand_source_dependencies(preferred_candidates),
+        )
+    return novel_sources(preferred_candidates, completed_sources)[:MAX_SOURCES_PER_NEXT_TASK]
 
 
 def build_task_notes(current_round_id: str, reason: str, novelty_sources: list[str]) -> str:
     base = f"Keep the same mission geometry and UTC window. Derived from {current_round_id}."
     if novelty_sources:
-        base = f"{base} Novel sources only: {', '.join(novelty_sources)}."
+        base = f"{base} Novel source hints: {', '.join(novelty_sources)}."
     if maybe_text(reason):
         return f"{base} Reason: {maybe_text(reason)}"
     return base
@@ -756,6 +839,7 @@ def build_next_round_tasks(
         reason = maybe_text(recommendation.get("reason"))
         preferred_sources = select_task_sources(
             mission=mission,
+            recommendation=recommendation,
             role=role,
             objective=objective,
             reason=reason,

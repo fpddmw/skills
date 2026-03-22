@@ -9,6 +9,14 @@
   "plan_kind": "eco-council-fetch-plan",
   "schema_version": "1.0.0",
   "generated_at_utc": "2026-03-21T08:00:00Z",
+  "input_snapshot": {
+    "tasks": {
+      "path": "",
+      "exists": true,
+      "sha256": ""
+    },
+    "source_selections": {}
+  },
   "run": {},
   "roles": {
     "sociologist": {
@@ -45,7 +53,8 @@ Each step includes:
 
 - `command` is the exact shell snippet the expert agent or local runner should execute.
 - `artifact_path` is the contract path that downstream normalization expects.
-- `roles.<role>.selected_sources` is the only set that may execute automatically, plus any explicit task-level `required_sources`.
+- `input_snapshot` records the task list and source-selection files that `prepare-round` planned against; if they change, rerun `prepare-round`.
+- `roles.<role>.selected_sources` is the only set that may execute automatically, plus any explicit moderator-authored task-level `required_sources`.
 - `steps` may be an empty list when experts decided no source is needed for the round.
 - `depends_on` is used for chained steps such as:
   - `youtube-video-search` -> `youtube-comments-fetch` when both were explicitly selected
