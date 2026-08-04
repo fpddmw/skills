@@ -39,7 +39,7 @@ npm i skills -g
   ```
 - Install specific skills:
   ```bash
-  npx skills add https://github.com/tiangong-ai/skills --skill tiangong-kb-sci-search --skill dify-knowledge-base-search
+  npx skills add https://github.com/tiangong-ai/skills --skill tiangong-auto-research --skill tiangong-kb-sci-search
   ```
 
 ## Target agents and scope

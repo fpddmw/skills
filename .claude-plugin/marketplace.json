@@ -69,6 +69,7 @@
                 "./tiangong-kb-sci-search",
                 "./tiangong-kb-report-search",
                 "./tiangong-kb-patent-search",
+                "./tiangong-auto-research",
                 "./fetch-meta-to-kb",
                 "./fetch-meta-from-kb",
                 "./fetch-abstract-to-kb",
