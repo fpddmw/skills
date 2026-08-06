@@ -1,6 +1,6 @@
 ---
 name: tiangong-auto-research
-description: Run bounded, multi-stage research through a Tiangong research workspace with immutable inputs, capability-locked method skills, hard budgets, isolated producer execution, independent review, provenance, and mechanical closure. Use when a user asks to initialize, configure, execute, resume, inspect, or close a traceable research project, or asks how to configure its research environment and capabilities. Do not use for a single Tiangong edge-search request.
+description: Run smoke-test or production Tiangong research workspaces with explicit evidence requirements, immutable inputs and broker evidence, capability locks, pre-call budgets, isolated producer execution, independent review, and mechanical closure. Use when a user asks to plan, initialize, configure, execute, recover, inspect, or close a traceable research project. Do not use for a single Tiangong edge-search request.
 ---
 
 # Tiangong Auto Research
@@ -8,123 +8,162 @@ description: Run bounded, multi-stage research through a Tiangong research works
 Use the pinned CLI for every workspace operation:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.20 research --help
+npx --yes @tiangong-ai/cli@0.0.21 research --help
 ```
 
-Do not reproduce scheduling, evidence collection, review, or closure in the
-coordinating agent. The CLI runtime owns those actions.
+The CLI is the only authority for output schemas, coverage gates, scheduling,
+budget accounting, retries, evidence promotion, review, and closure. Do not
+reimplement those rules in this skill or a coordinating agent.
 
-## Route the request
+## Choose the mode first
 
-1. Resolve every workspace and input path to an absolute path.
-2. Inspect before mutation:
+- Use `smoke-test` only for routing checks, deterministic mocks, workflow demos,
+  or a low-cost canary the user explicitly accepts.
+- Use `production-research` for conclusions the user intends to rely on. Never
+  present a minimal Crossref/search capability as production coverage.
 
-   ```bash
-   npx --yes @tiangong-ai/cli@0.0.20 research context inspect \
-     --path /absolute/path/to/workspace --json
-   ```
+Read [references/production-research.md](references/production-research.md)
+before initializing or resuming production work, configuring broker HTTP,
+recovering a project, or interpreting a blocked run. Read
+[references/env.md](references/env.md) before configuring credentials or agent
+authentication or an agent wrapper.
 
-3. Follow the returned role and `allowedOperations` exactly:
-   - `unmanaged`: initialize only when the user wants a new workspace.
-   - `workspace`: continue with workspace commands.
-   - `invalid`: stop and report the violations. Do not repair state by hand.
+## Inspect before mutation
 
-## Initialize a workspace
+Resolve workspace and input paths to absolute paths, then run:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.20 research workspace init \
-  /absolute/path/to/workspace --name "Research name" --json
+npx --yes @tiangong-ai/cli@0.0.21 research context inspect \
+  --path /absolute/path/to/workspace --json
 ```
 
-Use the generated defaults unless the user requests different budgets or agent
-routes. When editing `.tiangong-research/config.json`, preserve schema version
-1, keep all budgets positive, and use different agent families for `producer`
-and `reviewer`. A binary must be the exact agent name or an absolute path.
+Follow `role` and `allowedOperations` exactly:
 
-Never edit `workspace.json`, `runtime-lock.json`, `journal.jsonl`, project state,
-run receipts, locks, or outputs directly.
+- `unmanaged`: initialize only when the user wants a new workspace.
+- `workspace`: continue through CLI commands.
+- `invalid`: stop and report the violations; never repair state by hand.
 
-## Admit method capabilities
-
-Method skills remain external and are admitted through
-`.tiangong-research/capabilities.json`. Each `skillPath` must be absolute and
-contain a valid `SKILL.md` whose name matches its directory.
-
-Use only current permissions: `project-read`, `candidate-write`,
-`brokered-network`, and `controlled-command`. A `brokered-network` capability
-must declare exact HTTPS hosts in `allowedHosts`. Credential host scopes must be
-subsets of the capability host scope.
-
-After any declaration change, freeze and verify both the skill tree and policy:
+## Initialize and preflight
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.20 research capability lock \
-  --workspace /absolute/path/to/workspace --json
-npx --yes @tiangong-ai/cli@0.0.20 research capability verify \
-  --workspace /absolute/path/to/workspace --json
+npx --yes @tiangong-ai/cli@0.0.21 research workspace init \
+  /absolute/path/to/workspace --name "Research name" \
+  --mode production-research --json
 ```
 
-Read [references/env.md](references/env.md) before configuring credentials.
-
-## Register projects and inputs
-
-Use one stable lowercase project ID per research question:
+Before project initialization, prepare an evidence-requirements JSON object
+with `dimensions`, `sourceTypes`, `minSources`, `minFullTextSources`,
+`minDatedSources`, and nullable `publicationDateFrom` / `publicationDateTo`
+boundaries. For large local sources, also prepare one immutable input plan with
+bounded `contextPath` or `contextRanges` entries as described in the production
+reference. Then generate the required evidence/capability/gap/cost checklist:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.20 research project init gpu-resource-impact \
+npx --yes @tiangong-ai/cli@0.0.21 research project preflight \
   --workspace /absolute/path/to/workspace \
-  --question "How do advanced GPU process nodes change environmental resource burdens?" \
-  --json
+  --question "Research question" \
+  --requirements /absolute/path/to/evidence-requirements.json \
+  --input-plan /absolute/path/to/input-plan.json --json
 ```
 
-Admit existing local evidence through the CLI so its digest becomes immutable:
+Stop when production requirements are missing, the capability/input plan
+cannot cover them, or the projected budget needs confirmation. Pass
+`--confirm-budget` only after the user explicitly accepts the threshold.
+Omit `--input-plan` only when locked broker capabilities alone provide the
+declared acquisition plan; otherwise pass the identical verified plan to
+preflight and `project init`.
+
+Never edit `workspace.json`, `runtime-lock.json`, `journal.jsonl`, evidence
+objects/receipts, project state, run records, locks, or outputs directly.
+
+## Admit and freeze capabilities
+
+Method skills remain external and use absolute `skillPath` declarations.
+Current permissions are `project-read`, `candidate-write`,
+`brokered-network`, and `controlled-command`.
+
+For brokered HTTP, declare exact `allowedHosts` and one `http` policy with an
+exact `accept`, allowed content types, maximum response bytes, and maximum
+items. Declare capability `coverage` when preflight should match dimensions,
+source types, full-text access, or publication dates. Workspace config applies
+an additional estimated-token cap to staged broker context. Credential scopes
+must be subsets of capability hosts. Lock after every tree or policy change:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.20 research project input add gpu-resource-impact \
-  --workspace /absolute/path/to/workspace \
-  --path /absolute/path/to/inventory.csv \
-  --role primary --json
+npx --yes @tiangong-ai/cli@0.0.21 research capability lock \
+  --workspace /absolute/path/to/workspace --json
+npx --yes @tiangong-ai/cli@0.0.21 research capability verify \
+  --workspace /absolute/path/to/workspace --json
 ```
 
-Use `primary` for direct evidence, `reference` for contextual material, and
-`replication` for reproducibility inputs. Do not copy unregistered files into
-the control directory.
+## Register the project and inputs
+
+```bash
+npx --yes @tiangong-ai/cli@0.0.21 research project init gpu-resource-impact \
+  --workspace /absolute/path/to/workspace \
+  --question "Research question" \
+  --requirements /absolute/path/to/evidence-requirements.json \
+  --input-plan /absolute/path/to/input-plan.json \
+  --confirm-budget --json
+
+npx --yes @tiangong-ai/cli@0.0.21 research project input add gpu-resource-impact \
+  --workspace /absolute/path/to/workspace \
+  --path /absolute/path/to/inventory.csv --role primary --json
+```
+
+Use `primary` for direct evidence, `reference` for context, and `replication`
+for reproducibility material. Use `project input add` only for an additional
+small source that should be exposed in full; use the verified input plan when
+producer context must be bounded. Do not copy unregistered files into the
+control directory.
 
 ## Validate and run
 
-Run the doctor before execution:
+Production work requires the real producer and reviewer capsule smoke:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.20 research workspace doctor \
+npx --yes @tiangong-ai/cli@0.0.21 research workspace doctor \
+  --workspace /absolute/path/to/workspace --agent-smoke --json
+```
+
+Proceed only when status is `ready`. Preview scheduling, then expose the JSONL
+progress stream for long runs:
+
+```bash
+npx --yes @tiangong-ai/cli@0.0.21 research run \
+  --workspace /absolute/path/to/workspace --project PROJECT --dry-run --json
+npx --yes @tiangong-ai/cli@0.0.21 research run \
+  --workspace /absolute/path/to/workspace --project PROJECT \
+  --max-cycles 20 --progress-jsonl --json
+```
+
+Prefer an explicit `--project` for a single-project task. It scopes production
+budget confirmation, scheduling, result summaries, progress events, and exit
+status to that project, so older blocked siblings remain auditable without
+contaminating the current run. Omit it only for an intentional workspace-wide
+batch.
+
+Do not bypass the runtime with direct agents or web calls. When evidence
+coverage is insufficient, report the gaps and stop; do not spend analyze,
+synthesize, or review budget. The production smoke attestation is valid for 24
+hours and is bound to config, capabilities, schemas, and resolved runtimes;
+rerun doctor after expiry or any drift instead of bypassing it.
+
+## Inspect, recover, and hand off
+
+```bash
+npx --yes @tiangong-ai/cli@0.0.21 research status \
   --workspace /absolute/path/to/workspace --json
 ```
 
-Proceed only when status is `ready`. Preview scheduling when useful, then run:
+Report the package, classified failure, retry time, split token usage, cost,
+sanitized provider diagnostics, and limitations. Use `research project retry`
+or `research project fork` only with explicit user direction; these commands
+preserve promoted artifacts and append management events. Never reset state or
+delete capsules/evidence by hand.
 
-```bash
-npx --yes @tiangong-ai/cli@0.0.20 research run \
-  --workspace /absolute/path/to/workspace --dry-run --json
-npx --yes @tiangong-ai/cli@0.0.20 research run \
-  --workspace /absolute/path/to/workspace \
-  --max-parallel 2 --max-cycles 20 --json
-```
-
-The runtime executes at most one ready package per project per cycle. Separate
-projects may run concurrently. Do not bypass the runtime with direct agent or
-web calls.
-
-## Inspect and hand off
-
-```bash
-npx --yes @tiangong-ai/cli@0.0.20 research status \
-  --workspace /absolute/path/to/workspace --json
-```
-
-If a project is blocked, report the failed package, bounded error, attempts,
-and recorded usage. Do not reset package state or budgets without explicit user
-direction. A complete project must have a passing independent review and
-`outputs/closure.json`.
-
-Return the project status, artifact paths, usage totals, review decision, and
-material limitations. Treat `outputs/report.md` as the research deliverable and
-`outputs/closure.json` as the completion receipt.
+A complete project must contain passing independent review and
+`outputs/closure.json`. Return the status, artifact paths, permanent evidence
+receipts, content-addressed review packet/context locators, usage, review
+decision, and material limitations. Treat `outputs/report.md` as the
+deliverable and `outputs/closure.json` as its mechanical completion receipt.
