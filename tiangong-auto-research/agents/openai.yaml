@@ -1,4 +1,4 @@
 interface:
   display_name: "Tiangong Auto Research"
-  short_description: "Run bounded Tiangong research workspaces"
-  default_prompt: "Use $tiangong-auto-research to set up or continue a bounded Tiangong research workspace."
+  short_description: "Run production-ready Tiangong research"
+  default_prompt: "Use $tiangong-auto-research to preflight and run a traceable smoke-test or production research workspace."
