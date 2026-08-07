@@ -12,7 +12,8 @@ Before `project init`, record and show the user:
 2. Required source types, minimum sources, minimum full-text sources, and any
    date/applicability boundaries.
 3. Available immutable inputs and locked capabilities that can satisfy each
-   requirement.
+   requirement, including the selected external internet profile and every
+   owner-whitelisted database marked required for discovery.
 4. Gaps that would block the post-discovery coverage gate.
 5. Package token reservations, configured price basis, maximum cost, and
    whether the confirmation threshold is crossed.
@@ -45,12 +46,18 @@ The budget includes:
 - broker response bytes, context items, and estimated context tokens;
 - the cost-confirmation threshold.
 
+New workspaces default to 500,000 total tokens, with 200,000 reserved as the
+discovery package ceiling; analyze, synthesize, and review default to 55,000,
+60,000, and 120,000. These values are admission ceilings, not a target spend.
+Lower them only when preflight proves every complete reservation still fits.
+
 The CLI will not start a package unless its full token and conservative price
 reservation fits. Immediately before each call it accounts for prompt and
 schema bytes at three bytes per token, agent-specific protocol overhead,
-input repeated for every permitted API turn, primary output, and a possible
-isolated repair's input and output. The provider cost cap is derived from that
-package reservation, not the project's remaining global allowance. Tool-free
+input repeated for every permitted API turn, the maximum bounded broker context
+for every permitted discovery turn, primary output, and a possible isolated
+repair's input and output. The provider cost cap is derived from that package
+reservation, not the project's remaining global allowance. Tool-free
 primary stages allow two protocol turns because Claude's schema output uses
 `StructuredOutput` followed by its result; external tools remain disabled. The
 repair path omits the provider schema tool, requests plain JSON in one turn,
@@ -59,6 +66,8 @@ Current Codex and Claude CLI adapters expose final output usage only after the
 call. Preflight therefore reports `outputTokenLimitEnforcement` as
 `post-execution`: captured bytes bound the process, and an over-limit result is
 rejected without promotion, but the limit is not a provider-side hard stop.
+Discovery capture allowance includes bounded broker tool-result events as well
+as the requested final output.
 Reserve enough output for the discover schema and enough input context for the
 embedded prior-stage artifacts; preflight reports both gaps mechanically.
 It also reports per-stage `maxTurns` and route-specific
@@ -107,9 +116,9 @@ registered for review; it does not expose that entire file to discovery.
 Inspect, but never copy or fork, a current contract with:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.21 research schema show discover --json
-npx --yes @tiangong-ai/cli@0.0.21 research schema show analyze --json
-npx --yes @tiangong-ai/cli@0.0.21 research schema show review --json
+npx --yes @tiangong-ai/cli@0.0.23 research schema show discover --json
+npx --yes @tiangong-ai/cli@0.0.23 research schema show analyze --json
+npx --yes @tiangong-ai/cli@0.0.23 research schema show review --json
 ```
 
 Evidence sources include stable ID/title/locator/provenance, URL or DOI when
@@ -193,12 +202,14 @@ admitted sources and declared minimums. `partial` is usable but incomplete;
 packages. Model-provided qualitative gaps remain visible but cannot override
 those derived fields.
 
-Only broker-enabled discovery receives the strictly read-only workspace tools
-and broker. Analyze embeds the admitted evidence object; synthesize embeds
-admitted evidence and analysis. Both stages run with tools disabled. Review is
-also tool-free and embeds the immutable packet, generated artifacts, and exact
-bounded local/broker evidence views within two structured-output protocol
-turns. Full files and raw
+Discovery receives no shell or filesystem tools. The CLI embeds the locked
+capability manifest and each staged external Skill's top-level `SKILL.md`, and
+the scoped broker is its only execution tool. Broker results include the exact
+bounded view inline with the receipt. Analyze embeds the admitted evidence
+object; synthesize embeds admitted evidence and analysis. Both stages run with
+tools disabled. Review is also tool-free and embeds the immutable packet,
+generated artifacts, and exact bounded local/broker evidence views within two
+structured-output protocol turns. Full files and raw
 objects remain hash-bound for later human/mechanical audit; never report that
 the model read beyond the embedded views. Run records, journal usage, and JSONL
 progress include sanitized event/item counts, provider turns, tool calls,
@@ -215,9 +226,9 @@ Failures are classified:
 Use an explicit management command instead of editing state:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.21 research project retry PROJECT \
+npx --yes @tiangong-ai/cli@0.0.23 research project retry PROJECT \
   --package PACKAGE --workspace /absolute/path/to/workspace --json
-npx --yes @tiangong-ai/cli@0.0.21 research project fork SOURCE \
+npx --yes @tiangong-ai/cli@0.0.23 research project fork SOURCE \
   --to TARGET --resume-through analyze \
   --workspace /absolute/path/to/workspace --json
 ```
@@ -230,7 +241,7 @@ and closure always run again.
 Run one recovered or canary project with an explicit scope:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.21 research run \
+npx --yes @tiangong-ai/cli@0.0.23 research run \
   --project PROJECT --workspace /absolute/path/to/workspace \
   --progress-jsonl --json
 ```
@@ -243,6 +254,12 @@ when the operator intends to schedule and summarize the whole workspace.
 
 Confirm the owning CLI release passed deterministic mock coverage for:
 
+- a clean empty directory, pinned external installer plan, and explicit
+  installed/configured/locked/credential/live statuses;
+- missing external Skills, missing credentials, unavailable provider plans,
+  symlinked or drifting trees, and actionable structured failures;
+- explicit owner-database import, required-discovery receipt enforcement, and
+  local-only production rejection;
 - routing and smoke/production mode boundaries;
 - discover → analyze → synthesize → review → close;
 - permanent evidence and review-packet hash verification;
@@ -254,12 +271,15 @@ Confirm the owning CLI release passed deterministic mock coverage for:
   bounded offset extraction with raw-object reuse;
 - capsule HOME/sandbox startup and evidence/journal recovery;
 - bounded local producer context with full-source reviewer staging;
-- discovery-only tools and tool-free analyze/synthesize/review stages;
+- broker-only discovery with embedded locked Skill documentation and tool-free
+  analyze/synthesize/review stages;
+- a broker result larger than the historical 64 KiB capture floor;
 - capability drift and evidence tampering;
 - insufficient evidence blocking closure;
 - secret redaction across output, provider telemetry, errors, progress,
   journal, and manifests.
 - project-scoped execution in a workspace containing historical blockers.
 
-Only then run a real-model canary with low package reservations. Do not infer
-production readiness from a Crossref-only or single-source smoke test.
+Only then run a bounded real-model canary with reservations that pass preflight.
+Do not infer production readiness from a Crossref-only or single-source smoke
+test.
