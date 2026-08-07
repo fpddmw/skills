@@ -1,4 +1,4 @@
 interface:
   display_name: "Tiangong Auto Research"
-  short_description: "Run production-ready Tiangong research"
-  default_prompt: "Use $tiangong-auto-research to preflight and run a traceable smoke-test or production research workspace."
+  short_description: "Run traceable research with external evidence"
+  default_prompt: "Use $tiangong-auto-research to inspect and configure external evidence Skills, preflight coverage and budget, and run a traceable production research workspace."

@@ -3,11 +3,17 @@
 ## Runtime prerequisites
 
 - Node.js 24.
-- `npx` access to `@tiangong-ai/cli@0.0.21`.
+- `npx` access to `@tiangong-ai/cli@0.0.23`.
+- `git` plus pinned `skills@1.5.22` access for the explicit external-Skill
+  installation plan returned by `research capability catalog`.
 - Authenticated `codex` and `claude` executables, unless absolute binary paths
   are selected in `.tiangong-research/config.json`.
 - macOS with `/usr/bin/sandbox-exec`, or Linux with Bubblewrap available as
   `bwrap`.
+- For the baseline `internet-research` profile, an owner-held Brave Search API
+  key and provider-plan access to Web and News Search. LLM Context, image, and
+  video endpoints require their selected profile and may require additional
+  provider-plan access.
 
 Authenticate the agent CLIs through their standard local login before running a
 project. Capability service credentials use the workspace contract below and
@@ -55,6 +61,12 @@ capability, schema, binary, or wrapper drift. Sanitized provider transport
 diagnostics may appear in doctor details even when the provider subsequently
 falls back and succeeds; use the final check status as the readiness decision.
 
+The outer `sandbox-exec`/Bubblewrap capsule is the execution boundary. Codex is
+started without a nested sandbox because nested macOS Seatbelt can cancel MCP
+calls. This does not grant shell access: discovery has shell, unified-exec,
+filesystem, and undeclared integrations disabled and can call only the scoped
+broker. Analyze, synthesize, and review are tool-free.
+
 ## Capability credentials
 
 The only accepted key in `.tiangong-research/.env` is:
@@ -79,6 +91,21 @@ Requirements:
 
 Do not place agent login tokens, cloud credentials, or unrelated service keys
 in this file.
+
+For a recommended internet profile, configure the shared logical credential
+without putting its value in a command argument:
+
+```bash
+npx --yes @tiangong-ai/cli@0.0.23 research capability credential set \
+  --id brave.search.api-key --from-env BRAVE_SEARCH_API_KEY \
+  --workspace /absolute/path/to/workspace --json
+```
+
+For an owner-whitelisted database, use the logical ID declared in that external
+capability and an explicit owner environment variable, for example
+`--id database.owner-source.api-key --from-env OWNER_DATABASE_API_KEY`. Never
+reuse a browser cookie, Authorization header dump, session token, or agent API
+key as a capability credential.
 
 ## Capability declaration example
 

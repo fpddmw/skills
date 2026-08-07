@@ -78,3 +78,22 @@ npm i skills -g
 
 Environment requirements live with each skill. Before using a skill that calls
 an external service, read that skill's `references/env.md` when present.
+
+## Auto Research External Evidence
+
+`tiangong-auto-research` coordinates external evidence Skills; this repository
+is not itself the production evidence-provider catalog. From the intended
+workspace, inspect the pinned recommendations, installation plan, provider
+requirements, and current status with:
+
+```bash
+npx --yes @tiangong-ai/cli@0.0.23 research capability catalog \
+  --path /absolute/path/to/workspace --json
+```
+
+The default `internet-research` profile requires the external `web-search` and
+`news-search` Skills plus an owner-held Brave Search API key. Enhanced context
+and media profiles are explicit and provider-plan dependent. Owner-authorized
+databases are imported individually from external, immutable Skill definitions.
+See `tiangong-auto-research/references/external-skills.md`; the research runtime
+never installs these dependencies automatically.
