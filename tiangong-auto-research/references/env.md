@@ -3,7 +3,7 @@
 ## Base prerequisites
 
 - Node.js 24, `git`, and `npx` access to
-  `@tiangong-ai/cli@0.0.25` and the exact setup-pinned `skills@1.5.22` package.
+  `@tiangong-ai/cli@0.0.26` and the exact setup-pinned `skills@1.5.22` package.
 - Authenticated `codex` and `claude` executables for the configured producer and
   reviewer routes.
 - macOS `/usr/bin/sandbox-exec` or Linux Bubblewrap (`bwrap`).
@@ -47,7 +47,7 @@ Use the supported command to rotate one selected credential:
 
 ```bash
 export OWNER_NEW_BRAVE_KEY='new owner value'
-npx --yes @tiangong-ai/cli@0.0.25 research setup credential set \
+npx --yes @tiangong-ai/cli@0.0.26 research setup credential set \
   --id brave.search.api-key --from-env OWNER_NEW_BRAVE_KEY \
   --workspace /absolute/path/to/workspace --json
 ```

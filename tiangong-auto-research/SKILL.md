@@ -8,7 +8,7 @@ description: Run or set up smoke-test and production Tiangong research workspace
 Use the exact CLI release for all workspace operations:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.25 research --help
+npx --yes @tiangong-ai/cli@0.0.26 research --help
 ```
 
 The CLI owns the setup catalog, immutable setup plan, capability policy, output
@@ -40,7 +40,7 @@ files by hand.
 Resolve paths to absolute paths, then inspect the directory:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.25 research context inspect \
+npx --yes @tiangong-ai/cli@0.0.26 research context inspect \
   --path /absolute/path/to/workspace --json
 ```
 
@@ -51,9 +51,9 @@ For a clean directory, show the read-only ecosystem catalog and run the guided
 setup only after the user asks to configure it:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.25 research setup catalog \
+npx --yes @tiangong-ai/cli@0.0.26 research setup catalog \
   --workspace /absolute/path/to/workspace --json
-npx --yes @tiangong-ai/cli@0.0.25 research setup \
+npx --yes @tiangong-ai/cli@0.0.26 research setup \
   --workspace /absolute/path/to/workspace --json
 ```
 
@@ -89,13 +89,13 @@ local sources, create an immutable input plan with bounded context files or
 ranges.
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.25 research project preflight \
+npx --yes @tiangong-ai/cli@0.0.26 research project preflight \
   --workspace /absolute/path/to/workspace \
   --question "Research question" \
   --requirements /absolute/path/to/evidence-requirements.json \
   --input-plan /absolute/path/to/input-plan.json --json
 
-npx --yes @tiangong-ai/cli@0.0.25 research project init PROJECT \
+npx --yes @tiangong-ai/cli@0.0.26 research project init PROJECT \
   --workspace /absolute/path/to/workspace \
   --question "Research question" \
   --requirements /absolute/path/to/evidence-requirements.json \
@@ -114,14 +114,14 @@ agent families, a current setup doctor report, and real capsule/provider smoke
 attestations:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.25 research setup doctor \
+npx --yes @tiangong-ai/cli@0.0.26 research setup doctor \
   --workspace /absolute/path/to/workspace --live --json
-npx --yes @tiangong-ai/cli@0.0.25 research workspace doctor \
+npx --yes @tiangong-ai/cli@0.0.26 research workspace doctor \
   --workspace /absolute/path/to/workspace \
   --agent-smoke --capability-smoke --json
-npx --yes @tiangong-ai/cli@0.0.25 research run \
+npx --yes @tiangong-ai/cli@0.0.26 research run \
   --workspace /absolute/path/to/workspace --project PROJECT --dry-run --json
-npx --yes @tiangong-ai/cli@0.0.25 research run \
+npx --yes @tiangong-ai/cli@0.0.26 research run \
   --workspace /absolute/path/to/workspace --project PROJECT \
   --max-cycles 20 --progress-jsonl --json
 ```
