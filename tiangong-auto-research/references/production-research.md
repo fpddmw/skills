@@ -116,9 +116,9 @@ registered for review; it does not expose that entire file to discovery.
 Inspect, but never copy or fork, a current contract with:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.24 research schema show discover --json
-npx --yes @tiangong-ai/cli@0.0.24 research schema show analyze --json
-npx --yes @tiangong-ai/cli@0.0.24 research schema show review --json
+npx --yes @tiangong-ai/cli@0.0.25 research schema show discover --json
+npx --yes @tiangong-ai/cli@0.0.25 research schema show analyze --json
+npx --yes @tiangong-ai/cli@0.0.25 research schema show review --json
 ```
 
 Evidence sources include stable ID/title/locator/provenance, URL or DOI when
@@ -236,9 +236,9 @@ Failures are classified:
 Use an explicit management command instead of editing state:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.24 research project retry PROJECT \
+npx --yes @tiangong-ai/cli@0.0.25 research project retry PROJECT \
   --package PACKAGE --workspace /absolute/path/to/workspace --json
-npx --yes @tiangong-ai/cli@0.0.24 research project fork SOURCE \
+npx --yes @tiangong-ai/cli@0.0.25 research project fork SOURCE \
   --to TARGET --resume-through analyze \
   --workspace /absolute/path/to/workspace --json
 ```
@@ -251,7 +251,7 @@ and closure always run again.
 Run one recovered or canary project with an explicit scope:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.24 research run \
+npx --yes @tiangong-ai/cli@0.0.25 research run \
   --project PROJECT --workspace /absolute/path/to/workspace \
   --progress-jsonl --json
 ```

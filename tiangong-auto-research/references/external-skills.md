@@ -5,7 +5,7 @@ allowed to do, which credentials it needs, and how installation is governed.
 The live machine-readable source of truth is:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.24 research setup catalog \
+npx --yes @tiangong-ai/cli@0.0.25 research setup catalog \
   --workspace /absolute/path/to/workspace --json
 ```
 
@@ -83,11 +83,14 @@ research artifacts:
 | Catalog IDs | Source | License/configuration note |
 | --- | --- | --- |
 | `anthropic.doc-coauthoring` | `anthropics/skills` | No API key. The pinned Skill tree has no per-Skill license file; catalog reports `NOASSERTION`, so the user must review and explicitly accept the notice. |
-| `anthropic.docx`, `anthropic.pdf`, `anthropic.pptx`, `anthropic.xlsx` | `anthropics/skills` | No API key. Source-available Anthropic document terms are not open source; nothing is bundled and installation is opt-in. |
-| `hugohe3.ppt-master` | `hugohe3/ppt-master` | MIT, no API key. Upstream Python requirements contain ranges; setup refuses to resolve/install them until the user creates and reviews an exact isolated lock. |
+| `anthropic.docx`, `anthropic.pdf`, `anthropic.pptx`, `anthropic.xlsx` | `anthropics/skills` | No API key. Source-available Anthropic document terms are not open source; nothing is bundled and installation is opt-in. Use `anthropic.pptx` when its reading, editing, or alternative authoring workflow better fits the task. |
+| `hugohe3.ppt-master` | `hugohe3/ppt-master` | Preferred for creating PPT presentations. MIT, no API key. Upstream Python requirements contain ranges; setup refuses to resolve/install them until the user creates and reviews an exact isolated lock. |
 
-`anthropic.pptx` and `hugohe3.ppt-master` are mutually exclusive in one setup
-plan to avoid ambiguous presentation routing. Choose one or use separate plans.
+`anthropic.pptx` and `hugohe3.ppt-master` are compatible selections and may be
+installed by the same explicit setup plan. This is a task preference, not an
+installation conflict: default to PPT Master when creating a PPT, then use
+Anthropic PPTX or another selected authoring Skill when the concrete task makes
+that workflow a better fit. Setup does not auto-select either Skill.
 
 ## Credential and setting matrix
 
