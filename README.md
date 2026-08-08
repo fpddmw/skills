@@ -13,8 +13,8 @@ checkPaths:
   - README.zh-CN.md
   - .claude-plugin/**
   - "*/SKILL.md"
-lastReviewedAt: 2026-08-06
-lastReviewedCommit: 0d660c7401e5e307f742571dda7854500b38d9af
+lastReviewedAt: 2026-08-08
+lastReviewedCommit: 0eaad7bb9de299eb74b28cd667ded7bd17f6ba6b
 ---
 
 # Tiangong AI Skills
@@ -79,21 +79,23 @@ npm i skills -g
 Environment requirements live with each skill. Before using a skill that calls
 an external service, read that skill's `references/env.md` when present.
 
-## Auto Research External Evidence
+## Auto Research External Skill Setup
 
-`tiangong-auto-research` coordinates external evidence Skills; this repository
-is not itself the production evidence-provider catalog. From the intended
-workspace, inspect the pinned recommendations, installation plan, provider
-requirements, and current status with:
+Use `npx skills` directly for ordinary Skill management. For an Auto Research
+workspace, prefer the CLI's guarded setup layer: it still uses the exact pinned
+`skills` CLI underneath, while also binding source commits, tree hashes,
+destinations, license choices, credential names, and audit state. Start with the
+read-only catalog or the guided Wizard:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.23 research capability catalog \
-  --path /absolute/path/to/workspace --json
+npx --yes @tiangong-ai/cli@0.0.24 research setup catalog \
+  --workspace /absolute/path/to/workspace --json
+npx --yes @tiangong-ai/cli@0.0.24 research setup \
+  --workspace /absolute/path/to/workspace --json
 ```
 
-The default `internet-research` profile requires the external `web-search` and
-`news-search` Skills plus an owner-held Brave Search API key. Enhanced context
-and media profiles are explicit and provider-plan dependent. Owner-authorized
-databases are imported individually from external, immutable Skill definitions.
-See `tiangong-auto-research/references/external-skills.md`; the research runtime
-never installs these dependencies automatically.
+The catalog includes Brave internet evidence, optional Tiangong SCI/document/
+paper companions, and optional Anthropic or PPT Master post-closure authoring
+Skills. Every entry is external, separately licensed, pinned, and user-selected;
+nothing is bundled or installed by a research package. See
+`tiangong-auto-research/references/setup.md` and `external-skills.md`.

@@ -13,8 +13,8 @@ checkPaths:
   - README.md
   - .claude-plugin/**
   - "*/SKILL.md"
-lastReviewedAt: 2026-08-06
-lastReviewedCommit: 0d660c7401e5e307f742571dda7854500b38d9af
+lastReviewedAt: 2026-08-08
+lastReviewedCommit: 0eaad7bb9de299eb74b28cd667ded7bd17f6ba6b
 ---
 
 # 天工 AI Skills
@@ -79,19 +79,21 @@ npm i skills -g
 环境变量要求由各 skill 自己维护。使用会调用外部服务的 skill 前，优先阅读该
 skill 的 `references/env.md`（如存在）。
 
-## Auto Research 外部证据能力
+## Auto Research 外部 Skill 配置
 
-`tiangong-auto-research` 负责协调外生的证据 Skills；本仓库本身不是生产研究的
-证据提供者目录。在目标 workspace 中，用以下命令查看精确锁定的推荐项、安装
-计划、服务商要求和当前状态：
+普通 Skill 管理可以直接使用 `npx skills`。Auto Research workspace 应优先使用
+CLI 的防呆 setup 层：底层仍调用精确锁定的 `skills` CLI，同时额外绑定来源
+commit、Skill tree hash、目标目录、许可证选择、凭据名称和审计状态。先查看只读
+目录，或启动交互式 Wizard：
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.23 research capability catalog \
-  --path /absolute/path/to/workspace --json
+npx --yes @tiangong-ai/cli@0.0.24 research setup catalog \
+  --workspace /absolute/path/to/workspace --json
+npx --yes @tiangong-ai/cli@0.0.24 research setup \
+  --workspace /absolute/path/to/workspace --json
 ```
 
-默认 `internet-research` profile 需要外部 `web-search`、`news-search` Skills，
-以及用户持有的 Brave Search API key。增强上下文和媒体 profile 必须显式选择，
-并受服务商套餐约束。用户有权访问的数据库通过外部、不可变的 Skill 定义逐个
-导入。完整流程见 `tiangong-auto-research/references/external-skills.md`；研究
-runtime 不会自动安装这些依赖。
+目录包含 Brave 互联网证据能力、可选的 Tiangong SCI/文档解析/论文获取 companion，
+以及可选的 Anthropic 或 PPT Master 闭环后创作 Skills。所有条目都是外生、独立
+授权、精确锁定且由用户选择；研究 package 不会捆绑或安装它们。完整流程见
+`tiangong-auto-research/references/setup.md` 和 `external-skills.md`。

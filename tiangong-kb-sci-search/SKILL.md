@@ -1,33 +1,44 @@
 ---
 name: tiangong-kb-sci-search
-description: "Search Tiangong knowledge-base SCI sources through the Tiangong AI CLI. Use for academic papers, scientific journal evidence, literature support, and research claims. This skill searches only the sci source, not report or patent."
+description: Search the owner-authorized Tiangong knowledge-base SCI source for academic papers, journal evidence, literature support, and research claims. Use directly through the Tiangong CLI wrapper, or as a locked JSON POST evidence capability in Tiangong Auto Research. Searches only `sci`, never report or patent sources.
 ---
 
 # Tiangong KB SCI Search
 
-Use this skill for Tiangong SCI-source retrieval. It is intentionally
-single-source: always search `sci`, never `all`, `report`, or `patent`.
+This Skill is deliberately single-source. Search `sci` only; never broaden to
+`all`, `report`, or `patent`. Access requires the deployment owner's normal key
+and entitlement. Stop on authentication, authorization, subscription, VPN, or
+service failure; do not try to bypass it.
 
-## Prerequisites
+## Choose the execution mode
 
-- The wrapper defaults to `npx @tiangong-ai/cli@0.0.19`; users do not need a
-  preinstalled CLI. Set `TIANGONG_AI_CLI` or `TIANGONG_AI_CLI_BIN` only to
-  override the CLI entrypoint.
-- Set the authentication environment variables expected by `tiangong-ai`, or
-  pass `api_key` / `sci_api_key` to the wrapper script.
-- When `request_file` / `input_file` is provided, the wrapper loads `.env` from
-  that file's directory by default. `env_file` can point to a different dotenv
-  file. Loaded dotenv values only fill unset environment variables; explicit
-  JSON fields such as `api_key`, `sci_api_key`, and `api_base_url` are passed as
-  CLI flags and take precedence.
-- Optionally set `TIANGONG_AI_API_BASE_URL`; the CLI accepts a Supabase project
-  root, `/functions/v1`, or `/rest/v1` and derives Functions URLs.
+- For a direct standalone search, use `scripts/sci_search.sh` as described
+  below.
+- Inside a Tiangong Auto Research discovery package, do **not** execute this
+  script or its CLI/curl examples. Use locked capability ID
+  `database.tiangong.sci-search` through `fetch_candidate_source`. The broker
+  owns the exact POST method, endpoint, region header, credential injection,
+  response bounds, sanitization, and permanent evidence receipt.
 
-## Search
+## Direct-search prerequisites
 
-For normal searches, pass a query:
+- The wrapper defaults to
+  `npx --yes @tiangong-ai/cli@0.0.24`. Set `TIANGONG_AI_CLI_BIN` to one exact
+  executable path, or `TIANGONG_AI_CLI` to an explicitly reviewed command, only
+  when overriding it intentionally.
+- Put the source-specific key in `TIANGONG_SCI_APIKEY`, or use
+  `TIANGONG_AI_APIKEY` as the common fallback. Credentials are never accepted in
+  wrapper JSON, a request file, or CLI arguments.
+- `jq` is required by the wrapper.
+- Optional endpoint variables are `TIANGONG_SCI_SEARCH_URL`,
+  `TIANGONG_RESEARCH_API_BASE_URL`, `TIANGONG_AI_SEARCH_API_BASE_URL`, or
+  `TIANGONG_AI_API_BASE_URL`; `TIANGONG_REGION` and
+  `TIANGONG_RESEARCH_TIMEOUT` are also supported.
+
+## Direct query
 
 ```bash
+export TIANGONG_SCI_APIKEY='owner-authorized key'
 ./scripts/sci_search.sh '{
   "query": "mechanical recycling reduces lifecycle emissions",
   "top_k": 5,
@@ -35,26 +46,21 @@ For normal searches, pass a query:
 }'
 ```
 
-The script calls:
+The wrapper invokes the pinned CLI equivalent of:
 
 ```bash
-npx @tiangong-ai/cli@0.0.19 research search --query <query> --sources sci --json
+npx --yes @tiangong-ai/cli@0.0.24 research search \
+  --query <query> --sources sci --json
 ```
 
-For exact edge-function payloads, provide `request_file` or `input_file`:
+To write a result, pass one explicit output path as the second argument. The
+wrapper writes a unique temporary file and renames it only after the CLI exits
+successfully; it never reports success based on file existence alone.
 
-```bash
-./scripts/sci_search.sh '{
-  "request_file": "./sci-request.json",
-  "dry_run": true
-}'
-```
+## Exact request payload
 
-## Raw Payload Filters
-
-Wrapper JSON can include inline raw `sci_search` fields; the wrapper will
-forward them through the CLI `--input` path. The same payload can also be put in
-`request_file` / `input_file`:
+Inline supported edge-function fields are converted to a temporary request
+file:
 
 ```json
 {
@@ -71,24 +77,65 @@ forward them through the CLI `--input` path. The same payload can also be put in
 }
 ```
 
-- `filter`: metadata term filters, shaped as `{ "field": ["value"] }`.
-- `datefilter`: numeric range filters, shaped as
-  `{ "field": { "gte"?: number, "lte"?: number } }`, for indexed numeric/date
-  metadata fields.
-- `getMeta`: when true, returns paper metadata for matched DOI records.
-- `topK`, `extK`: raw edge-function names for result count and adjacent chunk
-  expansion.
+Or reference an existing regular non-symlink JSON file:
 
-## Input Fields
+```bash
+./scripts/sci_search.sh '{
+  "request_file": "/absolute/path/to/sci-request.json",
+  "dry_run": true
+}'
+```
 
-- `query`, `input`, or `claim`: convenience query text.
-- `request_file` or `input_file`: JSON body forwarded unchanged.
-- `env_file`: optional dotenv file. Without it, `request_file` /
-  `input_file` causes the wrapper to load `.env` from that file's directory.
-- `filter`, `datefilter`, `topK`, `extK`, `getMeta`: optional inline raw
-  payload fields for SCI search.
-- `sources`: optional compatibility field; only `sci` or `default` is accepted.
-- `dry_run`: true to return the exact request plan with masked credentials.
-- `api_base_url`, `api_key`, `sci_api_key`.
-- `sci_url`, `region`, `timeout`.
-- `top_k`, `ext_k`, `get_meta`: only used in query mode.
+`filter` accepts metadata term arrays. `datefilter` accepts numeric `gte`/`lte`
+ranges. `topK`, `extK`, and `getMeta` are the raw service names; `top_k`,
+`ext_k`, and `get_meta` are convenience query-mode names.
+
+## Optional dotenv loading
+
+An explicit `env_file` must exist, be a regular non-symlink file, and have
+owner-only permissions (`chmod 600`). If `request_file` is supplied without an
+explicit env file, a same-directory `.env` is loaded only when it exists and
+passes the same checks. Existing process variables win.
+
+The parser does not execute shell syntax and loads only documented Tiangong
+key, endpoint, region, and timeout names. All other keys are ignored. Never put
+an agent key, browser cookie, Authorization header, session token, proxy
+password, or unrelated secret in this file.
+
+## Accepted wrapper fields
+
+- `query`, `input`, or `claim`;
+- `request_file` or `input_file`;
+- `env_file`;
+- `filter`, `datefilter`, `topK`, `extK`, `getMeta`;
+- `top_k`, `ext_k`, `get_meta` in query mode;
+- `sources`, only `sci` or `default`;
+- `api_base_url`, `sci_url`, `region`, `timeout` as non-secret routing values;
+- `dry_run`.
+
+Any key that looks like an API key, token, Authorization, Cookie, password,
+credential, secret, or session is rejected recursively before the CLI starts.
+The wrapper does not echo rejected values or failed command stdout.
+
+## Auto Research broker call
+
+After `research setup` has selected and configured this Skill, discovery uses:
+
+```json
+{
+  "capability_id": "database.tiangong.sci-search",
+  "url": "<the exact manifest endpoint>",
+  "request_body": {
+    "query": "research claim",
+    "topK": 5,
+    "getMeta": true
+  }
+}
+```
+
+Use only documented non-secret request fields. Never add the API key, headers,
+cookies, endpoint override, or token to `request_body`. The broker injects the
+logical `tiangong.sci.api-key` as `x-api-key`, sends the locked `x-region`,
+refuses POST redirects, and records only the request-body SHA-256 outside the
+permanent raw response object. This database supplements but does not replace
+Auto Research's independent public-internet evidence requirement.
