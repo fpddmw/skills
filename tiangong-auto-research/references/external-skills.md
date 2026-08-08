@@ -5,7 +5,7 @@ allowed to do, which credentials it needs, and how installation is governed.
 The live machine-readable source of truth is:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.25 research setup catalog \
+npx --yes @tiangong-ai/cli@0.0.26 research setup catalog \
   --workspace /absolute/path/to/workspace --json
 ```
 

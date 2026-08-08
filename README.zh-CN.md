@@ -91,10 +91,10 @@ commit、Skill tree hash、目标目录、许可证选择、凭据名称和审�
 目录，或启动交互式 Wizard：
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.25 research setup catalog \
+npx --yes @tiangong-ai/cli@0.0.26 research setup catalog \
   --workspace /absolute/path/to/workspace --json
-npx --yes @tiangong-ai/cli@0.0.25 research setup \
-  --workspace /absolute/path/to/workspace --json
+npx --yes @tiangong-ai/cli@0.0.26 research setup \
+  --workspace /absolute/path/to/workspace
 ```
 
 目录包含 Brave 互联网证据能力、可选的 Tiangong SCI/文档解析/论文获取 companion，

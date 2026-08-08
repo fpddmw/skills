@@ -93,10 +93,10 @@ destinations, license choices, credential names, and audit state. Start with the
 read-only catalog or the guided Wizard:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.25 research setup catalog \
+npx --yes @tiangong-ai/cli@0.0.26 research setup catalog \
   --workspace /absolute/path/to/workspace --json
-npx --yes @tiangong-ai/cli@0.0.25 research setup \
-  --workspace /absolute/path/to/workspace --json
+npx --yes @tiangong-ai/cli@0.0.26 research setup \
+  --workspace /absolute/path/to/workspace
 ```
 
 The catalog includes Brave internet evidence, optional Tiangong SCI/document/

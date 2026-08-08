@@ -15,7 +15,7 @@ checkPaths:
   - .docpact/config.yaml
   - "*/SKILL.md"
 lastReviewedAt: 2026-08-08
-lastReviewedCommit: c371dbc464dc51ac1d8b0d0d59b318942418cc7b
+lastReviewedCommit: d4a1ddfae7f956468c678a09e5a83ef5c9428650
 ---
 
 # Skills Repository Contract
