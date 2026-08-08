@@ -93,9 +93,9 @@ destinations, license choices, credential names, and audit state. Start with the
 read-only catalog or the guided Wizard:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.24 research setup catalog \
+npx --yes @tiangong-ai/cli@0.0.25 research setup catalog \
   --workspace /absolute/path/to/workspace --json
-npx --yes @tiangong-ai/cli@0.0.24 research setup \
+npx --yes @tiangong-ai/cli@0.0.25 research setup \
   --workspace /absolute/path/to/workspace --json
 ```
 
@@ -104,3 +104,5 @@ paper companions, and optional Anthropic or PPT Master post-closure authoring
 Skills. Every entry is external, separately licensed, pinned, and user-selected;
 nothing is bundled or installed by a research package. See
 `tiangong-auto-research/references/setup.md` and `external-skills.md`.
+For PPT creation, prefer PPT Master; Anthropic PPTX remains compatible and may
+be selected alongside it when its workflow fits the task.

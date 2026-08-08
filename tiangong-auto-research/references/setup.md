@@ -44,8 +44,8 @@ export UNSTRUCTURED_AUTH_TOKEN='owner Unstructure bearer token'
 # Optional; academic-paper-download can use Semantic Scholar anonymously.
 export SEMANTIC_SCHOLAR_API_KEY='optional Semantic Scholar key'
 
-npx --yes @tiangong-ai/cli@0.0.24 --version
-npx --yes @tiangong-ai/cli@0.0.24 research setup \
+npx --yes @tiangong-ai/cli@0.0.25 --version
+npx --yes @tiangong-ai/cli@0.0.25 research setup \
   --workspace /absolute/path/to/research-workspace --json
 ```
 
@@ -55,7 +55,9 @@ user through:
 
 - smoke-test versus production mode;
 - public-internet profile;
-- optional Tiangong companions and post-closure authoring Skills;
+- optional Tiangong companions and post-closure authoring Skills; for PPT
+  creation it presents PPT Master as preferred while keeping Anthropic PPTX as
+  a compatible situational choice;
 - Codex/Claude install targets and project/global scope;
 - non-secret endpoints/settings;
 - credential environment names;
@@ -75,7 +77,7 @@ recreate the plan merely to bypass preflight.
 The catalog command never creates workspace files:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.24 research setup catalog \
+npx --yes @tiangong-ai/cli@0.0.25 research setup catalog \
   --workspace /absolute/path/to/research-workspace \
   --scope project --agents codex --json
 ```
@@ -93,7 +95,7 @@ environment variable names, not values:
 Create and review a minimal production plan, then apply its exact path:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.24 research setup plan \
+npx --yes @tiangong-ai/cli@0.0.25 research setup plan \
   --workspace /absolute/path/to/research-workspace \
   --mode production-research \
   --evidence-profile brave-context \
@@ -102,7 +104,7 @@ npx --yes @tiangong-ai/cli@0.0.24 research setup plan \
   --accept-license brave-search-skills:MIT \
   --confirm-network-downloads --json
 
-npx --yes @tiangong-ai/cli@0.0.24 research setup apply \
+npx --yes @tiangong-ai/cli@0.0.25 research setup apply \
   --plan /absolute/path/to/research-workspace/.tiangong-research/setup-plan.json \
   --json
 ```
@@ -114,9 +116,9 @@ document; the CLI catalog is authoritative.
 ## Status, doctor, and recovery
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.24 research setup status \
+npx --yes @tiangong-ai/cli@0.0.25 research setup status \
   --workspace /absolute/path/to/research-workspace --json
-npx --yes @tiangong-ai/cli@0.0.24 research setup doctor \
+npx --yes @tiangong-ai/cli@0.0.25 research setup doctor \
   --workspace /absolute/path/to/research-workspace --json
 ```
 
@@ -135,7 +137,7 @@ Do not delete plan/state/source-cache directories or overwrite installed trees.
 `update --check` is read-only. The currently installed generation stays pinned:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.24 research setup update --check \
+npx --yes @tiangong-ai/cli@0.0.25 research setup update --check \
   --workspace /absolute/path/to/research-workspace --json
 ```
 
@@ -143,7 +145,7 @@ An upgrade is a new immutable plan, never an in-place floating update. Review
 new licenses and pins, then apply the newly generated plan:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.24 research setup upgrade \
+npx --yes @tiangong-ai/cli@0.0.25 research setup upgrade \
   --plan --confirm-upgrade \
   --accept-license <every-selected-current-license-id> \
   --workspace /absolute/path/to/research-workspace --json
@@ -159,7 +161,7 @@ environment and verified Skill tree. Document output uses a unique temporary
 file and a no-overwrite atomic commit:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.24 research setup companion run \
+npx --yes @tiangong-ai/cli@0.0.25 research setup companion run \
   --id tiangong.document-granular-decompose \
   --input /absolute/path/to/source.pdf \
   --output /absolute/path/to/source.fulltext.md \
@@ -171,7 +173,7 @@ chooses the newest PDF in a directory:
 
 ```bash
 mkdir -p /absolute/path/to/papers
-npx --yes @tiangong-ai/cli@0.0.24 research setup companion run \
+npx --yes @tiangong-ai/cli@0.0.25 research setup companion run \
   --id tiangong.academic-paper-download \
   --doi 10.1234/example --out /absolute/path/to/papers \
   --workspace /absolute/path/to/research-workspace --json
