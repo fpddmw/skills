@@ -116,9 +116,9 @@ registered for review; it does not expose that entire file to discovery.
 Inspect, but never copy or fork, a current contract with:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.23 research schema show discover --json
-npx --yes @tiangong-ai/cli@0.0.23 research schema show analyze --json
-npx --yes @tiangong-ai/cli@0.0.23 research schema show review --json
+npx --yes @tiangong-ai/cli@0.0.24 research schema show discover --json
+npx --yes @tiangong-ai/cli@0.0.24 research schema show analyze --json
+npx --yes @tiangong-ai/cli@0.0.24 research schema show review --json
 ```
 
 Evidence sources include stable ID/title/locator/provenance, URL or DOI when
@@ -145,8 +145,11 @@ A `brokered-network` capability has exact hosts plus an HTTP policy:
   "permissions": ["project-read", "candidate-write", "brokered-network"],
   "allowedHosts": ["api.example.org"],
   "http": {
+    "method": "GET",
     "accept": "application/json",
     "allowedContentTypes": ["application/json"],
+    "staticHeaders": {},
+    "maxRequestBytes": 0,
     "maxResponseBytes": 524288,
     "maxItems": 100
   },
@@ -192,6 +195,13 @@ screens credential-like response material, and rejects undeclared content
 types or oversized bodies. Non-2xx results include only status, a sanitized
 short response, safe request ID, and parsed `Retry-After`.
 
+Capabilities may instead declare bounded JSON `POST`, an exact safe static
+header map, and a positive `maxRequestBytes`. Discovery then supplies only the
+documented non-secret `request_body`; credential-like keys are rejected, the
+credential is injected by the broker, POST redirects are refused, and the
+journal/cache metadata records only the canonical body SHA-256 rather than the
+body. GET remains the default for existing imported definitions.
+
 ## Coverage, retry, and recovery
 
 Discovery output is promoted for diagnosis, then checked mechanically. The CLI
@@ -226,9 +236,9 @@ Failures are classified:
 Use an explicit management command instead of editing state:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.23 research project retry PROJECT \
+npx --yes @tiangong-ai/cli@0.0.24 research project retry PROJECT \
   --package PACKAGE --workspace /absolute/path/to/workspace --json
-npx --yes @tiangong-ai/cli@0.0.23 research project fork SOURCE \
+npx --yes @tiangong-ai/cli@0.0.24 research project fork SOURCE \
   --to TARGET --resume-through analyze \
   --workspace /absolute/path/to/workspace --json
 ```
@@ -241,7 +251,7 @@ and closure always run again.
 Run one recovered or canary project with an explicit scope:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.23 research run \
+npx --yes @tiangong-ai/cli@0.0.24 research run \
   --project PROJECT --workspace /absolute/path/to/workspace \
   --progress-jsonl --json
 ```
