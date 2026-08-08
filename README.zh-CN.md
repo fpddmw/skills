@@ -14,7 +14,7 @@ checkPaths:
   - .claude-plugin/**
   - "*/SKILL.md"
 lastReviewedAt: 2026-08-08
-lastReviewedCommit: 0eaad7bb9de299eb74b28cd667ded7bd17f6ba6b
+lastReviewedCommit: 1fa6b9101c6421de2c0f157217988f31d1352da5
 ---
 
 # 天工 AI Skills
@@ -52,8 +52,12 @@ npm i skills -g
   npx skills add https://github.com/tiangong-ai/skills -g
   ```
 - 作用域说明:
-  - 项目级安装到 `./<agent>/skills/`.
-  - 全局安装到 `~/<agent>/skills/`.
+  - Codex 是 universal agent：项目级使用 `./.agents/skills`，全局使用
+    `$HOME/.agents/skills`；`CODEX_HOME` 不会改变 `skills@1.5.22` 的全局目标。
+  - Claude Code 项目级使用 `./.claude/skills`；全局优先使用
+    `$CLAUDE_CONFIG_DIR/skills`，否则使用 `$HOME/.claude/skills`。
+  - 其他 agent 有各自目录；应查看精确锁定的 `skills` CLI 返回路径，不要按
+    `~/<agent>/skills` 类推。
 
 ## 安装方式
 - 交互式安装可选:

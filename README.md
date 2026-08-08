@@ -14,7 +14,7 @@ checkPaths:
   - .claude-plugin/**
   - "*/SKILL.md"
 lastReviewedAt: 2026-08-08
-lastReviewedCommit: 0eaad7bb9de299eb74b28cd667ded7bd17f6ba6b
+lastReviewedCommit: 1fa6b9101c6421de2c0f157217988f31d1352da5
 ---
 
 # Tiangong AI Skills
@@ -52,8 +52,13 @@ npm i skills -g
   npx skills add https://github.com/tiangong-ai/skills -g
   ```
 - Scope notes:
-  - Project scope installs into `./<agent>/skills/`.
-  - Global scope installs into `~/<agent>/skills/`.
+  - Codex is a universal agent: project scope uses `./.agents/skills`, and
+    global scope uses `$HOME/.agents/skills`. `CODEX_HOME` does not change the
+    `skills@1.5.22` global destination.
+  - Claude Code project scope uses `./.claude/skills`; global scope uses
+    `$CLAUDE_CONFIG_DIR/skills` when set, otherwise `$HOME/.claude/skills`.
+  - Other agents have their own directories; inspect the exact path reported by
+    the pinned `skills` CLI rather than deriving `~/<agent>/skills` by analogy.
 
 ## Install method
 - Interactive installs let you choose:
