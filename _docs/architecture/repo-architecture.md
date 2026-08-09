@@ -14,7 +14,7 @@ checkPaths:
   - .claude-plugin/**
   - "*/SKILL.md"
 lastReviewedAt: 2026-08-09
-lastReviewedCommit: cb50e5c352fee5349e29a9d08b81a7bc05644452
+lastReviewedCommit: ca8ed0942820edc590700100ab4f0e41c166fec3
 ---
 
 # Skills Repository Architecture

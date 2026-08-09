@@ -1,4 +1,4 @@
 interface:
   display_name: "Tiangong KB SCI Search"
-  short_description: "Search an authorized Tiangong SCI database"
-  default_prompt: "Use $tiangong-kb-sci-search to search only the owner-authorized Tiangong SCI source without exposing credentials."
+  short_description: "Run one isolated authorized SCI search"
+  default_prompt: "Use $tiangong-kb-sci-search only for one explicitly isolated owner-authorized SCI query; route systematic work in an Auto Research workspace through $tiangong-auto-research and its broker."

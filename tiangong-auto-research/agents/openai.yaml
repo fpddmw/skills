@@ -1,4 +1,4 @@
 interface:
   display_name: "Tiangong Auto Research"
-  short_description: "Set up and run auditable internet research"
-  default_prompt: "Use $tiangong-auto-research to set up or run a traceable research workspace in my selected directory, verify external evidence coverage and budget, and stop on any unmet production gate."
+  short_description: "Orchestrate reviewed multi-source research"
+  default_prompt: "Use $tiangong-auto-research for this open-ended or multi-source research task, resolve the exact CLI from the workspace runtime lock, verify required capabilities and budget, and stop on every unmet production gate."

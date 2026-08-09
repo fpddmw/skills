@@ -5,7 +5,9 @@ allowed to do, which credentials it needs, and how installation is governed.
 The live machine-readable source of truth is:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.28 research setup catalog \
+AUTO_RESEARCH_CLI=/absolute/path/to/installed/tiangong-auto-research/scripts/research_cli.mjs
+node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
+  research setup catalog \
   --workspace /absolute/path/to/workspace --json
 ```
 

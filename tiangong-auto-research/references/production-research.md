@@ -4,6 +4,12 @@ Load this reference for production initialization, a resumed/blocked project,
 broker configuration, or recovery. The CLI remains authoritative when this
 reference and runtime output differ.
 
+Resolve every command through the existing workspace lock:
+
+```bash
+AUTO_RESEARCH_CLI=/absolute/path/to/installed/tiangong-auto-research/scripts/research_cli.mjs
+```
+
 ## Production admission checklist
 
 Start from the user-selected workspace's current immutable setup generation.
@@ -16,7 +22,8 @@ must leave setup `BLOCKED`.
 Before `project init`, record and show the user:
 
 1. The research question and evidence dimensions.
-2. Required source types, minimum sources, minimum full-text sources, and any
+2. Required source types, exact capability IDs and discovery scopes that must
+   be exercised, minimum sources, minimum full-text sources, and any
    date/applicability boundaries.
 3. Available immutable inputs and locked capabilities that can satisfy each
    requirement, including the selected external internet profile and every
@@ -137,9 +144,12 @@ registered for review; it does not expose that entire file to discovery.
 Inspect, but never copy or fork, a current contract with:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.28 research schema show discover --json
-npx --yes @tiangong-ai/cli@0.0.28 research schema show analyze --json
-npx --yes @tiangong-ai/cli@0.0.28 research schema show review --json
+node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
+  research schema show discover --json
+node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
+  research schema show analyze --json
+node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
+  research schema show review --json
 ```
 
 Evidence sources include stable ID/title/locator/provenance, URL or DOI when
@@ -284,9 +294,11 @@ Failures are classified:
 Use an explicit management command instead of editing state:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.28 research project retry PROJECT \
+node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
+  research project retry PROJECT \
   --package PACKAGE --workspace /absolute/path/to/workspace --json
-npx --yes @tiangong-ai/cli@0.0.28 research project fork SOURCE \
+node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
+  research project fork SOURCE \
   --to TARGET --resume-through analyze \
   --workspace /absolute/path/to/workspace --json
 ```
@@ -299,7 +311,8 @@ and closure always run again.
 Run one recovered or canary project with an explicit scope:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.28 research run \
+node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
+  research run \
   --project PROJECT --workspace /absolute/path/to/workspace \
   --progress-jsonl --json
 ```

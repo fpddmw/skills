@@ -1,4 +1,4 @@
 interface:
   display_name: "Tiangong KB Report Search"
-  short_description: "Search only Tiangong KB report sources via CLI"
-  default_prompt: "Use $tiangong-kb-report-search to search Tiangong KB report sources only."
+  short_description: "Run one isolated authorized report search"
+  default_prompt: "Use $tiangong-kb-report-search only for one explicitly isolated owner-authorized report query; route systematic work in an Auto Research workspace through $tiangong-auto-research and its broker."
