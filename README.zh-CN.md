@@ -14,7 +14,7 @@ checkPaths:
   - .claude-plugin/**
   - "*/SKILL.md"
 lastReviewedAt: 2026-08-09
-lastReviewedCommit: 3dbc264d97573060b5c2e5fa08a4ab8242db87dc
+lastReviewedCommit: cb50e5c352fee5349e29a9d08b81a7bc05644452
 ---
 
 # 天工 AI Skills
@@ -87,8 +87,9 @@ skill 的 `references/env.md`（如存在）。
 
 普通 Skill 管理可以直接使用 `npx skills`。Auto Research workspace 应优先使用
 CLI 的防呆 setup 层：底层仍调用精确锁定的 `skills` CLI，同时额外绑定来源
-commit、Skill tree hash、目标目录、许可证选择、凭据名称和审计状态。先查看只读
-目录，或启动交互式 Wizard：
+commit、Skill tree hash、目标目录、许可证选择、安全凭据绑定和审计状态。普通用户
+可在 Wizard 中隐藏输入每个已选 Key；命名环境变量和有界 stdin/密码管理器输入仍是
+显式可选方式。先查看只读目录，或启动交互式 Wizard：
 
 ```bash
 npx --yes @tiangong-ai/cli@0.0.28 research setup catalog \

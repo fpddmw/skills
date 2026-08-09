@@ -62,10 +62,13 @@ npx --yes @tiangong-ai/cli@0.0.28 research setup \
 The user must explicitly confirm the recommended project-local
 `tiangong-auto-research` orchestrator and every external source, then accept its
 pinned license. The Wizard defaults evidence to Brave web/news; context and
-media remain visibly subscription-dependent choices. It may create a plan
-without applying it. Never silently install a Skill, write globally, substitute
-a provider, downgrade a profile, or accept a license. Missing required
-credentials must block before any source download.
+media remain visibly subscription-dependent choices. For each selected
+credential it offers hidden input, an owner environment variable, preloaded
+stdin/password-manager input, or an explicit skip; read
+[references/env.md](references/env.md) for the exact safe paths. It may create a
+plan without applying it. Never silently install a Skill, write globally,
+substitute a provider, downgrade a profile, or accept a license. Missing
+required credentials must block before any source download.
 
 ## Preserve execution boundaries
 

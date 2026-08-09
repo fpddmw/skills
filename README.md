@@ -14,7 +14,7 @@ checkPaths:
   - .claude-plugin/**
   - "*/SKILL.md"
 lastReviewedAt: 2026-08-09
-lastReviewedCommit: 3dbc264d97573060b5c2e5fa08a4ab8242db87dc
+lastReviewedCommit: cb50e5c352fee5349e29a9d08b81a7bc05644452
 ---
 
 # Tiangong AI Skills
@@ -89,8 +89,10 @@ an external service, read that skill's `references/env.md` when present.
 Use `npx skills` directly for ordinary Skill management. For an Auto Research
 workspace, prefer the CLI's guarded setup layer: it still uses the exact pinned
 `skills` CLI underneath, while also binding source commits, tree hashes,
-destinations, license choices, credential names, and audit state. Start with the
-read-only catalog or the guided Wizard:
+destinations, license choices, safe credential bindings, and audit state. The
+Wizard lets ordinary users enter each selected key with hidden TTY input; named
+environment variables and bounded stdin/password-manager input remain explicit
+alternatives. Start with the read-only catalog or the guided Wizard:
 
 ```bash
 npx --yes @tiangong-ai/cli@0.0.28 research setup catalog \
