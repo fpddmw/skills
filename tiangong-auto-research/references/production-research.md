@@ -6,6 +6,13 @@ reference and runtime output differ.
 
 ## Production admission checklist
 
+Start from the user-selected workspace's current immutable setup generation.
+Run `research setup status`, then one explicitly cost-confirmed
+`research setup doctor --live --agent-smoke --confirm-agent-smoke-cost` before
+project preflight. That command performs the nested capability and agent capsule
+smokes; do not repeat paid smokes without a reason. Any requested smoke failure
+must leave setup `BLOCKED`.
+
 Before `project init`, record and show the user:
 
 1. The research question and evidence dimensions.
@@ -35,7 +42,16 @@ reported version, actual/configured model, OS, and architecture.
 `workspace doctor --agent-smoke` executes both routes in real capsules and
 writes a 24-hour attestation bound to those runtime fingerprints, workspace
 config, capability lock, and doctor schema. Expiry or drift blocks execution
-before the next agent invocation.
+before the next agent invocation. During that validity window, plain
+`workspace doctor` rechecks all bound hashes and fingerprints the currently
+resolved producer/reviewer runtimes before reusing the attested agent and
+capability smoke results. Use explicit smoke flags to refresh the checks;
+missing, expired, or drifted attestations never receive an implicit pass.
+
+Within one package, a formatting repair may reuse the capsule-local agent auth
+copy only when it remains a regular owner-only file whose SHA-256 matches the
+owner source. Authentication drift stops the package; setup/runtime never
+overwrite the capsule copy or silently choose another credential.
 
 The budget includes:
 
@@ -43,13 +59,14 @@ The budget includes:
 - a token reservation for every agent stage;
 - maximum structured-output and repair tokens;
 - output file count/bytes and attempts;
-- broker response bytes, context items, and estimated context tokens;
+- broker calls, response bytes, context items, and estimated context tokens;
 - the cost-confirmation threshold.
 
-New workspaces default to 500,000 total tokens, with 200,000 reserved as the
-discovery package ceiling; analyze, synthesize, and review default to 55,000,
-60,000, and 120,000. These values are admission ceilings, not a target spend.
-Lower them only when preflight proves every complete reservation still fits.
+New workspaces default to 550,000 total tokens, with 230,000 reserved as the
+discovery package ceiling; analyze, synthesize, and review default to 60,000,
+70,000, and 175,000. Primary output is bounded at 6,000 tokens and repair at
+4,000. These values are admission ceilings, not a target spend. Lower them only
+when preflight proves every complete reservation still fits.
 
 The CLI will not start a package unless its full token and conservative price
 reservation fits. Immediately before each call it accounts for prompt and
@@ -57,9 +74,10 @@ schema bytes at three bytes per token, agent-specific protocol overhead,
 input repeated for every permitted API turn, the maximum bounded broker context
 for every permitted discovery turn, primary output, and a possible isolated
 repair's input and output. The provider cost cap is derived from that package
-reservation, not the project's remaining global allowance. Tool-free
-primary stages allow two protocol turns because Claude's schema output uses
-`StructuredOutput` followed by its result; external tools remain disabled. The
+reservation, not the project's remaining global allowance. Tool-free Codex
+primary stages reserve two protocol turns. Claude JSON Schema primary stages
+reserve and receive a three-turn provider cap, matching the current Claude Code
+structured-output exchange; external tools remain disabled. The
 repair path omits the provider schema tool, requests plain JSON in one turn,
 and still passes through the same CLI validators.
 Current Codex and Claude CLI adapters expose final output usage only after the
@@ -67,7 +85,10 @@ call. Preflight therefore reports `outputTokenLimitEnforcement` as
 `post-execution`: captured bytes bound the process, and an over-limit result is
 rejected without promotion, but the limit is not a provider-side hard stop.
 Discovery capture allowance includes bounded broker tool-result events as well
-as the requested final output.
+as the requested final output. Preflight and runtime share the reservation
+calculator, including the complete bounded capability-documentation allowance.
+The broker separately enforces at most six provider fetch calls per discovery
+run and returns the remaining call budget after each success.
 Reserve enough output for the discover schema and enough input context for the
 embedded prior-stage artifacts; preflight reports both gaps mechanically.
 It also reports per-stage `maxTurns` and route-specific
@@ -116,9 +137,9 @@ registered for review; it does not expose that entire file to discovery.
 Inspect, but never copy or fork, a current contract with:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.26 research schema show discover --json
-npx --yes @tiangong-ai/cli@0.0.26 research schema show analyze --json
-npx --yes @tiangong-ai/cli@0.0.26 research schema show review --json
+npx --yes @tiangong-ai/cli@0.0.28 research schema show discover --json
+npx --yes @tiangong-ai/cli@0.0.28 research schema show analyze --json
+npx --yes @tiangong-ai/cli@0.0.28 research schema show review --json
 ```
 
 Evidence sources include stable ID/title/locator/provenance, URL or DOI when
@@ -145,6 +166,7 @@ A `brokered-network` capability has exact hosts plus an HTTP policy:
   "permissions": ["project-read", "candidate-write", "brokered-network"],
   "allowedHosts": ["api.example.org"],
   "http": {
+    "endpoint": "https://api.example.org/v1/search",
     "method": "GET",
     "accept": "application/json",
     "allowedContentTypes": ["application/json"],
@@ -169,14 +191,16 @@ content type, hashed final URL, raw locator, bounded context locator, retrieval
 time, and cache status. Review packets enumerate and hash these permanent
 objects.
 
-The review capsule merges the registered local bounded contexts and every
-cited broker receipt's exact bounded view. That merged context and the complete
-review packet are themselves stored by content hash under the project's
-`review/contexts/` and `review/packets/` directories. The packet enumerates raw
-broker objects and full local-file hashes; the model reads only the merged
-bounded views. Mechanical closure checks that the packet, merged context,
-broker objects, and local input/context hashes still exist and match before it
-records their safe locators.
+The review capsule deterministically distributes one global context budget
+across registered local bounded contexts and every broker receipt. The
+resulting excerpt bundle and the complete review packet are themselves stored
+by content hash under the project's `review/contexts/` and `review/packets/`
+directories. The packet enumerates raw broker objects, original per-receipt
+bounded contexts, and full local-file hashes; its hash is schema-bound without
+duplicating packet metadata in the model prompt. The model reads only the
+global excerpt bundle and generated artifacts. Mechanical closure checks that
+the packet, bundle, broker objects, and local input/context hashes still exist
+and match before it records their safe locators.
 
 Use `json_pointer` and `max_items` for a bounded JSON view. The workspace's
 `maxBrokerContextTokens` limit additionally caps the staged view using a
@@ -190,17 +214,28 @@ to the persistent cache; pass `cache_mode=bypass` for a fresh request.
 Credentialed requests always require bypass to avoid replaying scoped content
 under changed authorization.
 
-The broker sends the capability's exact `Accept`, checks every redirect host,
+Capability health checks separately retain only a bounded sanitized provider
+code/detail and safe request ID. In particular, `OPTION_NOT_IN_PLAN` requires an
+explicit baseline replacement or provider subscription change; it is never an
+automatic retry or fallback signal.
+
+The locked manifest exposes the exact non-secret endpoint so discovery never
+guesses a path. The broker sends the capability's exact `Accept`, checks the
+initial target and every GET redirect against both the host and endpoint scope,
 screens credential-like response material, and rejects undeclared content
-types or oversized bodies. Non-2xx results include only status, a sanitized
-short response, safe request ID, and parsed `Retry-After`.
+types or oversized bodies. A `/` endpoint explicitly grants origin-wide paths;
+other endpoint paths are exact. Non-2xx results include only status, a
+sanitized short response, safe request ID, and parsed `Retry-After`.
+The broker performs at most one inline retry for a `429` whose declared or
+default delay is at most five seconds. A longer throttle remains a classified
+failure and does not hold the discovery call open.
 
 Capabilities may instead declare bounded JSON `POST`, an exact safe static
 header map, and a positive `maxRequestBytes`. Discovery then supplies only the
 documented non-secret `request_body`; credential-like keys are rejected, the
 credential is injected by the broker, POST redirects are refused, and the
 journal/cache metadata records only the canonical body SHA-256 rather than the
-body. GET remains the default for existing imported definitions.
+body. GET remains the default method inside an explicit HTTP endpoint policy.
 
 ## Coverage, retry, and recovery
 
@@ -212,33 +247,46 @@ admitted sources and declared minimums. `partial` is usable but incomplete;
 packages. Model-provided qualitative gaps remain visible but cannot override
 those derived fields.
 
+Every manifest capability marked `requiredForDiscovery=true` must produce a
+verified broker receipt. The gate distinguishes a capability that was never
+called from one that was called but yielded no admissible receipt; the latter
+reports only sanitized failure kinds such as `rate-limit`, never request URLs or
+credentials.
+
 Discovery receives no shell or filesystem tools. The CLI embeds the locked
 capability manifest and each staged external Skill's top-level `SKILL.md`, and
 the scoped broker is its only execution tool. Broker results include the exact
 bounded view inline with the receipt. Analyze embeds the admitted evidence
 object; synthesize embeds admitted evidence and analysis. Both stages run with
-tools disabled. Review is also tool-free and embeds the immutable packet,
-generated artifacts, and exact bounded local/broker evidence views within two
-structured-output protocol turns. Full files and raw
-objects remain hash-bound for later human/mechanical audit; never report that
-the model read beyond the embedded views. Run records, journal usage, and JSONL
-progress include sanitized event/item counts, provider turns, tool calls,
-reasoning-token counts, and bounded provider errors.
+tools disabled. Review is also tool-free and embeds generated artifacts plus
+deterministic excerpts from bounded local/broker evidence views within the
+reviewer's route-specific structured-output turn cap. Preflight and runtime reserve the same
+stage-specific ceiling: three maximum-size generated artifacts plus one
+`maxInputContextTokens` excerpt bundle. The complete packet, full files,
+original bounded contexts, and raw objects remain hash-bound for later
+human/mechanical audit; never report that the model read beyond the embedded
+excerpts. Run records, journal usage, and JSONL progress include sanitized
+event/item counts, provider turns, tool calls, reasoning-token counts, and
+bounded provider errors.
 
 Failures are classified:
 
 - configuration/authentication/deterministic 4xx, coverage, and review failures
   stop immediately;
-- structured-output failures use only the repair path;
-- 429 may retry after its recorded delay;
+- structured-output failures use only the repair path; synthesis mechanically
+  converts literal `/n` or double-escaped `\\n` immediately before Markdown
+  block structures into line feeds, records a content-free normalization event,
+  and leaves URLs or unmatched text unchanged before independent review;
+- a short 429 receives at most one broker-level bounded-delay retry; a remaining
+  429 may schedule package recovery after its recorded delay;
 - bounded transient/5xx failures may retry while attempts and budget remain.
 
 Use an explicit management command instead of editing state:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.26 research project retry PROJECT \
+npx --yes @tiangong-ai/cli@0.0.28 research project retry PROJECT \
   --package PACKAGE --workspace /absolute/path/to/workspace --json
-npx --yes @tiangong-ai/cli@0.0.26 research project fork SOURCE \
+npx --yes @tiangong-ai/cli@0.0.28 research project fork SOURCE \
   --to TARGET --resume-through analyze \
   --workspace /absolute/path/to/workspace --json
 ```
@@ -251,7 +299,7 @@ and closure always run again.
 Run one recovered or canary project with an explicit scope:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.26 research run \
+npx --yes @tiangong-ai/cli@0.0.28 research run \
   --project PROJECT --workspace /absolute/path/to/workspace \
   --progress-jsonl --json
 ```

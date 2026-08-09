@@ -93,16 +93,18 @@ destinations, license choices, credential names, and audit state. Start with the
 read-only catalog or the guided Wizard:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.26 research setup catalog \
+npx --yes @tiangong-ai/cli@0.0.28 research setup catalog \
   --workspace /absolute/path/to/workspace --json
-npx --yes @tiangong-ai/cli@0.0.26 research setup \
+npx --yes @tiangong-ai/cli@0.0.28 research setup \
   --workspace /absolute/path/to/workspace
 ```
 
-The catalog includes Brave internet evidence, optional Tiangong SCI/document/
-paper companions, and optional Anthropic or PPT Master post-closure authoring
-Skills. Every entry is external, separately licensed, pinned, and user-selected;
-nothing is bundled or installed by a research package. See
+The catalog also offers the `tiangong-auto-research` workflow orchestrator,
+default-baseline Brave internet evidence, optional Tiangong SCI/document/paper
+companions, and optional Anthropic or PPT Master post-closure authoring Skills.
+The workspace can be any user-selected directory. Every entry is external,
+separately licensed, pinned, and explicitly confirmed/selected; nothing is
+bundled or installed by a research package. See
 `tiangong-auto-research/references/setup.md` and `external-skills.md`.
 For PPT creation, prefer PPT Master; Anthropic PPTX remains compatible and may
 be selected alongside it when its workflow fits the task.

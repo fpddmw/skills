@@ -91,15 +91,17 @@ commit、Skill tree hash、目标目录、许可证选择、凭据名称和审�
 目录，或启动交互式 Wizard：
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.26 research setup catalog \
+npx --yes @tiangong-ai/cli@0.0.28 research setup catalog \
   --workspace /absolute/path/to/workspace --json
-npx --yes @tiangong-ai/cli@0.0.26 research setup \
+npx --yes @tiangong-ai/cli@0.0.28 research setup \
   --workspace /absolute/path/to/workspace
 ```
 
-目录包含 Brave 互联网证据能力、可选的 Tiangong SCI/文档解析/论文获取 companion，
-以及可选的 Anthropic 或 PPT Master 闭环后创作 Skills。所有条目都是外生、独立
-授权、精确锁定且由用户选择；研究 package 不会捆绑或安装它们。完整流程见
+目录还提供 `tiangong-auto-research` 工作流 orchestrator、默认基线 Brave
+互联网证据能力、可选的 Tiangong SCI/文档解析/论文获取 companion，以及可选的
+Anthropic 或 PPT Master 闭环后创作 Skills。workspace 可以是用户指定的任意目录。
+所有条目都是外生、独立授权、精确锁定且经用户明确确认或选择；研究 package
+不会捆绑或安装它们。完整流程见
 `tiangong-auto-research/references/setup.md` 和 `external-skills.md`。
 创建 PPT 时首选 PPT Master；Anthropic PPTX 仍是兼容的按场景选项，需要时可在
 同一显式计划中一起选择。
