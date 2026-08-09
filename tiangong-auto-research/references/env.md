@@ -2,8 +2,10 @@
 
 ## Base prerequisites
 
-- Node.js 24, `git`, and `npx` access to
-  `@tiangong-ai/cli@0.0.28` and the exact setup-pinned `skills@1.5.22` package.
+- Node.js 24, `git`, and `npx` access to the exact CLI package version in the
+  workspace runtime lock and the setup-pinned `skills@1.5.22` package. A clean
+  directory needs one user-reviewed exact bootstrap CLI version before that
+  lock exists; never infer `latest` for an existing workspace.
 - Authenticated `codex` and `claude` executables for the configured producer and
   reviewer routes.
 - macOS `/usr/bin/sandbox-exec` or Linux Bubblewrap (`bwrap`).
@@ -58,20 +60,25 @@ are never printed during reconciliation.
 Use exactly one supported source to rotate a selected credential:
 
 ```bash
+AUTO_RESEARCH_CLI=/absolute/path/to/installed/tiangong-auto-research/scripts/research_cli.mjs
+
 ## Ordinary interactive use (hidden input)
-npx --yes @tiangong-ai/cli@0.0.28 research setup credential set \
+node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
+  research setup credential set \
   --id brave.search.api-key --prompt \
   --workspace /absolute/path/to/workspace --json
 
 ## Password manager or CI stdin
 op read 'op://Research/Brave/api-key' | \
-  npx --yes @tiangong-ai/cli@0.0.28 research setup credential set \
+  node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
+    research setup credential set \
     --id brave.search.api-key --from-stdin \
     --workspace /absolute/path/to/workspace --json
 
 ## Existing owner environment
 export OWNER_NEW_BRAVE_KEY='new owner value'
-npx --yes @tiangong-ai/cli@0.0.28 research setup credential set \
+node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
+  research setup credential set \
   --id brave.search.api-key --from-env OWNER_NEW_BRAVE_KEY \
   --workspace /absolute/path/to/workspace --json
 ```
@@ -115,9 +122,13 @@ wrapper uses the existing Tiangong CLI variables
 owner-only file and only documented Tiangong endpoint/key/region/timeout names
 are loaded. Credentials are forbidden in wrapper JSON and request files.
 
-Inside Auto Research, never run that wrapper. Setup maps the owner variable to
-logical ID `tiangong.sci.api-key`; discovery sends a non-secret POST
-`request_body` to the broker, which injects `x-api-key` for the exact host.
+Inside Auto Research, never run that wrapper. The wrapper detects an ancestor
+runtime lock and returns `AUTO_RESEARCH_BROKER_REQUIRED` before credentials or
+network unless the user explicitly narrowed the task and supplied
+`"execution_mode":"standalone"`. That explicit mode emits only a non-secret
+audit event and still cannot read the broker store. Setup maps the owner
+variable to logical ID `tiangong.sci.api-key`; discovery sends a non-secret
+POST `request_body` to the broker, which injects `x-api-key` for the exact host.
 
 ## Agent wrappers and capsule authentication
 

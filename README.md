@@ -95,11 +95,19 @@ environment variables and bounded stdin/password-manager input remain explicit
 alternatives. Start with the read-only catalog or the guided Wizard:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.28 research setup catalog \
+REVIEWED_BOOTSTRAP_CLI_VERSION=X.Y.Z # replace with one reviewed exact stable release
+npx --yes --package "@tiangong-ai/cli@$REVIEWED_BOOTSTRAP_CLI_VERSION" -- \
+  tiangong-ai research setup catalog \
   --workspace /absolute/path/to/workspace --json
-npx --yes @tiangong-ai/cli@0.0.28 research setup \
+npx --yes --package "@tiangong-ai/cli@$REVIEWED_BOOTSTRAP_CLI_VERSION" -- \
+  tiangong-ai research setup \
   --workspace /absolute/path/to/workspace
 ```
+
+The bootstrap version is an explicit new-workspace choice, never `latest`, a
+tag, or a range. After apply creates `runtime-lock.json`, the installed
+orchestrator's bundled resolver runs exactly that locked version for all
+workspace operations.
 
 The catalog also offers the `tiangong-auto-research` workflow orchestrator,
 default-baseline Brave internet evidence, optional Tiangong SCI/document/paper

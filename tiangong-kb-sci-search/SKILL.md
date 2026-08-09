@@ -1,6 +1,6 @@
 ---
 name: tiangong-kb-sci-search
-description: Search the owner-authorized Tiangong knowledge-base SCI source for academic papers, journal evidence, literature support, and research claims. Use directly through the Tiangong CLI wrapper, or as a locked JSON POST evidence capability in Tiangong Auto Research. Searches only `sci`, never report or patent sources.
+description: Perform one isolated owner-requested SCI search outside Tiangong Auto Research, or provide SCI method guidance when Auto Research discovery invokes the locked broker capability. Searches only `sci`. If an ancestor contains `.tiangong-research` and the request is open-ended, multi-source, analytical, builds on prior outputs, or produces a conclusion/artifact, route to `tiangong-auto-research` and do not execute this standalone wrapper. Inside a managed workspace, standalone use requires the user's explicit isolated-query request and `execution_mode=standalone`.
 ---
 
 # Tiangong KB SCI Search
@@ -12,8 +12,10 @@ service failure; do not try to bypass it.
 
 ## Choose the execution mode
 
-- For a direct standalone search, use `scripts/sci_search.sh` as described
-  below.
+- For a direct standalone search outside a managed workspace, use
+  `scripts/sci_search.sh` as described below. Inside a managed workspace, only
+  an explicit user-requested isolated query may set
+  `"execution_mode":"standalone"`; the wrapper records a non-secret mode event.
 - Inside a Tiangong Auto Research discovery package, do **not** execute this
   script or its CLI/curl examples. Use locked capability ID
   `database.tiangong.sci-search` through `fetch_candidate_source`. The broker
@@ -22,10 +24,12 @@ service failure; do not try to bypass it.
 
 ## Direct-search prerequisites
 
-- The wrapper defaults to
-  `npx --yes @tiangong-ai/cli@0.0.24`. Set `TIANGONG_AI_CLI_BIN` to one exact
-  executable path, or `TIANGONG_AI_CLI` to an explicitly reviewed command, only
-  when overriding it intentionally.
+- The standalone wrapper defaults to its separately tested CLI version
+  `0.0.30`. This is not the Auto Research workspace runtime. Managed research
+  resolves its exact version from `runtime-lock.json` and must use the broker.
+  Set `TIANGONG_AI_CLI_BIN` to one exact executable path, or
+  `TIANGONG_AI_CLI` to an explicitly reviewed command, only when overriding the
+  standalone entrypoint intentionally.
 - Put the source-specific key in `TIANGONG_SCI_APIKEY`, or use
   `TIANGONG_AI_APIKEY` as the common fallback. Credentials are never accepted in
   wrapper JSON, a request file, or CLI arguments.
@@ -49,7 +53,7 @@ export TIANGONG_SCI_APIKEY='owner-authorized key'
 The wrapper invokes the pinned CLI equivalent of:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.24 research search \
+npx --yes @tiangong-ai/cli@0.0.30 research search \
   --query <query> --sources sci --json
 ```
 
@@ -107,6 +111,8 @@ password, or unrelated secret in this file.
 - `query`, `input`, or `claim`;
 - `request_file` or `input_file`;
 - `env_file`;
+- `execution_mode`, only `standalone` and only after an explicit isolated-query
+  request when a managed workspace is detected;
 - `filter`, `datefilter`, `topK`, `extK`, `getMeta`;
 - `top_k`, `ext_k`, `get_meta` in query mode;
 - `sources`, only `sci` or `default`;

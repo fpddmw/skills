@@ -92,11 +92,18 @@ commit、Skill tree hash、目标目录、许可证选择、安全凭据绑定�
 显式可选方式。先查看只读目录，或启动交互式 Wizard：
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.28 research setup catalog \
+REVIEWED_BOOTSTRAP_CLI_VERSION=X.Y.Z # 替换为已审阅的精确稳定版本
+npx --yes --package "@tiangong-ai/cli@$REVIEWED_BOOTSTRAP_CLI_VERSION" -- \
+  tiangong-ai research setup catalog \
   --workspace /absolute/path/to/workspace --json
-npx --yes @tiangong-ai/cli@0.0.28 research setup \
+npx --yes --package "@tiangong-ai/cli@$REVIEWED_BOOTSTRAP_CLI_VERSION" -- \
+  tiangong-ai research setup \
   --workspace /absolute/path/to/workspace
 ```
+
+bootstrap 版本是新 workspace 的显式选择，不得使用 `latest`、tag 或 range。
+apply 创建 `runtime-lock.json` 后，已安装 orchestrator 的内置 resolver 会让
+所有 workspace 操作只运行该锁定版本。
 
 目录还提供 `tiangong-auto-research` 工作流 orchestrator、默认基线 Brave
 互联网证据能力、可选的 Tiangong SCI/文档解析/论文获取 companion，以及可选的

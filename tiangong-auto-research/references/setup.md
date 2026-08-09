@@ -34,14 +34,19 @@ are placeholders, not defaults or repository requirements.
 Prerequisites are Node.js 24, `git`, `npx`, an agent-compatible sandbox
 (`/usr/bin/sandbox-exec` on macOS or `bwrap` on Linux), and normal Codex/Claude
 CLI authentication for the routes you intend to use. Create or choose the
-directory and start the Wizard; ordinary users do not need to export keys:
+directory, review one exact stable CLI release, replace `X.Y.Z` below, and
+start the Wizard; ordinary users do not need to export keys. `latest`, tags,
+ranges, paths, and command fragments are not bootstrap versions:
 
 ```bash
 mkdir -p /absolute/path/to/research-workspace
 cd /absolute/path/to/research-workspace
 
-npx --yes @tiangong-ai/cli@0.0.28 --version
-npx --yes @tiangong-ai/cli@0.0.28 research setup \
+REVIEWED_BOOTSTRAP_CLI_VERSION=X.Y.Z
+npx --yes --package "@tiangong-ai/cli@$REVIEWED_BOOTSTRAP_CLI_VERSION" -- \
+  tiangong-ai --version
+npx --yes --package "@tiangong-ai/cli@$REVIEWED_BOOTSTRAP_CLI_VERSION" -- \
+  tiangong-ai research setup \
   --workspace /absolute/path/to/research-workspace
 ```
 
@@ -59,14 +64,16 @@ the secret pipe:
 
 ```bash
 op read 'op://Research/Brave/api-key' | \
-  npx --yes @tiangong-ai/cli@0.0.28 research setup \
+  npx --yes --package "@tiangong-ai/cli@$REVIEWED_BOOTSTRAP_CLI_VERSION" -- \
+    tiangong-ai research setup \
     --credential-stdin brave.search.api-key \
     --workspace /absolute/path/to/research-workspace
 
 {
   op read 'op://Research/Brave/api-key'
   op read 'op://Research/Tiangong SCI/api-key'
-} | npx --yes @tiangong-ai/cli@0.0.28 research setup \
+} | npx --yes --package "@tiangong-ai/cli@$REVIEWED_BOOTSTRAP_CLI_VERSION" -- \
+  tiangong-ai research setup \
   --credential-stdin brave.search.api-key,tiangong.sci.api-key \
   --workspace /absolute/path/to/research-workspace
 ```
@@ -109,7 +116,8 @@ the exact plan; do not recreate the plan merely to bypass preflight.
 The catalog command never creates workspace files:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.28 research setup catalog \
+npx --yes --package "@tiangong-ai/cli@$REVIEWED_BOOTSTRAP_CLI_VERSION" -- \
+  tiangong-ai research setup catalog \
   --workspace /absolute/path/to/research-workspace \
   --scope project --agents codex --json
 ```
@@ -127,7 +135,8 @@ environment variable names, not values:
 Create and review a minimal production plan, then apply its exact path:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.28 research setup plan \
+npx --yes --package "@tiangong-ai/cli@$REVIEWED_BOOTSTRAP_CLI_VERSION" -- \
+  tiangong-ai research setup plan \
   --workspace /absolute/path/to/research-workspace \
   --mode production-research \
   --evidence-profile brave-baseline \
@@ -137,7 +146,8 @@ npx --yes @tiangong-ai/cli@0.0.28 research setup plan \
   --accept-license brave-search-skills:MIT,tiangong-ai-skills:MIT \
   --confirm-network-downloads --json
 
-npx --yes @tiangong-ai/cli@0.0.28 research setup apply \
+npx --yes --package "@tiangong-ai/cli@$REVIEWED_BOOTSTRAP_CLI_VERSION" -- \
+  tiangong-ai research setup apply \
   --plan /absolute/path/to/research-workspace/.tiangong-research/setup-plan.json \
   --json
 ```
@@ -148,10 +158,17 @@ document; the CLI catalog is authoritative.
 
 ## Status, doctor, and recovery
 
+After apply creates the runtime lock, resolve every command through the bundled
+Skill helper. Set `AUTO_RESEARCH_CLI` to the absolute path of this installed
+Skill, not a guessed global location:
+
 ```bash
-npx --yes @tiangong-ai/cli@0.0.28 research setup status \
+AUTO_RESEARCH_CLI=/absolute/path/to/installed/tiangong-auto-research/scripts/research_cli.mjs
+node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/research-workspace -- \
+  research setup status \
   --workspace /absolute/path/to/research-workspace --json
-npx --yes @tiangong-ai/cli@0.0.28 research setup doctor \
+node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/research-workspace -- \
+  research setup doctor \
   --workspace /absolute/path/to/research-workspace --json
 ```
 
@@ -177,7 +194,8 @@ orchestrator selection, run the exact CLI again and choose its explicit
 replacement action:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.28 research setup \
+node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/research-workspace -- \
+  research setup \
   --workspace /absolute/path/to/research-workspace
 ```
 
@@ -194,7 +212,8 @@ subscription change; setup never switches profiles silently.
 `update --check` is read-only. The currently installed generation stays pinned:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.28 research setup update --check \
+node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/research-workspace -- \
+  research setup update --check \
   --workspace /absolute/path/to/research-workspace --json
 ```
 
@@ -202,7 +221,8 @@ An upgrade is a new immutable plan, never an in-place floating update. Review
 new licenses and pins, then apply the newly generated plan:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.28 research setup upgrade \
+node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/research-workspace -- \
+  research setup upgrade \
   --plan --confirm-upgrade \
   --accept-license <every-selected-current-license-id> \
   --workspace /absolute/path/to/research-workspace --json
@@ -218,7 +238,8 @@ environment and verified Skill tree. Document output uses a unique temporary
 file and a no-overwrite atomic commit:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.28 research setup companion run \
+node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/research-workspace -- \
+  research setup companion run \
   --id tiangong.document-granular-decompose \
   --input /absolute/path/to/source.pdf \
   --output /absolute/path/to/source.fulltext.md \
@@ -230,7 +251,8 @@ chooses the newest PDF in a directory:
 
 ```bash
 mkdir -p /absolute/path/to/papers
-npx --yes @tiangong-ai/cli@0.0.28 research setup companion run \
+node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/research-workspace -- \
+  research setup companion run \
   --id tiangong.academic-paper-download \
   --doi 10.1234/example --out /absolute/path/to/papers \
   --workspace /absolute/path/to/research-workspace --json

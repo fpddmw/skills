@@ -48,6 +48,35 @@ if grep -F "$SECRET" "$AUDIT_ARGS" "$STDOUT" "$STDERR" >/dev/null; then
     exit 1
 fi
 
+MANAGED_WORKSPACE="$TEST_ROOT/managed-workspace"
+MANAGED_NESTED="$MANAGED_WORKSPACE/nested/path"
+mkdir -p "$MANAGED_WORKSPACE/.tiangong-research" "$MANAGED_NESTED"
+printf '%s\n' '{"schemaVersion":1,"packageName":"@tiangong-ai/cli","packageVersion":"0.0.30"}' \
+    > "$MANAGED_WORKSPACE/.tiangong-research/runtime-lock.json"
+rm -f "$MARKER"
+if (cd "$MANAGED_NESTED" && run_wrapper '{"query":"managed query"}') \
+    > "$STDOUT" 2> "$STDERR"; then
+    echo 'managed workspace bypassed the Auto Research broker guard' >&2
+    exit 1
+fi
+[ ! -e "$MARKER" ]
+grep -F 'AUTO_RESEARCH_BROKER_REQUIRED' "$STDERR" >/dev/null
+grep -F '"credentialScope":"broker"' "$STDERR" >/dev/null
+grep -F '"networkAttempted":false' "$STDERR" >/dev/null
+
+(cd "$MANAGED_NESTED" && \
+    TIANGONG_SCI_APIKEY="$SECRET" \
+    run_wrapper '{"query":"isolated query","execution_mode":"standalone","dry_run":true}') \
+    > "$STDOUT" 2> "$STDERR"
+grep -F 'STANDALONE_MODE_SELECTED' "$STDERR" >/dev/null
+grep -F '"executionMode":"standalone"' "$STDERR" >/dev/null
+grep -F '"credentialScope":"ambient-or-explicit-owner-env"' "$STDERR" >/dev/null
+grep -F '"networkAttempted":false' "$STDERR" >/dev/null
+if grep -F "$SECRET" "$AUDIT_ARGS" "$STDOUT" "$STDERR" >/dev/null; then
+    echo 'explicit standalone mode leaked a credential' >&2
+    exit 1
+fi
+
 rm -f "$MARKER"
 if run_wrapper "{\"query\":\"blocked\",\"sci_api_key\":\"$SECRET\"}" \
     > "$STDOUT" 2> "$STDERR"; then

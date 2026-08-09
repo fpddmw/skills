@@ -7,13 +7,14 @@ umask 077
 
 JSON_INPUT="${1:-}"
 OUTPUT_FILE="${2:-}"
+STANDALONE_TESTED_CLI_VERSION="0.0.30"
 CLI_COMMAND=()
 if [ -n "${TIANGONG_AI_CLI:-}" ]; then
     read -r -a CLI_COMMAND <<< "$TIANGONG_AI_CLI"
 elif [ -n "${TIANGONG_AI_CLI_BIN:-}" ]; then
     CLI_COMMAND=("$TIANGONG_AI_CLI_BIN")
 else
-    CLI_COMMAND=(npx --yes @tiangong-ai/cli@0.0.24)
+    CLI_COMMAND=(npx --yes "@tiangong-ai/cli@$STANDALONE_TESTED_CLI_VERSION")
 fi
 
 if [ -z "$JSON_INPUT" ]; then
@@ -38,6 +39,45 @@ contains_sensitive_json() {
 if echo "$JSON_INPUT" | contains_sensitive_json; then
     echo "Error: credentials are not accepted in wrapper JSON; use owner environment variables" >&2
     exit 2
+fi
+
+EXECUTION_MODE=$(echo "$JSON_INPUT" | jq -r '.execution_mode // empty')
+case "$EXECUTION_MODE" in
+    ""|"standalone")
+        ;;
+    *)
+        printf '%s\n' '{"error":{"code":"INVALID_EXECUTION_MODE","message":"execution_mode must be standalone when explicitly supplied.","details":{"executionMode":"invalid","credentialScope":"none","networkAttempted":false,"minimumAction":"Remove execution_mode or set it to standalone for one isolated owner-requested query."}}}' >&2
+        exit 2
+        ;;
+esac
+
+find_auto_research_workspace() {
+    local search_dir
+    local lock_path
+    local parent_dir
+    search_dir="$(pwd -P)"
+    while :; do
+        lock_path="$search_dir/.tiangong-research/runtime-lock.json"
+        if [ -e "$lock_path" ] || [ -L "$lock_path" ]; then
+            return 0
+        fi
+        parent_dir="$(dirname "$search_dir")"
+        if [ "$parent_dir" = "$search_dir" ]; then
+            return 1
+        fi
+        search_dir="$parent_dir"
+    done
+}
+
+if find_auto_research_workspace; then
+    if [ "$EXECUTION_MODE" != "standalone" ]; then
+        printf '%s\n' '{"error":{"code":"AUTO_RESEARCH_BROKER_REQUIRED","message":"An Auto Research workspace was detected. Systematic research must call SCI through the locked discovery broker.","details":{"source":"sci","executionMode":"managed-workspace","credentialScope":"broker","networkAttempted":false,"minimumAction":"Route to tiangong-auto-research. Use execution_mode=standalone only after the user explicitly narrows the task to one isolated SCI query."}}}' >&2
+        exit 2
+    fi
+fi
+
+if [ "$EXECUTION_MODE" = "standalone" ]; then
+    printf '%s\n' '{"event":{"code":"STANDALONE_MODE_SELECTED","source":"sci","executionMode":"standalone","credentialScope":"ambient-or-explicit-owner-env","networkAttempted":false}}' >&2
 fi
 
 jq_value() {
