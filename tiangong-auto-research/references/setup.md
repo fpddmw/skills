@@ -11,9 +11,10 @@ Wizard confirmation or plan selection. The CLI:
 
 1. shows the complete recommendation catalog without writing files;
 2. records exact source commits, Skill tree hashes, installer version and npm
-   integrity, destinations, settings, credential environment names, licenses,
-   checks, and mutations in an immutable plan;
-3. checks required credentials before it downloads an installer or source;
+   integrity, destinations, settings, safe credential bindings, licenses,
+   checks, and mutations in an immutable plan; secret values never enter it;
+3. checks and persists supplied credentials to an owner-only store before it
+   downloads an installer or source;
 4. copies only the selected pinned trees, verifies the installed bytes, and
    configures their declared execution role;
 5. stores broker and adapter credentials in separate owner-only stores without
@@ -33,29 +34,49 @@ are placeholders, not defaults or repository requirements.
 Prerequisites are Node.js 24, `git`, `npx`, an agent-compatible sandbox
 (`/usr/bin/sandbox-exec` on macOS or `bwrap` on Linux), and normal Codex/Claude
 CLI authentication for the routes you intend to use. Create or choose the
-directory, export only the credentials for sources you may select, and start
-the Wizard:
+directory and start the Wizard; ordinary users do not need to export keys:
 
 ```bash
 mkdir -p /absolute/path/to/research-workspace
 cd /absolute/path/to/research-workspace
-
-# Required only when the corresponding source is selected.
-export BRAVE_API_KEY='owner Brave Search key'
-export TIANGONG_SCI_APIKEY='owner-authorized Tiangong SCI key'
-export UNSTRUCTURED_AUTH_TOKEN='owner Unstructure bearer token'
-
-# Optional; academic-paper-download can use Semantic Scholar anonymously.
-export SEMANTIC_SCHOLAR_API_KEY='optional Semantic Scholar key'
 
 npx --yes @tiangong-ai/cli@0.0.28 --version
 npx --yes @tiangong-ai/cli@0.0.28 research setup \
   --workspace /absolute/path/to/research-workspace
 ```
 
-Do not paste a secret when the Wizard asks for an environment variable name.
-It displays only whether the named variable is present. It then guides the
-user through:
+For every selected credential, the Wizard displays the logical ID, provider,
+and official acquisition/configuration URL, then offers:
+
+1. enter securely now (recommended for ordinary users; TTY input is hidden);
+2. read from a named owner environment variable;
+3. consume a value preloaded from stdin/password manager;
+4. skip for now.
+
+The stdin path is explicit and bounded. List logical IDs in the same order as
+their one-line values; `--yes` prevents `npx` from asking an install question on
+the secret pipe:
+
+```bash
+op read 'op://Research/Brave/api-key' | \
+  npx --yes @tiangong-ai/cli@0.0.28 research setup \
+    --credential-stdin brave.search.api-key \
+    --workspace /absolute/path/to/research-workspace
+
+{
+  op read 'op://Research/Brave/api-key'
+  op read 'op://Research/Tiangong SCI/api-key'
+} | npx --yes @tiangong-ai/cli@0.0.28 research setup \
+  --credential-stdin brave.search.api-key,tiangong.sci.api-key \
+  --workspace /absolute/path/to/research-workspace
+```
+
+The pipe is read before the remaining questions, which continue on the
+controlling terminal. A stdin value is used only if the matching option is
+chosen; unselected/preloaded logical IDs are rejected rather than ignored.
+Do not paste a value into the environment-variable-name prompt.
+
+The Wizard then guides the user through:
 
 - smoke-test versus production mode;
 - a Brave web/news public-internet baseline by default; bounded context and
@@ -67,7 +88,7 @@ user through:
   a compatible situational choice;
 - Codex/Claude install targets and project/global scope;
 - non-secret endpoints/settings;
-- credential environment names;
+- a source choice for every selected required or optional credential;
 - each pinned source/license notice and explicit acceptance;
 - optional model IDs and reviewed token prices;
 - live provider checks, a separately authorized synthetic Unstructure upload,
@@ -75,9 +96,13 @@ user through:
 - a full plan preview, network confirmation, immutable plan creation, and
   optional apply.
 
-If a required key is absent, the plan may be saved but apply stops before any
-network download. Set the named variable and resume the exact plan; do not
-recreate the plan merely to bypass preflight.
+Apply defaults to yes after all required values are available. Secure/stdin
+values live only for that apply, are persisted to the existing owner-only store
+before downloads, and are then discarded from Wizard memory. If the user saves
+only the plan, those transient values are discarded and the result supplies
+safe `credential set --prompt` recovery commands. If a required key is skipped,
+apply stops before any network download. Configure the logical ID and resume
+the exact plan; do not recreate the plan merely to bypass preflight.
 
 ## Read-only inspection and automation
 

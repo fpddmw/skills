@@ -20,10 +20,17 @@ Production doctor must run real agent and capability smokes before a costly
 package. These checks may use quota and therefore require explicit flags and
 cost confirmation.
 
-## Setup credential variables
+## Setup credential input
 
-The Wizard asks for an environment variable *name*, never a secret value. The
-recommended defaults are:
+For every selected logical credential, the Wizard offers hidden TTY input
+(recommended), a named environment variable, preloaded stdin/password-manager
+input, or an explicit skip. Hidden input is not echoed. Stdin is bounded and
+must contain exactly one line per logical ID listed with
+`--credential-stdin <id[,id...]>`. Neither path writes a value to the command
+line, setup plan, stdout, stderr, journal, report, or shell history.
+
+Environment-variable mode remains available for developers and CI. Recommended
+default names are:
 
 | Variable | Logical ID | Requirement |
 | --- | --- | --- |
@@ -33,8 +40,7 @@ recommended defaults are:
 | `SEMANTIC_SCHOLAR_API_KEY` | `semantic-scholar.api-key` | Optional for academic paper acquisition. |
 
 The variable name can differ, but it must be explicitly bound in the immutable
-plan. Values must be non-trivial and remain in the owner process environment
-only until setup stores them. After a successful apply, later
+plan. Values must be non-trivial. After a successful apply, later
 status/doctor/run commands use the owner-only logical stores and do not require
 those source shell variables to remain exported. Do not put values in setup
 JSON files, CLI arguments, shell history, Skill files, capability declarations,
@@ -49,9 +55,21 @@ An explicitly reviewed replacement reconciles both stores to the new selection,
 so deselected logical entries do not invalidate the new configuration; values
 are never printed during reconciliation.
 
-Use the supported command to rotate one selected credential:
+Use exactly one supported source to rotate a selected credential:
 
 ```bash
+## Ordinary interactive use (hidden input)
+npx --yes @tiangong-ai/cli@0.0.28 research setup credential set \
+  --id brave.search.api-key --prompt \
+  --workspace /absolute/path/to/workspace --json
+
+## Password manager or CI stdin
+op read 'op://Research/Brave/api-key' | \
+  npx --yes @tiangong-ai/cli@0.0.28 research setup credential set \
+    --id brave.search.api-key --from-stdin \
+    --workspace /absolute/path/to/workspace --json
+
+## Existing owner environment
 export OWNER_NEW_BRAVE_KEY='new owner value'
 npx --yes @tiangong-ai/cli@0.0.28 research setup credential set \
   --id brave.search.api-key --from-env OWNER_NEW_BRAVE_KEY \
@@ -59,7 +77,8 @@ npx --yes @tiangong-ai/cli@0.0.28 research setup credential set \
 ```
 
 The value is never echoed. Journal events record only the logical ID, storage
-class, and a hash of the environment variable name.
+class, safe input method, and—only for environment mode—a hash of the variable
+name.
 
 ## Non-secret settings
 
