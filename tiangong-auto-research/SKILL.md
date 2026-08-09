@@ -1,6 +1,6 @@
 ---
 name: tiangong-auto-research
-description: Run or set up smoke-test and production Tiangong research workspaces with an explicit, user-selected external Skill ecosystem; public-internet and owner-whitelisted broker evidence; immutable inputs and evidence; pre-call budgets; isolated producers; independent review; and mechanical closure. Use when a user asks to configure, plan, initialize, execute, recover, inspect, or close a traceable research project. Do not use for a single Tiangong edge-search request.
+description: Set up or run smoke-test and production Tiangong research workspaces in any user-selected directory with an explicitly installed orchestrator and external Skill ecosystem; public-internet and owner-whitelisted broker evidence; immutable inputs and evidence; pre-call budgets; isolated producers; independent review; and mechanical closure. Use when a user asks to configure, plan, initialize, execute, recover, inspect, or close a traceable research project. Do not use for a single Tiangong edge-search request.
 ---
 
 # Tiangong Auto Research
@@ -8,7 +8,7 @@ description: Run or set up smoke-test and production Tiangong research workspace
 Use the exact CLI release for all workspace operations:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.26 research --help
+npx --yes @tiangong-ai/cli@0.0.28 research --help
 ```
 
 The CLI owns the setup catalog, immutable setup plan, capability policy, output
@@ -37,10 +37,12 @@ files by hand.
 
 ## Inspect before mutation
 
-Resolve paths to absolute paths, then inspect the directory:
+The workspace may be any user-selected directory; example paths are
+placeholders, never defaults. Resolve paths to absolute paths, then inspect the
+directory:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.26 research context inspect \
+npx --yes @tiangong-ai/cli@0.0.28 research context inspect \
   --path /absolute/path/to/workspace --json
 ```
 
@@ -51,16 +53,19 @@ For a clean directory, show the read-only ecosystem catalog and run the guided
 setup only after the user asks to configure it:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.26 research setup catalog \
+npx --yes @tiangong-ai/cli@0.0.28 research setup catalog \
   --workspace /absolute/path/to/workspace --json
-npx --yes @tiangong-ai/cli@0.0.26 research setup \
+npx --yes @tiangong-ai/cli@0.0.28 research setup \
   --workspace /absolute/path/to/workspace --json
 ```
 
-The user must choose every external source and accept its pinned license. The
-Wizard may create a plan without applying it. Never silently install a Skill,
-write globally, substitute a provider, downgrade a profile, or accept a
-license. Missing required credentials must block before any source download.
+The user must explicitly confirm the recommended project-local
+`tiangong-auto-research` orchestrator and every external source, then accept its
+pinned license. The Wizard defaults evidence to Brave web/news; context and
+media remain visibly subscription-dependent choices. It may create a plan
+without applying it. Never silently install a Skill, write globally, substitute
+a provider, downgrade a profile, or accept a license. Missing required
+credentials must block before any source download.
 
 ## Preserve execution boundaries
 
@@ -88,14 +93,29 @@ Prepare evidence requirements with `dimensions`, `sourceTypes`, `minSources`,
 local sources, create an immutable input plan with bounded context files or
 ranges.
 
+First require the current setup generation and its real production checks to
+pass. One setup doctor invocation performs the nested workspace/capability and
+agent capsule smokes, so do not repeat paid smokes unnecessarily:
+
 ```bash
-npx --yes @tiangong-ai/cli@0.0.26 research project preflight \
+npx --yes @tiangong-ai/cli@0.0.28 research setup status \
+  --workspace /absolute/path/to/workspace --json
+npx --yes @tiangong-ai/cli@0.0.28 research setup doctor \
+  --workspace /absolute/path/to/workspace --live \
+  --agent-smoke --confirm-agent-smoke-cost --json
+```
+
+Stop unless readiness is `READY`. An explicitly requested smoke failure is
+`BLOCKED`, not advisory.
+
+```bash
+npx --yes @tiangong-ai/cli@0.0.28 research project preflight \
   --workspace /absolute/path/to/workspace \
   --question "Research question" \
   --requirements /absolute/path/to/evidence-requirements.json \
   --input-plan /absolute/path/to/input-plan.json --json
 
-npx --yes @tiangong-ai/cli@0.0.26 research project init PROJECT \
+npx --yes @tiangong-ai/cli@0.0.28 research project init PROJECT \
   --workspace /absolute/path/to/workspace \
   --question "Research question" \
   --requirements /absolute/path/to/evidence-requirements.json \
@@ -111,17 +131,13 @@ initialization.
 
 Production requires explicit models/prices, different producer and reviewer
 agent families, a current setup doctor report, and real capsule/provider smoke
-attestations:
+attestations. After successful preflight and initialization, use dry-run before
+the paid run:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.26 research setup doctor \
-  --workspace /absolute/path/to/workspace --live --json
-npx --yes @tiangong-ai/cli@0.0.26 research workspace doctor \
-  --workspace /absolute/path/to/workspace \
-  --agent-smoke --capability-smoke --json
-npx --yes @tiangong-ai/cli@0.0.26 research run \
+npx --yes @tiangong-ai/cli@0.0.28 research run \
   --workspace /absolute/path/to/workspace --project PROJECT --dry-run --json
-npx --yes @tiangong-ai/cli@0.0.26 research run \
+npx --yes @tiangong-ai/cli@0.0.28 research run \
   --workspace /absolute/path/to/workspace --project PROJECT \
   --max-cycles 20 --progress-jsonl --json
 ```

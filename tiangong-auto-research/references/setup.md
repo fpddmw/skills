@@ -6,7 +6,8 @@ to inspect, resume, update, or replace an existing setup generation.
 ## Safety model
 
 Setup is a separate owner operation, not part of a research package. No
-recommended Skill is bundled with the CLI or installed implicitly. The CLI:
+recommended Skill is bundled with the CLI or installed without an explicit
+Wizard confirmation or plan selection. The CLI:
 
 1. shows the complete recommendation catalog without writing files;
 2. records exact source commits, Skill tree hashes, installer version and npm
@@ -26,6 +27,9 @@ Skill destination symlink, and never performs a floating update.
 
 ## Clean-directory Wizard
 
+The workspace may be any ordinary user-selected directory. Example paths below
+are placeholders, not defaults or repository requirements.
+
 Prerequisites are Node.js 24, `git`, `npx`, an agent-compatible sandbox
 (`/usr/bin/sandbox-exec` on macOS or `bwrap` on Linux), and normal Codex/Claude
 CLI authentication for the routes you intend to use. Create or choose the
@@ -44,8 +48,8 @@ export UNSTRUCTURED_AUTH_TOKEN='owner Unstructure bearer token'
 # Optional; academic-paper-download can use Semantic Scholar anonymously.
 export SEMANTIC_SCHOLAR_API_KEY='optional Semantic Scholar key'
 
-npx --yes @tiangong-ai/cli@0.0.26 --version
-npx --yes @tiangong-ai/cli@0.0.26 research setup \
+npx --yes @tiangong-ai/cli@0.0.28 --version
+npx --yes @tiangong-ai/cli@0.0.28 research setup \
   --workspace /absolute/path/to/research-workspace
 ```
 
@@ -54,7 +58,10 @@ It displays only whether the named variable is present. It then guides the
 user through:
 
 - smoke-test versus production mode;
-- public-internet profile;
+- a Brave web/news public-internet baseline by default; bounded context and
+  media profiles are visibly marked subscription-dependent;
+- explicit project-local installation of the `tiangong-auto-research`
+  orchestrator (recommended) so normal research requests enter this workflow;
 - optional Tiangong companions and post-closure authoring Skills; for PPT
   creation it presents PPT Master as preferred while keeping Anthropic PPTX as
   a compatible situational choice;
@@ -77,7 +84,7 @@ recreate the plan merely to bypass preflight.
 The catalog command never creates workspace files:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.26 research setup catalog \
+npx --yes @tiangong-ai/cli@0.0.28 research setup catalog \
   --workspace /absolute/path/to/research-workspace \
   --scope project --agents codex --json
 ```
@@ -95,16 +102,17 @@ environment variable names, not values:
 Create and review a minimal production plan, then apply its exact path:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.26 research setup plan \
+npx --yes @tiangong-ai/cli@0.0.28 research setup plan \
   --workspace /absolute/path/to/research-workspace \
   --mode production-research \
-  --evidence-profile brave-context \
+  --evidence-profile brave-baseline \
+  --skills tiangong.auto-research \
   --agents codex --scope project \
   --credential-env /absolute/path/to/credential-env.json \
-  --accept-license brave-search-skills:MIT \
+  --accept-license brave-search-skills:MIT,tiangong-ai-skills:MIT \
   --confirm-network-downloads --json
 
-npx --yes @tiangong-ai/cli@0.0.26 research setup apply \
+npx --yes @tiangong-ai/cli@0.0.28 research setup apply \
   --plan /absolute/path/to/research-workspace/.tiangong-research/setup-plan.json \
   --json
 ```
@@ -116,9 +124,9 @@ document; the CLI catalog is authoritative.
 ## Status, doctor, and recovery
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.26 research setup status \
+npx --yes @tiangong-ai/cli@0.0.28 research setup status \
   --workspace /absolute/path/to/research-workspace --json
-npx --yes @tiangong-ai/cli@0.0.26 research setup doctor \
+npx --yes @tiangong-ai/cli@0.0.28 research setup doctor \
   --workspace /absolute/path/to/research-workspace --json
 ```
 
@@ -126,35 +134,42 @@ Static doctor checks installed tree hashes, required settings, owner-only
 credential stores, Node/git/npx, sandbox, agent CLIs, Python, and pinned Python
 requirements. `--live` uses provider network/quota. A synthetic document upload
 also requires `--allow-synthetic-unstructure-upload`; model-agent smoke requires
-`--agent-smoke --confirm-agent-smoke-cost`.
+`--agent-smoke --confirm-agent-smoke-cost`. When one of those explicitly
+requested smoke checks fails, readiness is `BLOCKED`; it is never downgraded to
+an advisory warning. After both production smokes succeed, ordinary workspace
+doctor calls may reuse the unexpired hash-bound attestation only after checking
+the current agent runtime fingerprints. Explicit smoke flags refresh the
+attestation; expiry or drift remains blocking.
 
 On a blocked apply, use the exact `retryCommand` in setup state. Clear a stale
 lock only with both stale-lock flags after confirming no setup process owns it.
 Do not delete plan/state/source-cache directories or overwrite installed trees.
 
-### Replace an affected CLI 0.0.25 plan
+### Replace the current immutable selection
 
-CLI `0.0.25` recorded Brave Skill paths without the upstream `skills/`
-directory, so a plan created by that release can report every selected Brave
-Skill as `missing`. Do not edit the hash-bound plan or keep retrying it. Upgrade
-to `0.0.26`, run the Wizard again, and choose its explicit replacement action:
+Do not edit a hash-bound plan. To change an evidence profile, companion, or
+orchestrator selection, run the exact CLI again and choose its explicit
+replacement action:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.26 research setup \
+npx --yes @tiangong-ai/cli@0.0.28 research setup \
   --workspace /absolute/path/to/research-workspace
 ```
 
-For automation, rerun the same reviewed `research setup plan` inputs with
-`--replace-plan`. The CLI archives the previous generation and creates a new
-plan whose pinned Brave paths are `skills/web-search`, `skills/news-search`,
-`skills/llm-context`, `skills/images-search`, and `skills/videos-search`.
+For automation, rerun the reviewed `research setup plan` inputs with
+`--replace-plan`. Replacement reconciles the complete setup-managed capability
+set and both credential stores: deselected Brave/Sci declarations and lock
+records are removed, custom capability declarations are preserved, and no
+installed Skill directory is deleted. A provider `OPTION_NOT_IN_PLAN` result
+must lead to an explicit operator choice between a baseline replacement and a
+subscription change; setup never switches profiles silently.
 
 ## Update without version drift
 
 `update --check` is read-only. The currently installed generation stays pinned:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.26 research setup update --check \
+npx --yes @tiangong-ai/cli@0.0.28 research setup update --check \
   --workspace /absolute/path/to/research-workspace --json
 ```
 
@@ -162,7 +177,7 @@ An upgrade is a new immutable plan, never an in-place floating update. Review
 new licenses and pins, then apply the newly generated plan:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.26 research setup upgrade \
+npx --yes @tiangong-ai/cli@0.0.28 research setup upgrade \
   --plan --confirm-upgrade \
   --accept-license <every-selected-current-license-id> \
   --workspace /absolute/path/to/research-workspace --json
@@ -178,7 +193,7 @@ environment and verified Skill tree. Document output uses a unique temporary
 file and a no-overwrite atomic commit:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.26 research setup companion run \
+npx --yes @tiangong-ai/cli@0.0.28 research setup companion run \
   --id tiangong.document-granular-decompose \
   --input /absolute/path/to/source.pdf \
   --output /absolute/path/to/source.fulltext.md \
@@ -190,7 +205,7 @@ chooses the newest PDF in a directory:
 
 ```bash
 mkdir -p /absolute/path/to/papers
-npx --yes @tiangong-ai/cli@0.0.26 research setup companion run \
+npx --yes @tiangong-ai/cli@0.0.28 research setup companion run \
   --id tiangong.academic-paper-download \
   --doi 10.1234/example --out /absolute/path/to/papers \
   --workspace /absolute/path/to/research-workspace --json

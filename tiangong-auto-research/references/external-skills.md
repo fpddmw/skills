@@ -5,7 +5,7 @@ allowed to do, which credentials it needs, and how installation is governed.
 The live machine-readable source of truth is:
 
 ```bash
-npx --yes @tiangong-ai/cli@0.0.26 research setup catalog \
+npx --yes @tiangong-ai/cli@0.0.28 research setup catalog \
   --workspace /absolute/path/to/workspace --json
 ```
 
@@ -32,6 +32,16 @@ adopts or overwrites a drifted copy. Project-local `.agents/skills` or
 `.claude/skills` copy mode is the reproducible default. Global scope is an
 explicit operator choice.
 
+## Workflow orchestrator
+
+`tiangong.auto-research` installs the separately sourced
+`tiangong-auto-research` Skill. Its role is `orchestrator`: it routes ordinary
+research requests through context resolution, setup/status/doctor, preflight,
+initialization, dry-run, execution, review, and closure. It is not an evidence
+source and receives no provider credential. The Wizard recommends a
+project-local copy but asks for explicit confirmation; automation selects it
+with `--skills tiangong.auto-research`.
+
 ## Evidence capabilities
 
 These Skills can contribute candidate evidence only through the locked HTTP
@@ -44,12 +54,23 @@ broker during discovery:
 | `brave.images-search`, `brave.videos-search` | same | Conditional visual/audiovisual discovery only when material to the question. | same Brave key |
 | `tiangong.kb-sci-search` | `tiangong-ai/skills` | Optional owner-whitelisted academic database. It supplements, but never satisfies, the production public-internet gate. | `tiangong.sci.api-key` from `TIANGONG_SCI_APIKEY` or another explicitly named owner variable |
 
-Brave capabilities use their manifest-declared GET endpoints. Tiangong SCI uses
-the exact declared JSON POST endpoint, `x-region`, and `x-api-key` credential
-injection. The discovery agent supplies only non-secret `request_body` fields;
-the broker rejects credential-like fields, persists only the request-body hash,
-refuses POST redirects, bounds the response, and promotes the exact response to
-the permanent evidence store.
+The staged manifest exposes each locked, non-secret, exact endpoint so the
+discovery agent never has to guess a path. Brave capabilities use their declared
+GET endpoints. Tiangong SCI uses the exact declared JSON POST endpoint,
+`x-region`, and `x-api-key` credential injection. The discovery agent supplies
+only non-secret `request_body` fields; the broker rejects credential-like fields,
+persists only the request-body hash, refuses POST redirects, enforces the endpoint
+scope for the initial request and every redirect, bounds both response size and
+the package's broker-call count, and promotes the exact response to the permanent
+evidence store. A brokered declaration without an explicit endpoint is invalid;
+setup does not migrate an older declaration implicitly.
+
+For a short `429`, the broker performs at most one inline retry. It uses
+`Retry-After` when present, defaults to one second when absent, and retries
+inline only when that delay is at most five seconds. Longer throttles are
+returned as actionable failures rather than holding the agent call open. The
+journal records only sanitized response metadata and a safe request ID; it
+never records the raw target or credentials.
 
 Do not run a staged Skill's shell/curl examples inside a research capsule. Agent
 processes never receive provider credentials. Authentication, authorization,
@@ -127,6 +148,14 @@ Brave endpoint does not prove that LLM Context, image, or video access is
 included in the provider plan. The Unstructure live check uploads a generated
 one-page PDF only with its separate confirmation. Agent smoke is separately
 cost-confirmed.
+
+Capability doctor retains only a bounded sanitized provider code/detail and a
+safe request ID. `OPTION_NOT_IN_PLAN` is an operator decision: either create a
+reviewed replacement using the Brave web/news baseline or enable the provider
+subscription. It never triggers an automatic profile switch. Replacement
+removes deselected setup-managed declarations and stale logical credential
+entries, preserves custom capabilities, and leaves all installed Skill
+directories untouched.
 
 ## Custom owner-whitelisted databases
 

@@ -3,7 +3,7 @@
 ## Base prerequisites
 
 - Node.js 24, `git`, and `npx` access to
-  `@tiangong-ai/cli@0.0.26` and the exact setup-pinned `skills@1.5.22` package.
+  `@tiangong-ai/cli@0.0.28` and the exact setup-pinned `skills@1.5.22` package.
 - Authenticated `codex` and `claude` executables for the configured producer and
   reviewer routes.
 - macOS `/usr/bin/sandbox-exec` or Linux Bubblewrap (`bwrap`).
@@ -34,20 +34,26 @@ recommended defaults are:
 
 The variable name can differ, but it must be explicitly bound in the immutable
 plan. Values must be non-trivial and remain in the owner process environment
-only until setup stores them. Do not put values in setup JSON files, CLI
-arguments, shell history, Skill files, capability declarations, or chat.
+only until setup stores them. After a successful apply, later
+status/doctor/run commands use the owner-only logical stores and do not require
+those source shell variables to remain exported. Do not put values in setup
+JSON files, CLI arguments, shell history, Skill files, capability declarations,
+or chat.
 
 Broker credentials are written to the owner-only
 `.tiangong-research/.env` logical credential store. Adapter credentials are
 written separately to owner-only `.tiangong-research/setup-adapters.env`.
 Neither file supports arbitrary dotenv keys or shell interpolation. Both reject
 symlinks, duplicate/undeclared entries, malformed JSON, and group/other access.
+An explicitly reviewed replacement reconciles both stores to the new selection,
+so deselected logical entries do not invalidate the new configuration; values
+are never printed during reconciliation.
 
 Use the supported command to rotate one selected credential:
 
 ```bash
 export OWNER_NEW_BRAVE_KEY='new owner value'
-npx --yes @tiangong-ai/cli@0.0.26 research setup credential set \
+npx --yes @tiangong-ai/cli@0.0.28 research setup credential set \
   --id brave.search.api-key --from-env OWNER_NEW_BRAVE_KEY \
   --workspace /absolute/path/to/workspace --json
 ```
@@ -126,3 +132,7 @@ in the keychain.
 The outer sandbox is the execution boundary. Discovery has no shell or ambient
 filesystem/network access and can call only the scoped broker. Analyze,
 synthesize, and review are tool-free.
+
+Codex also receives a capsule-local project-root marker override. Its project
+configuration walk stops inside the capsule and never requires read access to a
+parent workspace `.codex/config.toml`.
