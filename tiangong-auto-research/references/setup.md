@@ -32,8 +32,9 @@ The workspace may be any ordinary user-selected directory. Example paths below
 are placeholders, not defaults or repository requirements.
 
 Prerequisites are Node.js 24, `git`, `npx`, an agent-compatible sandbox
-(`/usr/bin/sandbox-exec` on macOS or `bwrap` on Linux), and normal Codex/Claude
-CLI authentication for the routes you intend to use. Create or choose the
+(`/usr/bin/sandbox-exec` on macOS or `bwrap` on Linux) for independent review,
+the current interactive Codex or Claude Code host, and normal authentication for
+the other-family reviewer CLI. Create or choose the
 directory, review one exact stable CLI release, replace `X.Y.Z` below, and
 start the Wizard; ordinary users do not need to export keys. `latest`, tags,
 ranges, paths, and command fragments are not bootstrap versions:
@@ -93,7 +94,8 @@ The Wizard then guides the user through:
 - optional Tiangong companions and post-closure authoring Skills; for PPT
   creation it presents PPT Master as preferred while keeping Anthropic PPTX as
   a compatible situational choice;
-- Codex/Claude install targets and project/global scope;
+- the current native research host (Codex or interactive Claude Code), the
+  other-family reviewer CLI, matching Skill targets, and project/global scope;
 - non-secret endpoints/settings;
 - a source choice for every selected required or optional credential;
 - each pinned source/license notice and explicit acceptance;
@@ -173,15 +175,21 @@ node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/research-workspace -- \
 ```
 
 Static doctor checks installed tree hashes, required settings, owner-only
-credential stores, Node/git/npx, sandbox, agent CLIs, Python, and pinned Python
-requirements. `--live` uses provider network/quota. A synthetic document upload
-also requires `--allow-synthetic-unstructure-upload`; model-agent smoke requires
-`--agent-smoke --confirm-agent-smoke-cost`. When one of those explicitly
-requested smoke checks fails, readiness is `BLOCKED`; it is never downgraded to
-an advisory warning. After both production smokes succeed, ordinary workspace
-doctor calls may reuse the unexpired hash-bound attestation only after checking
-the current agent runtime fingerprints. Explicit smoke flags refresh the
-attestation; expiry or drift remains blocking.
+credential stores, Node/git/npx, the reviewer sandbox/CLI, Python, and pinned
+Python requirements. `--live` uses provider network/quota. A synthetic document
+upload also requires `--allow-synthetic-unstructure-upload`; reviewer smoke
+requires `--agent-smoke --confirm-agent-smoke-cost`. Doctor does not launch the
+native producer. It probes a required capability only once and skips the paid
+reviewer smoke when an earlier blocking prerequisite fails.
+
+Read `researchReadiness` for admission. `preprocessingReadiness`,
+`acquisitionReadiness`, and `authoringReadiness` describe optional domains;
+`overallReadiness` may be `PARTIALLY_READY` while unrelated research remains
+ready. An optional component becomes blocking only when the current project or
+operation explicitly requires its exact catalog ID. After the reviewer smoke
+succeeds, ordinary workspace doctor calls may reuse its unexpired hash-bound
+attestation after checking the current reviewer runtime fingerprint. Explicit
+smoke flags refresh it; expiry or drift remains blocking.
 
 On a blocked apply, use the exact `retryCommand` in setup state. Clear a stale
 lock only with both stale-lock flags after confirming no setup process owns it.

@@ -1,4 +1,4 @@
 interface:
   display_name: "Tiangong Auto Research"
-  short_description: "Orchestrate reviewed multi-source research"
-  default_prompt: "Use $tiangong-auto-research for this open-ended or multi-source research task, resolve the exact CLI from the workspace runtime lock, verify required capabilities and budget, and stop on every unmet production gate."
+  short_description: "Run native-host research with independent review"
+  default_prompt: "Use $tiangong-auto-research for this open-ended or multi-source research task. Resolve the exact CLI from the workspace runtime lock, verify required capabilities and budget, perform producer stages in this current native host, and use the other agent family only for independent review."

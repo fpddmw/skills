@@ -13,8 +13,8 @@ checkPaths:
   - README.md
   - .claude-plugin/**
   - "*/SKILL.md"
-lastReviewedAt: 2026-08-09
-lastReviewedCommit: cb50e5c352fee5349e29a9d08b81a7bc05644452
+lastReviewedAt: 2026-08-10
+lastReviewedCommit: 20d4fbb8ffd35af110675f47a66b510d26577453
 ---
 
 # 天工 AI Skills
