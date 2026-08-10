@@ -39,10 +39,11 @@ explicit operator choice.
 `tiangong.auto-research` installs the separately sourced
 `tiangong-auto-research` Skill. Its role is `orchestrator`: it routes ordinary
 research requests through context resolution, setup/status/doctor, preflight,
-initialization, dry-run, execution, review, and closure. It is not an evidence
-source and receives no provider credential. The Wizard recommends a
-project-local copy but asks for explicit confirmation; automation selects it
-with `--skills tiangong.auto-research`.
+initialization, native-host producer stages, independent review, and closure.
+It is instruction/control-plane guidance, not a nested producer launcher. It is
+not an evidence source and receives no provider credential. The Wizard
+recommends a project-local copy but asks for explicit confirmation; automation
+selects it with `--skills tiangong.auto-research`.
 
 ## Evidence capabilities
 
@@ -74,8 +75,9 @@ returned as actionable failures rather than holding the agent call open. The
 journal records only sanitized response metadata and a safe request ID; it
 never records the raw target or credentials.
 
-Do not run a staged Skill's shell/curl examples inside a research capsule. Agent
-processes never receive provider credentials. Authentication, authorization,
+Do not run a staged Skill's shell/curl examples from the native producer.
+Evidence requests must use the prepared one-shot broker command. Agent processes
+never receive provider credentials. Authentication, authorization,
 subscription, deterministic 4xx, unsafe response type, and source drift stop
 execution; no source or login barrier may be bypassed.
 
@@ -119,7 +121,7 @@ that workflow a better fit. Setup does not auto-select either Skill.
 
 | Logical configuration | Required when | How to obtain/configure |
 | --- | --- | --- |
-| `brave.search.api-key` | Any Brave profile | Create a key through the normal Brave Search API account flow; give setup only the environment variable name. |
+| `brave.search.api-key` | Any Brave profile | Create a key through the normal Brave Search API account flow; enter it with the Wizard's hidden prompt, preload it from a password manager/stdin, or bind an owner environment variable. |
 | `tiangong.sci.api-key` | Tiangong SCI selected | Ask the owner of the authorized deployment; do not reuse browser/session credentials. |
 | `tiangong.sci.endpoint`, `tiangong.sci.region` | Tiangong SCI selected | Review the exact HTTPS endpoint and non-secret region shown by the Wizard. |
 | `tiangong.unstructure.auth-token` | Document preprocessing selected | Ask the deployment owner; stored only in the adapter credential store. |
@@ -128,8 +130,9 @@ that workflow a better fit. Setup does not auto-select either Skill.
 | `unpaywall.contact-email` | Optional | A real contact email, stored as a non-secret setting. |
 
 No key is accepted as a command argument, JSON request field, manifest value, or
-chat value. Setup's `credential set` command reads a named owner environment
-variable and returns only the logical ID and storage class.
+chat value. Setup's `credential set` command uses hidden TTY input, bounded
+stdin, or a named owner environment variable and returns only the logical ID and
+storage class.
 
 ## Status and live checks
 
@@ -141,15 +144,25 @@ presence:
 - `drifted`: bytes differ; do not re-lock or overwrite them;
 - `blocked`: path, symlink, permissions, dependency, credential, or check
   policy failed;
-- `READY`: every selected required static/live check passed;
-- `PARTIALLY_READY`: deferred optional/cost/network checks remain;
-- `BLOCKED`: a selected required capability or dependency is unusable.
+- `researchReadiness=READY`: research-core, required evidence, and independent
+  review prerequisites passed;
+- optional `preprocessingReadiness`, `acquisitionReadiness`, and
+  `authoringReadiness` may be `DEGRADED` without blocking unrelated research;
+- `overallReadiness=PARTIALLY_READY`: one of those optional domains is degraded;
+- `BLOCKED`: a research-core requirement, or an exact component required by the
+  current project/operation, is unusable.
 
 Live checks are explicit because they use network/quota. A key that passes one
 Brave endpoint does not prove that LLM Context, image, or video access is
 included in the provider plan. The Unstructure live check uploads a generated
 one-page PDF only with its separate confirmation. Agent smoke is separately
 cost-confirmed.
+
+The Semantic Scholar resolver is one optional path inside the acquisition
+adapter's Unpaywall → Semantic Scholar OA → arXiv → browser-handoff sequence. A
+remaining 429 after its one bounded retry degrades acquisition, not global
+research readiness. Requiring the academic adapter gates its exact installation
+and dependencies, not this one resolver as if it were the only legal OA path.
 
 Capability doctor retains only a bounded sanitized provider code/detail and a
 safe request ID. `OPTION_NOT_IN_PLAN` is an operator decision: either create a

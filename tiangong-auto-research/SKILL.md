@@ -1,6 +1,6 @@
 ---
 name: tiangong-auto-research
-description: Orchestrate open-ended, multi-source, evidence-backed research, especially when an ancestor directory contains `.tiangong-research` or the user asks to research, investigate, build on prior outputs, compare evidence, form a conclusion, or produce a reviewed research artifact. Also use for setup, preflight, execution, recovery, review, and closure. In an Auto Research workspace this Skill takes precedence over individual web, news, SCI, report, patent, download, or document Skills unless the user explicitly requests one isolated standalone operation outside the research workflow. Covers Chinese requests such as “研究一下”, “朝这个方向做一做”, “结合已有成果继续研究”, “查资料并形成结论”, and “系统梳理证据”.
+description: Orchestrate open-ended, multi-source, evidence-backed research in the current native Codex or Claude Code host, especially when an ancestor directory contains `.tiangong-research` or the user asks to research, investigate, build on prior outputs, compare evidence, form a conclusion, or produce a reviewed research artifact. Also use for setup, preflight, native producer execution, recovery, independent review, and closure. In an Auto Research workspace this Skill takes precedence over individual web, news, SCI, report, patent, download, or document Skills unless the user explicitly requests one isolated standalone operation outside the research workflow. Covers Chinese requests such as “研究一下”, “朝这个方向做一做”, “结合已有成果继续研究”, “查资料并形成结论”, and “系统梳理证据”.
 ---
 
 # Tiangong Auto Research
@@ -21,10 +21,11 @@ reviewed exact bootstrap CLI version. Never substitute `latest`, a range, a
 tag, a path, or a command fragment. After setup creates the runtime lock, use
 the resolver above.
 
-The CLI owns the setup catalog, immutable setup plan, capability policy, output
-schemas, coverage gates, budgets, retries, evidence promotion, review, and
-closure. Do not reproduce those contracts in an agent prompt or edit control
-files by hand.
+The CLI is the deterministic control plane: it owns setup, locks, brokered
+evidence, schemas, coverage, budgets, admission, the independent review process,
+the journal, and closure. The current interactive Codex or Claude Code session
+owns producer reasoning. The CLI must never launch a nested producer process.
+Do not reproduce control-plane contracts or edit control files by hand.
 
 ## Route to the right reference
 
@@ -36,6 +37,8 @@ files by hand.
   agent authentication, provider checks, or wrappers.
 - Read [references/production-research.md](references/production-research.md)
   before production preflight, execution, recovery, or closure.
+- Read [references/native-execution.md](references/native-execution.md) before
+  preparing or submitting discover, analyze, or synthesize stages.
 
 ## Choose the mode before spending budget
 
@@ -102,20 +105,26 @@ required credentials must block before any source download.
   analysis, review, or closure.
 - For PPT creation, prefer `hugohe3.ppt-master`. Keep `anthropic.pptx` as a
   compatible situational option; both may be selected explicitly in one plan.
+- Selected optional preprocessors, acquisition adapters, and authoring Skills
+  remain visible diagnostics. They become hard gates only when the current
+  project lists them in `requiredCompanionIds` or explicitly invokes that
+  operation. Their failure never authorizes a standalone evidence downgrade.
 
 ## Preflight and initialize a project
 
 Prepare evidence requirements with `dimensions`, `sourceTypes`,
-`requiredCapabilityIds`, `requiredDiscoveryScopes`, `minSources`,
-`minFullTextSources`, `minDatedSources`, and nullable date bounds. Require each
-owner database that the question must actually exercise; Brave or local files
-cannot mask an undeclared report, patent, or other whitelisted capability. For
-large local sources, create an immutable input plan with bounded context files
-or ranges.
+`requiredCapabilityIds`, `requiredCompanionIds`, `requiredDiscoveryScopes`,
+`minSources`, `minFullTextSources`, `minDatedSources`, and nullable date bounds.
+Require each owner database that the question must actually exercise; Brave or
+local files cannot mask an undeclared report, patent, or other whitelisted
+capability. For large local sources, create an immutable input plan with bounded
+context files or ranges.
 
 First require the current setup generation and its real production checks to
-pass. One setup doctor invocation performs the nested workspace/capability and
-agent capsule smokes, so do not repeat paid smokes unnecessarily:
+pass. Doctor probes required capabilities once, then runs only the independent
+reviewer CLI smoke after all blocking zero/low-cost checks pass. It reuses an
+unexpired attestation and never smoke-tests the current native producer as a
+child process:
 
 ```bash
 node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
@@ -127,8 +136,9 @@ node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
   --agent-smoke --confirm-agent-smoke-cost --json
 ```
 
-Stop unless readiness is `READY`. An explicitly requested smoke failure is
-`BLOCKED`, not advisory.
+Stop unless `researchReadiness` is `READY` and every companion explicitly
+required by this project or operation is `READY`. Keep degraded optional domains
+visible, but do not block unrelated research or weaken evidence coverage.
 
 ```bash
 node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
@@ -154,9 +164,9 @@ initialization.
 ## Validate, run, and recover
 
 Production requires explicit models/prices, different producer and reviewer
-agent families, a current setup doctor report, and real capsule/provider smoke
-attestations. After successful preflight and initialization, use dry-run before
-the paid run:
+agent families, a current setup doctor report, and real provider/reviewer
+attestations. After preflight, use dry-run, then let the control plane identify
+the next action:
 
 ```bash
 node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
@@ -168,6 +178,14 @@ node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
   --max-cycles 20 --progress-jsonl --json
 ```
 
+For `native-stage-required`, do not keep calling `research run`. Prepare the
+exact next stage, perform the returned prompt in this current app/session, and
+submit its JSON through the CLI. Discovery evidence must be fetched through the
+packet's broker command. Repeat for discover, analyze, and synthesize. Only then
+may `research run` launch the configured independent reviewer and perform
+mechanical closure. Follow [references/native-execution.md](references/native-execution.md)
+for the exact commands and recovery rules.
+
 Proceed only when doctor reports ready. Discovery uses only locked broker
 capabilities; later stages are tool-free. Doctor, preflight, dependency,
 provider, and evidence-coverage failures must stop the workflow. Never silently
@@ -175,8 +193,9 @@ downgrade a systematic task to a standalone SCI, report, patent, web, or paper
 operation; only the user may explicitly narrow the request to one isolated
 standalone operation.
 
-Inspect state with `research status`. Use `research project retry` or
-`research project fork` only with explicit user direction; do not reset or
-delete state. A complete project has a passing independent review,
-`outputs/report.md`, and `outputs/closure.json`. Return the permanent evidence
-locators, review-packet binding, usage/cost, decision, and material limitations.
+Inspect state with `research status`. Use the exact native stage `abort`,
+`research project retry`, or `research project fork` only with explicit user
+direction; do not reset or delete state. A complete project has a passing
+independent review, `outputs/report.md`, and `outputs/closure.json`. Return the
+permanent evidence locators, review-packet binding, usage/cost, decision, and
+material limitations.

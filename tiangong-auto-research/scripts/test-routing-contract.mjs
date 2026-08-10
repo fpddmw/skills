@@ -27,6 +27,8 @@ const descriptions = Object.fromEntries(
 for (const marker of [
   "open-ended",
   "multi-source",
+  "current native",
+  "independent review",
   ".tiangong-research",
   "takes precedence",
   "研究一下",

@@ -15,9 +15,12 @@ AUTO_RESEARCH_CLI=/absolute/path/to/installed/tiangong-auto-research/scripts/res
 Start from the user-selected workspace's current immutable setup generation.
 Run `research setup status`, then one explicitly cost-confirmed
 `research setup doctor --live --agent-smoke --confirm-agent-smoke-cost` before
-project preflight. That command performs the nested capability and agent capsule
-smokes; do not repeat paid smokes without a reason. Any requested smoke failure
-must leave setup `BLOCKED`.
+project preflight. That command probes each required capability once and starts
+only the independent reviewer CLI smoke, after every blocking zero/low-cost
+prerequisite passes. It never starts the current native producer as a child.
+Do not repeat paid smokes without a reason. Continue when
+`researchReadiness=READY`; optional domain degradation blocks only a project or
+operation that explicitly requires the exact component.
 
 Before `project init`, record and show the user:
 
@@ -46,18 +49,18 @@ and the underlying absolute agent path in `wrapperTargetBinary`; never use a
 wrapper with an unpinned PATH lookup. The runtime separately records the target
 binary, route launcher/wrapper, and internal adapter SHA-256 values, plus the
 reported version, actual/configured model, OS, and architecture.
-`workspace doctor --agent-smoke` executes both routes in real capsules and
-writes a 24-hour attestation bound to those runtime fingerprints, workspace
-config, capability lock, and doctor schema. Expiry or drift blocks execution
-before the next agent invocation. During that validity window, plain
-`workspace doctor` rechecks all bound hashes and fingerprints the currently
-resolved producer/reviewer runtimes before reusing the attested agent and
-capability smoke results. Use explicit smoke flags to refresh the checks;
-missing, expired, or drifted attestations never receive an implicit pass.
+The producer route must declare `executionMode=native-host`; the reviewer route
+must declare `executionMode=headless-cli`. `workspace doctor --agent-smoke`
+executes only the reviewer in a real capsule and writes a 24-hour attestation
+bound to its runtime fingerprints, workspace config, capability lock, and
+doctor schema. Expiry or drift blocks review before invocation. During that
+validity window, plain `workspace doctor` rechecks all bound hashes and the
+resolved reviewer runtime before reuse. Use explicit smoke flags to refresh the
+check; missing, expired, or drifted attestations never receive an implicit pass.
 
-Within one package, a formatting repair may reuse the capsule-local agent auth
-copy only when it remains a regular owner-only file whose SHA-256 matches the
-owner source. Authentication drift stops the package; setup/runtime never
+Within a reviewer package, a formatting repair may reuse the capsule-local agent
+auth copy only when it remains a regular owner-only file whose SHA-256 matches
+the owner source. Authentication drift stops the package; setup/runtime never
 overwrite the capsule copy or silently choose another credential.
 
 The budget includes:
@@ -75,34 +78,25 @@ discovery package ceiling; analyze, synthesize, and review default to 60,000,
 4,000. These values are admission ceilings, not a target spend. Lower them only
 when preflight proves every complete reservation still fits.
 
-The CLI will not start a package unless its full token and conservative price
-reservation fits. Immediately before each call it accounts for prompt and
-schema bytes at three bytes per token, agent-specific protocol overhead,
-input repeated for every permitted API turn, the maximum bounded broker context
-for every permitted discovery turn, primary output, and a possible isolated
-repair's input and output. The provider cost cap is derived from that package
-reservation, not the project's remaining global allowance. Tool-free Codex
-primary stages reserve two protocol turns. Claude JSON Schema primary stages
-reserve and receive a three-turn provider cap, matching the current Claude Code
-structured-output exchange; external tools remain disabled. The
-repair path omits the provider schema tool, requests plain JSON in one turn,
-and still passes through the same CLI validators.
-Current Codex and Claude CLI adapters expose final output usage only after the
-call. Preflight therefore reports `outputTokenLimitEnforcement` as
-`post-execution`: captured bytes bound the process, and an over-limit result is
-rejected without promotion, but the limit is not a provider-side hard stop.
-Discovery capture allowance includes bounded broker tool-result events as well
-as the requested final output. Preflight and runtime share the reservation
-calculator, including the complete bounded capability-documentation allowance.
-The broker separately enforces at most six provider fetch calls per discovery
-run and returns the remaining call budget after each success.
-Reserve enough output for the discover schema and enough input context for the
-embedded prior-stage artifacts; preflight reports both gaps mechanically.
-It also reports per-stage `maxTurns` and route-specific
-`turnLimitEnforcement`. Claude receives its cap from the provider CLI. The
-current Codex CLI has no turn-limit flag, so its value is a conservative
-reservation assumption followed by actual-usage rejection; do not describe it
-as a provider hard stop.
+The CLI will not prepare or launch a package unless its full token and
+conservative price reservation fits. Native producer preparation reserves the
+prompt, schema, admitted input/prior-stage context, bounded broker allowance,
+and output ceiling. Because the current host app does not expose trusted
+per-stage usage telemetry to this control plane, successful submit charges the
+entire reviewed package reservation and records
+`accountingMode=reserved-native-host`. The submit boundary still rejects an
+oversized, invalid, stale, or over-budget result before promotion. Do not
+describe native-host turns or output tokens as provider-side hard limits.
+
+The independently launched reviewer retains pre-call prompt/schema/output and
+repair reservations plus provider-side structured-output/turn controls where
+the selected CLI supports them. Its formatting repair requests plain JSON in
+one tool-free turn and passes through the same validators. Preflight and runtime
+share the review-context reservation formula. The broker separately enforces at
+most six provider fetch calls across native discovery and returns the remaining
+call budget after each success. Reserve enough output for every producer schema
+and enough input context for prior-stage artifacts; preflight reports both gaps
+mechanically.
 
 ## Bounded local evidence
 
@@ -132,10 +126,10 @@ type, full-text claim, publication date, and either:
 }
 ```
 
-The producer receives only the derived bounded context. The full, hash-verified
-source is withheld until independent review and is then listed in the review
-packet. The CLI rejects symlinks, duplicate source content, overlapping or
-out-of-range slices, changed hashes, and aggregate context above
+The native producer packet contains only the derived bounded context. The full,
+hash-verified source is withheld until independent review and is then listed in
+the review packet. The CLI rejects symlinks, duplicate source content,
+overlapping or out-of-range slices, changed hashes, and aggregate context above
 `maxInputContextTokens`. Declaring `fullText: true` means the exact full file is
 registered for review; it does not expose that entire file to discovery.
 
@@ -158,12 +152,16 @@ an excerpt or JSON Pointer, quality rationale, applicability, and covered
 dimensions. The CLI verifies input locators and every broker object. Findings
 may cite only admitted source IDs.
 
-Codex receives `--output-schema`; Claude receives `--json-schema`. The CLI
-validates the final object and materializes it atomically. Invalid syntax or
-schema, or a mechanically diagnosed invalid provenance/finding binding, gets
-one low-budget formatting-only repair with no broker access or research tools.
-The repair may not add facts. A second failure stops the package instead of
-repeating the research call.
+For discover, analyze, and synthesize, `research project stage prepare` returns
+the authoritative schema and exact prompt to the current native host. Save one
+JSON object and pass it to `research project stage submit`; submit validates and
+materializes it atomically. A rejected native submission preserves the bound
+session for an explicit host correction and never launches a nested repair
+agent. For review, Codex receives `--output-schema` or Claude receives
+`--json-schema`; invalid reviewer syntax/schema or a mechanically diagnosed
+binding gets one low-budget formatting-only repair with no broker or research
+tools. The repair may not add facts. A second reviewer failure stops instead of
+repeating research.
 
 ## Broker evidence
 
@@ -263,14 +261,16 @@ called from one that was called but yielded no admissible receipt; the latter
 reports only sanitized failure kinds such as `rate-limit`, never request URLs or
 credentials.
 
-Discovery receives no shell or filesystem tools. The CLI embeds the locked
-capability manifest and each staged external Skill's top-level `SKILL.md`, and
-the scoped broker is its only execution tool. Broker results include the exact
-bounded view inline with the receipt. Analyze embeds the admitted evidence
-object; synthesize embeds admitted evidence and analysis. Both stages run with
-tools disabled. Review is also tool-free and embeds generated artifacts plus
-deterministic excerpts from bounded local/broker evidence views within the
-reviewer's route-specific structured-output turn cap. Preflight and runtime reserve the same
+Native discovery receives a packet containing the locked capability manifest
+and each staged external Skill's top-level `SKILL.md`. The current host must use
+the packet's `research project evidence fetch` argv for admitted network
+evidence; standalone web/search/database tools cannot replace required broker
+receipts. Broker results include the exact bounded view inline with the receipt.
+Analyze receives the admitted evidence object; synthesize receives evidence and
+analysis. Neither stage may gather new evidence. Review is tool-free and embeds
+generated artifacts plus deterministic excerpts from bounded local/broker
+evidence views within the reviewer's route-specific structured-output turn cap.
+Preflight and runtime reserve the same
 stage-specific ceiling: three maximum-size generated artifacts plus one
 `maxInputContextTokens` excerpt bundle. The complete packet, full files,
 original bounded contexts, and raw objects remain hash-bound for later
@@ -320,6 +320,11 @@ node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
 The top-level result and run-level JSONL events then carry that `projectId`, and
 historical blocked siblings do not change its exit code. Omit `--project` only
 when the operator intends to schedule and summarize the whole workspace.
+`stopReason=native-stage-required` is the normal producer handoff: follow
+[native-execution.md](native-execution.md) to prepare and submit discover,
+analyze, and synthesize in the current host. Calling `research run` after
+synthesis may launch only the independently configured reviewer CLI and then
+close mechanically.
 
 ## Standard zero-cost eval before a real canary
 
@@ -333,6 +338,8 @@ Confirm the owning CLI release passed deterministic mock coverage for:
   local-only production rejection;
 - routing and smoke/production mode boundaries;
 - discover → analyze → synthesize → review → close;
+- public `research run` never launching a producer subprocess, with native
+  prepare/fetch/submit advancing the three producer stages;
 - permanent evidence and review-packet hash verification;
 - persistent bounded review-context verification and packet/context tamper
   rejection before closure;
@@ -340,16 +347,19 @@ Confirm the owning CLI release passed deterministic mock coverage for:
 - invalid provenance/finding binding repair without repeating research;
 - 429, deterministic 4xx/422, 5xx, redirect, oversized response, cache, and
   bounded offset extraction with raw-object reuse;
-- capsule HOME/sandbox startup and evidence/journal recovery;
-- bounded local producer context with full-source reviewer staging;
-- broker-only discovery with embedded locked Skill documentation and tool-free
-  analyze/synthesize/review stages;
+- reviewer capsule HOME/sandbox startup and evidence/journal recovery;
+- bounded native producer context with full-source reviewer staging;
+- explicit native broker discovery with embedded locked Skill documentation,
+  no new evidence in analyze/synthesize, and tool-free review;
 - a broker result larger than the historical 64 KiB capture floor;
 - capability drift and evidence tampering;
 - insufficient evidence blocking closure;
 - secret redaction across output, provider telemetry, errors, progress,
-  journal, and manifests.
-- project-scoped execution in a workspace containing historical blockers.
+  journal, and manifests;
+- project-scoped execution in a workspace containing historical blockers;
+- research-core readiness surviving optional acquisition/preprocessing
+  degradation, exact companion promotion, one-probe doctor behavior, and paid
+  reviewer smoke suppression after static blockers.
 
 Only then run a bounded real-model canary with reservations that pass preflight.
 Do not infer production readiness from a Crossref-only or single-source smoke

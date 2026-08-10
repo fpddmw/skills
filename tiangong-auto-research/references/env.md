@@ -6,21 +6,22 @@
   workspace runtime lock and the setup-pinned `skills@1.5.22` package. A clean
   directory needs one user-reviewed exact bootstrap CLI version before that
   lock exists; never infer `latest` for an existing workspace.
-- Authenticated `codex` and `claude` executables for the configured producer and
-  reviewer routes.
+- A current interactive Codex or Claude Code producer host plus an authenticated
+  executable for the other-family independent reviewer route.
 - macOS `/usr/bin/sandbox-exec` or Linux Bubblewrap (`bwrap`).
 - Python 3.10+ only for selected Python-based companions. Setup reports missing
   Python dependencies but never installs them.
 
-Authenticate agent CLIs through their normal interactive login outside the
+Authenticate the reviewer CLI through its normal interactive login outside the
 research workspace. Do not copy browser profiles, keychains, full agent HOME
-directories, cookies, passwords, or session tokens into a workspace. The
-runtime creates a capsule HOME and copies/extracts only its documented minimal
-agent authentication material.
+directories, cookies, passwords, or session tokens into a workspace. Native
+producer preparation does not copy host authentication. Reviewer runtime creates
+a capsule HOME and copies/extracts only its documented minimal authentication
+material.
 
-Production doctor must run real agent and capability smokes before a costly
-package. These checks may use quota and therefore require explicit flags and
-cost confirmation.
+Production doctor must run real capability checks and a reviewer smoke before a
+costly review package. These checks may use quota and therefore require explicit
+flags and cost confirmation. It never launches the current native producer.
 
 ## Setup credential input
 
@@ -130,13 +131,13 @@ audit event and still cannot read the broker store. Setup maps the owner
 variable to logical ID `tiangong.sci.api-key`; discovery sends a non-secret
 POST `request_body` to the broker, which injects `x-api-key` for the exact host.
 
-## Agent wrappers and capsule authentication
+## Reviewer wrappers and capsule authentication
 
 The tested macOS/Linux template is
 `scripts/agent-wrapper-posix.sh`; validate it with
-`scripts/test-agent-wrapper-posix.sh`. A custom route must use absolute paths,
-an immutable wrapper for the run, explicit model ID and prices, and the real
-target binary:
+`scripts/test-agent-wrapper-posix.sh`. A custom reviewer route must use absolute
+paths, an immutable wrapper for the run, explicit model ID and prices, and the
+real target binary:
 
 ```json
 {
@@ -150,8 +151,8 @@ target binary:
 ```
 
 The CLI sets `TIANGONG_RESEARCH_AGENT_BINARY`; do not set or forward it
-yourself. Doctor attests target, wrapper, internal adapter, OS, and architecture
-and invalidates the attestation after relevant drift.
+yourself. Doctor attests the reviewer target, wrapper, internal adapter, OS, and
+architecture and invalidates the attestation after relevant drift.
 
 For Claude, the runtime does not copy an owner `settings.json`. It extracts only
 documented authentication values and a credential-free HTTPS base URL from the
@@ -159,10 +160,11 @@ supported environment object; hooks, permissions, extra directories, and other
 settings are excluded. On macOS, credentials held in the system keychain stay
 in the keychain.
 
-The outer sandbox is the execution boundary. Discovery has no shell or ambient
-filesystem/network access and can call only the scoped broker. Analyze,
-synthesize, and review are tool-free.
+The current host application is the producer execution boundary. Discovery
+uses only the CLI's hash-bound one-shot broker command for admitted evidence;
+analyze and synthesize use prepared bounded context and gather no new evidence.
+The outer CLI sandbox applies to independent review, which is tool-free.
 
-Codex also receives a capsule-local project-root marker override. Its project
-configuration walk stops inside the capsule and never requires read access to a
-parent workspace `.codex/config.toml`.
+When Codex is the reviewer, it receives a capsule-local project-root marker
+override. Its project configuration walk stops inside the capsule and never
+requires read access to a parent workspace `.codex/config.toml`.
