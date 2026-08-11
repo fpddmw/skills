@@ -1,10 +1,10 @@
 # Native producer execution
 
-Discover, analyze, and synthesize are performed by the current interactive
-Codex app/session or Claude Code session. The CLI is not a producer-agent
-launcher. It prepares a hash-bound packet, brokers authorized evidence, admits
-the result, launches the other agent family only for independent review, and
-closes mechanically.
+Discover, acquire, analyze, and synthesize are performed by the current
+interactive Codex app/session or Claude Code session. The CLI is not a
+producer-agent launcher. It prepares a hash-bound packet, brokers authorized
+evidence, registers exact acquired artifacts, admits the result, launches the
+other agent family only for independent review, and closes mechanically.
 
 ## Identify the next action
 
@@ -60,6 +60,22 @@ limits calls/bytes/items/tokens, persists content-addressed raw evidence, and
 records sanitized events. Standalone web/search/database tools cannot replace
 required broker receipts.
 
+Native Web or Browser results may be recorded only as supplemental leads with
+the packet's `registerCandidate` argv. They remain inadmissible until a broker
+receipt formalizes the same canonical URL/DOI. Registered inputs are already
+formal candidates under their own content-hash identity.
+
+## Register exact acquisition artifacts
+
+When the next stage is `acquire`, follow the packet's `registerArtifact` argv
+for each exact selected file. Pass its candidate ID and absolute staging path;
+add source/license metadata only when explicitly declared by the source. The
+registry accepts no directory and performs no “latest download” selection.
+Binary registration makes the exact file review-bound, but PDF/DOCX/PPTX/XLSX
+alone does not claim producer-readable full text. Register a separately derived
+UTF-8 text/JSON/HTML/CSV/Markdown artifact when one was legitimately produced
+and should be embedded within the bounded producer context.
+
 ## Submit producer output
 
 Save only the schema-conforming JSON object to a new regular non-symlink file.
@@ -88,9 +104,9 @@ It does not silently retry research or invoke another model.
 ## Continue, review, or abort
 
 After each successful submit, call `research run` again. Prepare/submit the
-next native producer stage until synthesize completes. The same run command may
-then launch only the configured independent reviewer CLI and, after a passing
-review, perform mechanical closure.
+next native producer stage through discover, acquire, analyze, and synthesize.
+The same run command may then launch only the configured independent reviewer
+CLI and, after a passing review, perform mechanical closure.
 
 To discard an active native session explicitly:
 

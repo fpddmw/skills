@@ -37,8 +37,10 @@ Do not reproduce control-plane contracts or edit control files by hand.
   agent authentication, provider checks, or wrappers.
 - Read [references/production-research.md](references/production-research.md)
   before production preflight, execution, recovery, or closure.
+- Read [references/evidence-pipeline.md](references/evidence-pipeline.md) before
+  discovery, acquisition, evidence refresh, or an addendum.
 - Read [references/native-execution.md](references/native-execution.md) before
-  preparing or submitting discover, analyze, or synthesize stages.
+  preparing or submitting discover, acquire, analyze, or synthesize stages.
 
 ## Choose the mode before spending budget
 
@@ -181,10 +183,12 @@ node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
 For `native-stage-required`, do not keep calling `research run`. Prepare the
 exact next stage, perform the returned prompt in this current app/session, and
 submit its JSON through the CLI. Discovery evidence must be fetched through the
-packet's broker command. Repeat for discover, analyze, and synthesize. Only then
-may `research run` launch the configured independent reviewer and perform
-mechanical closure. Follow [references/native-execution.md](references/native-execution.md)
-for the exact commands and recovery rules.
+packet's broker command; acquisition must bind every exact selected file through
+the packet's artifact registry. Repeat for discover, acquire, analyze, and
+synthesize. Only then may `research run` launch the configured independent
+reviewer and perform mechanical closure. Follow
+[references/native-execution.md](references/native-execution.md) for the exact
+commands and recovery rules.
 
 Proceed only when doctor reports ready. Discovery uses only locked broker
 capabilities; later stages are tool-free. Doctor, preflight, dependency,
