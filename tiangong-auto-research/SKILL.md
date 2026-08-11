@@ -28,6 +28,14 @@ the journal, and closure. The current interactive Codex or Claude Code session
 owns producer reasoning. The CLI must never launch a nested producer process.
 Do not reproduce control-plane contracts or edit control files by hand.
 
+During an accepted apply, the CLI may temporarily create the project Skill
+`tiangong-auto-research-recovery`. That generated recovery-only entry can inspect
+context and setup status and execute only the exact pinned retry command. It must
+never perform research or standalone evidence search. The CLI removes only its
+own exact plan-bound recovery bytes after this full external orchestrator matches
+the reviewed tree hash; follow [references/setup.md](references/setup.md) for the
+detailed stop and recovery rules.
+
 ## Route to the right reference
 
 - Read [references/setup.md](references/setup.md) for a new or clean directory,

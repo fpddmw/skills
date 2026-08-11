@@ -160,6 +160,18 @@ document; the CLI catalog is authoritative.
 
 ## Status, doctor, and recovery
 
+After credentials are safely stored and before external source checkout, apply
+creates a small project-scoped `tiangong-auto-research-recovery` Skill when the
+full orchestrator was selected. Its immutable-plan-bound instructions allow only
+`research context inspect`, `research setup status`, and the exact
+`setup.next.retryCommand`; they prohibit research execution, standalone evidence,
+credential access, global Skill fallback, and ambient CLI fallback. This closes
+the bootstrap gap if source checkout or installation fails. Once the full
+external orchestrator matches its reviewed tree hash, the CLI verifies the
+generated files byte-for-byte and removes only that recovery directory. A
+changed, symlinked, or ambiguous recovery directory blocks cleanup and is never
+overwritten or deleted automatically.
+
 After the immutable plan exists, resolve every command through the bundled
 Skill helper. During a partial installation it uses the reviewed plan version;
 after apply creates the runtime lock it requires the matching locked version.
