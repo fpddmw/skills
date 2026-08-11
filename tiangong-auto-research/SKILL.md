@@ -37,8 +37,10 @@ Do not reproduce control-plane contracts or edit control files by hand.
   agent authentication, provider checks, or wrappers.
 - Read [references/production-research.md](references/production-research.md)
   before production preflight, execution, recovery, or closure.
+- Read [references/evidence-pipeline.md](references/evidence-pipeline.md) before
+  discovery, acquisition, evidence refresh, or an addendum.
 - Read [references/native-execution.md](references/native-execution.md) before
-  preparing or submitting discover, analyze, or synthesize stages.
+  preparing or submitting discover, acquire, analyze, or synthesize stages.
 
 ## Choose the mode before spending budget
 
@@ -181,10 +183,15 @@ node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
 For `native-stage-required`, do not keep calling `research run`. Prepare the
 exact next stage, perform the returned prompt in this current app/session, and
 submit its JSON through the CLI. Discovery evidence must be fetched through the
-packet's broker command. Repeat for discover, analyze, and synthesize. Only then
-may `research run` launch the configured independent reviewer and perform
-mechanical closure. Follow [references/native-execution.md](references/native-execution.md)
-for the exact commands and recovery rules.
+packet's broker command. Record discovery assessments incrementally instead of
+returning all source metadata in the final stage output. Record native
+Web/Browser activity, formalize useful leads through the broker, and bind every
+network download to its exact download event before artifact registration.
+Repeat for discover, acquire, analyze, and synthesize. Only then may
+`research run` launch the configured independent reviewer and perform
+mechanical closure. Follow
+[references/native-execution.md](references/native-execution.md) for the exact
+commands and recovery rules.
 
 Proceed only when doctor reports ready. Discovery uses only locked broker
 capabilities; later stages are tool-free. Doctor, preflight, dependency,
@@ -193,9 +200,17 @@ downgrade a systematic task to a standalone SCI, report, patent, web, or paper
 operation; only the user may explicitly narrow the request to one isolated
 standalone operation.
 
-Inspect state with `research status`. Use the exact native stage `abort`,
-`research project retry`, or `research project fork` only with explicit user
-direction; do not reset or delete state. A complete project has a passing
-independent review, `outputs/report.md`, and `outputs/closure.json`. Return the
-permanent evidence locators, review-packet binding, usage/cost, decision, and
-material limitations.
+Inspect state with `research status`; the default list contains only
+authoritative work. A recovery fork supersedes its source. Archive completed or
+superseded history, and abandon unfinished history, instead of leaving ambiguous
+project variants. Use the exact native stage `abort`, `research project retry`,
+or `research project fork` only with explicit user direction; do not reset or
+delete state.
+
+When the next material step requires user authorization, login/MFA/challenge
+completion, or an external institution's response, request the packet's durable
+handoff and stop. Do not spend the remaining search budget on low-yield
+substitutes. Resume only after the handoff is explicitly resolved. A complete
+project has a passing independent review, `outputs/report.md`, and
+`outputs/closure.json`. Return the permanent evidence locators, review-packet
+binding, usage/cost, decision, and material limitations.

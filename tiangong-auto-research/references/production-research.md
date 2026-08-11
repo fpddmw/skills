@@ -72,10 +72,14 @@ The budget includes:
 - broker calls, response bytes, context items, and estimated context tokens;
 - the cost-confirmation threshold.
 
-New workspaces default to 550,000 total tokens, with 230,000 reserved as the
-discovery package ceiling; analyze, synthesize, and review default to 60,000,
-70,000, and 175,000. Primary output is bounded at 6,000 tokens and repair at
-4,000. These values are admission ceilings, not a target spend. Lower them only
+New production workspaces use finite runaway ceilings of 20,000,000 total
+tokens and USD 2,000. Package ceilings are 12,000,000 for discovery, 2,000,000
+for acquisition, 1,500,000 each for analysis and synthesis, and 2,500,000 for
+review. Primary output is bounded at 32,000 tokens and repair at 16,000. Input
+context is bounded at 128,000 tokens. These values are not a target spend:
+coverage-driven working plans, early stop, three attempts per package, and
+explicit confirmation above USD 10 control ordinary execution. Smoke-test
+workspaces retain smaller low-cost defaults. Lower production ceilings only
 when preflight proves every complete reservation still fits.
 
 The CLI will not prepare or launch a package unless its full token and
@@ -92,10 +96,18 @@ The independently launched reviewer retains pre-call prompt/schema/output and
 repair reservations plus provider-side structured-output/turn controls where
 the selected CLI supports them. Its formatting repair requests plain JSON in
 one tool-free turn and passes through the same validators. Preflight and runtime
-share the review-context reservation formula. The broker separately enforces at
-most six provider fetch calls across native discovery and returns the remaining
-call budget after each success. Reserve enough output for every producer schema
-and enough input context for prior-stage artifacts; preflight reports both gaps
+share the review-context reservation formula. The broker separately derives a
+coverage-scaled working broker-view budget from dimensions, source types,
+required channels, minimum sources, and a gap-fill reserve. It is not a fixed
+six-call allowance and never exceeds the new-production hard ceiling of 256
+bounded views, each with at most 32,000 context tokens. The packet returns live
+progress and remaining working budget after each success; stop early once
+coverage is supportable. Network/cache status is reported
+separately; a cached view avoids a provider call but still consumes one view and
+its context reservation. Candidate assessments are appended in batches of at
+most 25, so the final discovery output remains a compact closeout instead of
+growing with source count. Reserve enough output for every producer schema and
+enough input context for prior-stage artifacts; preflight reports both gaps
 mechanically.
 
 ## Bounded local evidence
@@ -152,12 +164,13 @@ an excerpt or JSON Pointer, quality rationale, applicability, and covered
 dimensions. The CLI verifies input locators and every broker object. Findings
 may cite only admitted source IDs.
 
-For discover, analyze, and synthesize, `research project stage prepare` returns
-the authoritative schema and exact prompt to the current native host. Save one
-JSON object and pass it to `research project stage submit`; submit validates and
-materializes it atomically. A rejected native submission preserves the bound
-session for an explicit host correction and never launches a nested repair
-agent. For review, Codex receives `--output-schema` or Claude receives
+For discover, acquire, analyze, and synthesize,
+`research project stage prepare` returns the authoritative schema and exact
+prompt to the current native host. Save one JSON object and pass it to
+`research project stage submit`; submit validates and materializes it
+atomically. A rejected native submission preserves the bound session for an
+explicit host correction and never launches a nested repair agent. For review,
+Codex receives `--output-schema` or Claude receives
 `--json-schema`; invalid reviewer syntax/schema or a mechanically diagnosed
 binding gets one low-budget formatting-only repair with no broker or research
 tools. The repair may not add facts. A second reviewer failure stops instead of
@@ -247,13 +260,16 @@ body. GET remains the default method inside an explicit HTTP endpoint policy.
 
 ## Coverage, retry, and recovery
 
-Discovery output is promoted for diagnosis, then checked mechanically. The CLI
-derives local full-text availability, source types, source counts, dated counts,
-date range, per-dimension source IDs, and the pass/insufficient decision from
-admitted sources and declared minimums. `partial` is usable but incomplete;
-`missing` or any unmet source/full-text/date minimum blocks all downstream
-packages. Model-provided qualitative gaps remain visible but cannot override
-those derived fields.
+Discovery output is promoted for diagnosis, then acquisition audits every
+provisionally admitted source. The CLI freezes only accepted/limited sources
+and their explicitly selected artifacts, then derives producer-readable
+full-text availability, source types, source counts, dated counts, date range,
+per-dimension source IDs, and the pass/insufficient decision from that snapshot.
+`partial` is usable but incomplete; `missing`, an acquisition gap, or any unmet
+source/full-text/date minimum blocks analysis. Model-provided qualitative gaps
+remain visible but cannot override those derived fields. See
+[evidence-pipeline.md](evidence-pipeline.md) for exact full-file versus
+producer-readable semantics and addendum lineage.
 
 Every manifest capability marked `requiredForDiscovery=true` must produce a
 verified broker receipt. The gate distinguishes a capability that was never
@@ -266,8 +282,10 @@ and each staged external Skill's top-level `SKILL.md`. The current host must use
 the packet's `research project evidence fetch` argv for admitted network
 evidence; standalone web/search/database tools cannot replace required broker
 receipts. Broker results include the exact bounded view inline with the receipt.
-Analyze receives the admitted evidence object; synthesize receives evidence and
-analysis. Neither stage may gather new evidence. Review is tool-free and embeds
+Acquire receives the provisional evidence record and exact artifact registry
+command, then produces a complete audit. Analyze receives the frozen evidence
+snapshot; synthesize receives the snapshot and analysis. Neither later stage
+may gather new evidence. Review is tool-free and embeds
 generated artifacts plus deterministic excerpts from bounded local/broker
 evidence views within the reviewer's route-specific structured-output turn cap.
 Preflight and runtime reserve the same
@@ -305,8 +323,27 @@ node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
 
 Retry grants one auditable extra attempt and resets downstream scheduling while
 preserving promoted files. Fork starts a new budget/accounting history and may
-inherit only verified completed discovery/analysis/synthesis artifacts; review
-and closure always run again.
+inherit only verified completed discovery/acquisition/analysis/synthesis
+artifacts; review and closure always run again. A closed-project evidence
+refresh uses `research project addendum`, not a fork or in-place mutation.
+
+The fork becomes authoritative immediately and its source becomes stale. The
+default status/run path excludes superseded, archived, and abandoned projects;
+`research status --all` is the audit view. Archive complete/stale history and
+abandon unfinished history with an explicit reason.
+
+When the next material step cannot be performed autonomously, use one of two
+durable states rather than another retry:
+
+- `user-action-required`: authorized login, SSO/MFA, CAPTCHA, security warning,
+  paywall/entitlement decision, VPN, or another explicit user operation;
+- `external-response-required`: a government, institution, owner database, or
+  other third party must provide non-public material or permission.
+
+The handoff record states the non-secret reason, exact requested actions, and
+remaining evidence gaps. `research run` returns `handoff-required` and does not
+schedule more work. Resolve it explicitly only after the action or response has
+been registered; never treat continued substitute searching as resolution.
 
 Run one recovered or canary project with an explicit scope:
 
@@ -322,9 +359,9 @@ historical blocked siblings do not change its exit code. Omit `--project` only
 when the operator intends to schedule and summarize the whole workspace.
 `stopReason=native-stage-required` is the normal producer handoff: follow
 [native-execution.md](native-execution.md) to prepare and submit discover,
-analyze, and synthesize in the current host. Calling `research run` after
-synthesis may launch only the independently configured reviewer CLI and then
-close mechanically.
+acquire, analyze, and synthesize in the current host. Calling `research run`
+after synthesis may launch only the independently configured reviewer CLI and
+then close mechanically.
 
 ## Standard zero-cost eval before a real canary
 
@@ -337,9 +374,13 @@ Confirm the owning CLI release passed deterministic mock coverage for:
 - explicit owner-database import, required-discovery receipt enforcement, and
   local-only production rejection;
 - routing and smoke/production mode boundaries;
-- discover → analyze → synthesize → review → close;
+- discover → acquire → freeze → analyze → synthesize → review → close;
 - public `research run` never launching a producer subprocess, with native
-  prepare/fetch/submit advancing the three producer stages;
+  prepare/fetch/register/submit advancing the four producer stages;
+- native-only leads remaining supplemental until an immutable broker
+  occurrence formalizes the same candidate;
+- exact artifact registration, binary-only full-text semantics, immutable
+  snapshot/delta lineage, and addendum supersession;
 - permanent evidence and review-packet hash verification;
 - persistent bounded review-context verification and packet/context tamper
   rejection before closure;
