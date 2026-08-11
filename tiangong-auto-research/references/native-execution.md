@@ -60,20 +60,39 @@ limits calls/bytes/items/tokens, persists content-addressed raw evidence, and
 records sanitized events. Standalone web/search/database tools cannot replace
 required broker receipts.
 
-Native Web or Browser results may be recorded only as supplemental leads with
-the packet's `registerCandidate` argv. They remain inadmissible until a broker
-receipt formalizes the same canonical URL/DOI. Registered inputs are already
-formal candidates under their own content-hash identity.
+Native Web or Browser work must first use the packet's `recordActivity` argv.
+Its search/navigation input is sanitized and persisted only by SHA-256; counts,
+challenge class, status, and linked candidate IDs remain auditable. Register
+useful results as supplemental leads with `registerCandidate`. They remain
+inadmissible until a broker receipt formalizes the same canonical URL/DOI.
+Registered inputs are already formal candidates under their own content-hash
+identity.
+
+After each useful discovery batch, write at most 25 candidate judgments through
+the packet's `recordAssessment` argv. The ledger keeps the latest judgment per
+candidate and the CLI joins all deterministic provenance fields. The final
+discover output must contain only the compact closeout schema returned by the
+packet; do not repeat a source-sized evidence array.
 
 ## Register exact acquisition artifacts
 
-When the next stage is `acquire`, follow the packet's `registerArtifact` argv
-for each exact selected file. Pass its candidate ID and absolute staging path;
-add source/license metadata only when explicitly declared by the source. The
-registry accepts no directory and performs no “latest download” selection.
+When the next stage is `acquire`, use the packet's `bindDownload` argv before
+registering every file obtained from a network source. Bind the exact completed
+Download object or equivalent to one unique planned staging path, safe final
+URL, suggested filename, and available non-secret identifier. A cancelled or
+failed download must be recorded as such and cannot be promoted. Then follow
+`registerArtifact`, passing the candidate, exact absolute path, and returned
+download binding. The registry accepts no directory and performs no “latest
+download” selection.
+
+For a producer-readable derivative, register the exact output with
+`--derived-from-artifact` naming its same-candidate parent instead of claiming a
+second network download. Add source/license metadata only when explicitly
+declared by the source.
+
 Binary registration makes the exact file review-bound, but PDF/DOCX/PPTX/XLSX
 alone does not claim producer-readable full text. Register a separately derived
-UTF-8 text/JSON/HTML/CSV/Markdown artifact when one was legitimately produced
+UTF-8 text/JSON/CSV/Markdown artifact when one was legitimately produced
 and should be embedded within the bounded producer context.
 
 ## Submit producer output
@@ -101,6 +120,16 @@ A rejected submission leaves the active session intact so the current host can
 perform a bounded formatting correction or gather missing authorized evidence.
 It does not silently retry research or invoke another model.
 
+Login, MFA, CAPTCHA, Turnstile, paywall, security-warning, or authorization
+activity cannot be submitted as ordinary completion. Record it as `blocked`
+through `recordActivity`, create a `user-action-required` record with the
+packet's `requestHandoff` argv, and stop. When the missing material requires an
+institution or another third party to respond, request
+`external-response-required` instead of searching indefinite substitutes. Both
+states are durable and do not burn the prepared attempt. Resume only after an
+operator explicitly runs `research project handoff resolve` with a non-secret
+resolution note.
+
 ## Continue, review, or abort
 
 After each successful submit, call `research run` again. Prepare/submit the
@@ -118,3 +147,8 @@ node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
 
 Abort removes only that CLI-created runtime capsule and active session. It
 consumes the prepared attempt and never deletes admitted evidence or outputs.
+
+Use `research status` to follow the authoritative project. A recovery fork
+supersedes its source and is the only default-runnable descendant. Use
+`research status --all` for lineage audit, `research project archive` for
+complete/stale history, and `research project abandon` for unfinished history.

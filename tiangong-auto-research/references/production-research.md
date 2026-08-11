@@ -93,12 +93,17 @@ repair reservations plus provider-side structured-output/turn controls where
 the selected CLI supports them. Its formatting repair requests plain JSON in
 one tool-free turn and passes through the same validators. Preflight and runtime
 share the review-context reservation formula. The broker separately derives a
-working broker-view budget from the reviewed coverage requirements, never above
-the workspace hard ceiling of 24, and returns the remaining budget after each
-success. Network/cache status is reported separately; a cached view avoids a
-provider call but still consumes one view and its context reservation. Reserve
-enough output for every producer schema and enough input context for prior-stage
-artifacts; preflight reports both gaps mechanically.
+coverage-scaled working broker-view budget from dimensions, source types,
+required channels, minimum sources, and a gap-fill reserve. It is not a fixed
+six-call allowance and never exceeds the workspace hard ceiling of 24. The
+packet returns live progress and remaining budget after each success; stop
+early once coverage is supportable. Network/cache status is reported
+separately; a cached view avoids a provider call but still consumes one view and
+its context reservation. Candidate assessments are appended in batches of at
+most 25, so the final discovery output remains a compact closeout instead of
+growing with source count. Reserve enough output for every producer schema and
+enough input context for prior-stage artifacts; preflight reports both gaps
+mechanically.
 
 ## Bounded local evidence
 
@@ -316,6 +321,24 @@ preserving promoted files. Fork starts a new budget/accounting history and may
 inherit only verified completed discovery/acquisition/analysis/synthesis
 artifacts; review and closure always run again. A closed-project evidence
 refresh uses `research project addendum`, not a fork or in-place mutation.
+
+The fork becomes authoritative immediately and its source becomes stale. The
+default status/run path excludes superseded, archived, and abandoned projects;
+`research status --all` is the audit view. Archive complete/stale history and
+abandon unfinished history with an explicit reason.
+
+When the next material step cannot be performed autonomously, use one of two
+durable states rather than another retry:
+
+- `user-action-required`: authorized login, SSO/MFA, CAPTCHA, security warning,
+  paywall/entitlement decision, VPN, or another explicit user operation;
+- `external-response-required`: a government, institution, owner database, or
+  other third party must provide non-public material or permission.
+
+The handoff record states the non-secret reason, exact requested actions, and
+remaining evidence gaps. `research run` returns `handoff-required` and does not
+schedule more work. Resolve it explicitly only after the action or response has
+been registered; never treat continued substitute searching as resolution.
 
 Run one recovered or canary project with an explicit scope:
 

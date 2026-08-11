@@ -26,7 +26,10 @@ required capability; a general web result cannot silently substitute for it.
 ## 2. Search broadly in bounded batches
 
 The discover packet contains a mechanically derived `discovery.plan` and live
-progress. Treat its broker-view ceiling as a maximum, never a quota:
+progress. The working call budget scales with reviewed dimensions, source
+types, required channels, minimum sources, and a separate gap-fill reserve. It
+is no longer a fixed six-call allowance, but it never exceeds the workspace
+hard ceiling of 24. Treat that ceiling as a maximum, never a quota:
 
 1. Exercise required first-pass capabilities.
 2. Use broad, high-yield queries across distinct selected channels.
@@ -56,11 +59,16 @@ rejection judgments, artifact registration and assessment, snapshots, claim
 use, reviewer binding, and supersession.
 
 The current native Codex or Claude app may use its own Web/Browser experience
-to find an additional lead. Register only safe, non-secret metadata with the
-packet's `registerCandidate` command. Such a lead remains
+to find additional leads. Record every material search, navigation, download,
+or file-inspection occurrence through the packet's `recordActivity` command.
+The control plane persists only a sanitized input hash, channel, counts, status,
+challenge class, and candidate IDs. Then register safe, non-secret candidate
+metadata through `registerCandidate`. Such a lead remains
 `supplemental-not-admitted` until the same URL/DOI has an immutable broker
 occurrence. Never cite or admit a native-only candidate. Registered inputs are
-already formal candidates under their own content-hash identity.
+already formal candidates under their own content-hash identity. The frozen
+snapshot includes the verified activity summary so native work and formal
+broker evidence remain one auditable ledger rather than two hidden work logs.
 
 ```bash
 node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
@@ -69,29 +77,54 @@ node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
   --workspace /absolute/path/to/workspace --json
 ```
 
-Discovery output contains compact judgments keyed by `candidateId`. The model
-does not generate locators, hashes, retrieval dates, URLs, or receipt identity;
-the control plane joins those deterministic fields from the ledger. Omitted
+Assess candidates as they are found in batches of at most 25 through the
+packet's `recordAssessment` command. Each append-only batch may replace the
+latest judgment for a candidate without repeating deterministic source
+metadata. The model does not generate locators, hashes, retrieval dates, URLs,
+or receipt identity; the control plane joins those fields from the ledger. The
+final discover submission is therefore only a compact closeout containing one
+status per reviewed dimension, limitations, and remaining gaps. Omitted
 candidates remain available for a later gap-fill pass. Record an explicit
 rejection only when it is meaningful and supportable.
+
+```bash
+node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
+  research project evidence assessment record PROJECT \
+  --record /absolute/path/to/assessment-batch.json \
+  --workspace /absolute/path/to/workspace --json
+```
 
 ## 4. Audit acquisition before inference
 
 After provisional admission, the native `acquire` stage assesses every source
 exactly once. Use selected external acquisition/document Skills or an explicitly
-authorized browser, then register each exact output file from its absolute
-staging path. Never scan a directory for the newest file and never infer success
-from file existence.
+authorized browser. For every network file, capture the exact browser Download
+object or equivalent transport completion, save it to a unique planned staging
+path, and first bind that event through `bindDownload`. A failed or cancelled
+event creates no successful binding and cannot register an artifact. Never scan
+a directory for the newest file and never infer success from file existence.
+
+```bash
+node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
+  research project evidence download bind PROJECT \
+  --candidate CANDIDATE_ID --record /absolute/path/to/download.json \
+  --workspace /absolute/path/to/workspace --json
+```
+
+Register the exact downloaded file with the returned binding ID. A text or
+structured derivative must instead name the same-candidate parent artifact;
+this preserves a mechanical chain back to the bound network file.
 
 ```bash
 node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
   research project evidence artifact register PROJECT \
   --candidate CANDIDATE_ID --path /absolute/path/to/exact-file.pdf \
+  --download-binding DOWNLOAD_BINDING_ID \
   --source-url https://publisher.example/article \
   --workspace /absolute/path/to/workspace --json
 ```
 
-The registry verifies size, SHA-256, exact-file binding, and structure. PDF
+The registry verifies size, SHA-256, exact event/file binding, and structure. PDF
 registration requires a parseable non-empty document with an EOF marker. ZIP
 and Office Open XML registration verifies the central directory, safe paths,
 supported compression, declared uncompressed sizes, and CRC; encrypted, ZIP64,
@@ -105,7 +138,9 @@ Keep these distinctions exact:
 - `producerContextLevel=full-input`: the registered input itself is available
   through its reviewed input contract.
 - `producerContextLevel=bounded-text-artifact`: a registered UTF-8 text, JSON,
-  HTML, CSV, or Markdown derivative is embedded within the context limit.
+  CSV, or Markdown derivative is embedded within the context limit. HTML stays
+  metadata-only because an error or challenge page must not masquerade as
+  acquired full text.
 - `producerContextLevel=metadata-only`: no producer-readable full text was
   admitted. A raw PDF/DOCX/PPTX/XLSX alone remains here.
 - `reviewerBoundFullFile`: the independent review packet binds the exact full
@@ -148,7 +183,11 @@ the verified base ledger/evidence/audit/artifacts, starts again at discover,
 freezes a child snapshot with a mechanical added/changed/removed/unchanged
 delta, and reruns analysis, synthesis, independent review, and closure. The
 superseded project becomes stale and is hidden from default `research status`;
-use `research status --all` only for lineage audit.
+use `research status --all` only for lineage audit. Recovery forks have the
+same single-authority rule: the new fork supersedes its source immediately.
+Use `research project archive` for complete/stale history and
+`research project abandon` for unfinished history; never infer the latest
+project from its name or version suffix.
 
 Use the status response's `discovery`, `snapshot`, `nativeStage`, `lineage`, and
 `recommendedAction` fields instead of inspecting control files manually.
