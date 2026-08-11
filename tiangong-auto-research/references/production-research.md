@@ -72,11 +72,15 @@ The budget includes:
 - broker calls, response bytes, context items, and estimated context tokens;
 - the cost-confirmation threshold.
 
-New workspaces default to 650,000 total tokens. Package ceilings are 230,000
-for discovery, 80,000 for acquisition, 70,000 for analysis, 70,000 for
-synthesis, and 190,000 for review. Primary output is bounded at 6,000 tokens
-and repair at 4,000. These values are admission ceilings, not a target spend.
-Lower them only when preflight proves every complete reservation still fits.
+New production workspaces use finite runaway ceilings of 20,000,000 total
+tokens and USD 2,000. Package ceilings are 12,000,000 for discovery, 2,000,000
+for acquisition, 1,500,000 each for analysis and synthesis, and 2,500,000 for
+review. Primary output is bounded at 32,000 tokens and repair at 16,000. Input
+context is bounded at 128,000 tokens. These values are not a target spend:
+coverage-driven working plans, early stop, three attempts per package, and
+explicit confirmation above USD 10 control ordinary execution. Smoke-test
+workspaces retain smaller low-cost defaults. Lower production ceilings only
+when preflight proves every complete reservation still fits.
 
 The CLI will not prepare or launch a package unless its full token and
 conservative price reservation fits. Native producer preparation reserves the
@@ -95,9 +99,10 @@ one tool-free turn and passes through the same validators. Preflight and runtime
 share the review-context reservation formula. The broker separately derives a
 coverage-scaled working broker-view budget from dimensions, source types,
 required channels, minimum sources, and a gap-fill reserve. It is not a fixed
-six-call allowance and never exceeds the workspace hard ceiling of 24. The
-packet returns live progress and remaining budget after each success; stop
-early once coverage is supportable. Network/cache status is reported
+six-call allowance and never exceeds the new-production hard ceiling of 256
+bounded views, each with at most 32,000 context tokens. The packet returns live
+progress and remaining working budget after each success; stop early once
+coverage is supportable. Network/cache status is reported
 separately; a cached view avoids a provider call but still consumes one view and
 its context reservation. Candidate assessments are appended in batches of at
 most 25, so the final discovery output remains a compact closeout instead of

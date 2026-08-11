@@ -29,7 +29,8 @@ The discover packet contains a mechanically derived `discovery.plan` and live
 progress. The working call budget scales with reviewed dimensions, source
 types, required channels, minimum sources, and a separate gap-fill reserve. It
 is no longer a fixed six-call allowance, but it never exceeds the workspace
-hard ceiling of 24. Treat that ceiling as a maximum, never a quota:
+hard ceiling of 256 in a new production workspace. Treat that ceiling as a
+runaway guard, never a quota:
 
 1. Exercise required first-pass capabilities.
 2. Use broad, high-yield queries across distinct selected channels.
