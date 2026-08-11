@@ -12,7 +12,7 @@ const root = await mkdtemp(join(tmpdir(), "tiangong-auto-research-resolver-"));
 const fakeBin = join(root, "bin");
 const auditPath = join(root, "npx-args.json");
 const cliPackage = "@tiangong-ai/cli";
-const lockedVersion = "0.0.30";
+const lockedVersion = "9.8.7";
 await mkdir(fakeBin);
 const fakeNpx = join(fakeBin, "npx");
 await writeFile(
@@ -69,10 +69,45 @@ assert.deepEqual(JSON.parse(await readFile(auditPath, "utf8")), [
   "--json",
 ]);
 
+const plannedWorkspace = await createWorkspace("planned");
+await writeFile(
+  join(plannedWorkspace, ".tiangong-research", "setup-plan.json"),
+  JSON.stringify({
+    schemaVersion: 1,
+    kind: "tiangong-research-setup-plan",
+    cli: { package: cliPackage, version: "8.7.6" },
+    planSha256: "a".repeat(64),
+  }),
+  "utf8",
+);
+await writeFile(
+  join(plannedWorkspace, ".tiangong-research", "setup-state.json"),
+  JSON.stringify({
+    schemaVersion: 1,
+    status: "pending",
+    currentStep: null,
+    lastError: null,
+  }),
+  "utf8",
+);
+const planned = invoke(plannedWorkspace);
+assert.equal(planned.status, 0, planned.stderr);
+assert.deepEqual(JSON.parse(await readFile(auditPath, "utf8")), [
+  "--yes",
+  "--package",
+  `${cliPackage}@8.7.6`,
+  "--",
+  "tiangong-ai",
+  "research",
+  "setup",
+  "status",
+  "--json",
+]);
+
 const injectionWorkspace = await createWorkspace("injection", {
-  schemaVersion: 1,
-  packageName: cliPackage,
-  packageVersion: "0.0.30;echo-token",
+    schemaVersion: 1,
+    packageName: cliPackage,
+    packageVersion: "9.8.7;echo-token",
 });
 const injection = invoke(injectionWorkspace);
 assert.equal(injection.status, 2);

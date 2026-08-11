@@ -124,8 +124,9 @@ owner-only file and only documented Tiangong endpoint/key/region/timeout names
 are loaded. Credentials are forbidden in wrapper JSON and request files.
 
 Inside Auto Research, never run that wrapper. The wrapper detects an ancestor
-runtime lock and returns `AUTO_RESEARCH_BROKER_REQUIRED` before credentials or
-network unless the user explicitly narrowed the task and supplied
+immutable setup plan or runtime lock and returns
+`AUTO_RESEARCH_BROKER_REQUIRED` before credentials or network unless the user
+explicitly narrowed the task and supplied
 `"execution_mode":"standalone"`. That explicit mode emits only a non-secret
 audit event and still cannot read the broker store. Setup maps the owner
 variable to logical ID `tiangong.sci.api-key`; discovery sends a non-secret

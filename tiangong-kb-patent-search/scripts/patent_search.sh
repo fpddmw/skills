@@ -50,11 +50,13 @@ esac
 find_auto_research_workspace() {
     local search_dir
     local lock_path
+    local plan_path
     local parent_dir
     search_dir="$(pwd -P)"
     while :; do
         lock_path="$search_dir/.tiangong-research/runtime-lock.json"
-        if [ -e "$lock_path" ] || [ -L "$lock_path" ]; then
+        plan_path="$search_dir/.tiangong-research/setup-plan.json"
+        if [ -e "$lock_path" ] || [ -L "$lock_path" ] || [ -e "$plan_path" ] || [ -L "$plan_path" ]; then
             return 0
         fi
         parent_dir="$(dirname "$search_dir")"

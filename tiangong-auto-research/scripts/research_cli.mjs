@@ -51,11 +51,7 @@ export async function resolveWorkspaceRuntime(workspaceInput) {
   try {
     lockStat = await lstat(lockPath);
   } catch {
-    throw resolverError(
-      "AUTO_RESEARCH_RUNTIME_LOCK_REQUIRED",
-      "No Auto Research runtime lock is available for this workspace.",
-      "For a new directory, explicitly choose a reviewed exact CLI version and run research setup. Do not use npm latest implicitly.",
-    );
+    return resolvePlannedRuntime(workspace);
   }
   if (lockStat.isSymbolicLink() || !lockStat.isFile() || lockStat.size < 2 || lockStat.size > MAX_RUNTIME_LOCK_BYTES) {
     throw resolverError(
@@ -95,6 +91,69 @@ export async function resolveWorkspaceRuntime(workspaceInput) {
   return {
     packageName: CLI_PACKAGE,
     packageVersion: lock.packageVersion,
+    source: "runtime-lock",
+  };
+}
+
+async function resolvePlannedRuntime(workspace) {
+  const planPath = join(workspace, ".tiangong-research", "setup-plan.json");
+  let planStat;
+  try {
+    planStat = await lstat(planPath);
+  } catch {
+    throw resolverError(
+      "AUTO_RESEARCH_RUNTIME_LOCK_REQUIRED",
+      "No Auto Research runtime lock or reviewed setup plan is available for this workspace.",
+      "For a new directory, explicitly choose a reviewed exact CLI version and run research setup. Do not use npm latest implicitly.",
+    );
+  }
+  if (
+    planStat.isSymbolicLink() ||
+    !planStat.isFile() ||
+    planStat.size < 2 ||
+    planStat.size > MAX_RUNTIME_LOCK_BYTES
+  ) {
+    throw resolverError(
+      "AUTO_RESEARCH_SETUP_PLAN_INVALID",
+      "The Auto Research setup plan must be a bounded regular non-symlink file.",
+      "Restore the CLI-created setup-plan.json or create a new reviewed plan; do not edit the plan by hand.",
+    );
+  }
+  let plan;
+  try {
+    plan = JSON.parse(await readFile(planPath, "utf8"));
+  } catch {
+    throw resolverError(
+      "AUTO_RESEARCH_SETUP_PLAN_INVALID",
+      "The Auto Research setup plan is not valid JSON.",
+      "Restore the CLI-created setup-plan.json or create a new reviewed plan; do not edit the plan by hand.",
+    );
+  }
+  if (
+    plan === null ||
+    typeof plan !== "object" ||
+    Array.isArray(plan) ||
+    plan.schemaVersion !== 1 ||
+    plan.kind !== "tiangong-research-setup-plan" ||
+    plan.cli === null ||
+    typeof plan.cli !== "object" ||
+    Array.isArray(plan.cli) ||
+    plan.cli.package !== CLI_PACKAGE ||
+    typeof plan.cli.version !== "string" ||
+    !EXACT_STABLE_SEMVER.test(plan.cli.version) ||
+    typeof plan.planSha256 !== "string" ||
+    !/^[0-9a-f]{64}$/.test(plan.planSha256)
+  ) {
+    throw resolverError(
+      "AUTO_RESEARCH_SETUP_PLAN_INVALID",
+      "The Auto Research setup plan does not declare the supported exact CLI runtime.",
+      "Create a new immutable plan with a reviewed exact CLI version; tags, ranges, paths, and command fragments are forbidden.",
+    );
+  }
+  return {
+    packageName: CLI_PACKAGE,
+    packageVersion: plan.cli.version,
+    source: "setup-plan",
   };
 }
 
