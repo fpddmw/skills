@@ -160,9 +160,23 @@ document; the CLI catalog is authoritative.
 
 ## Status, doctor, and recovery
 
-After apply creates the runtime lock, resolve every command through the bundled
-Skill helper. Set `AUTO_RESEARCH_CLI` to the absolute path of this installed
-Skill, not a guessed global location:
+After credentials are safely stored and before external source checkout, apply
+creates a small project-scoped `tiangong-auto-research-recovery` Skill when the
+full orchestrator was selected. Its immutable-plan-bound instructions allow only
+`research context inspect`, `research setup status`, and the exact
+`setup.next.retryCommand`; they prohibit research execution, standalone evidence,
+credential access, global Skill fallback, and ambient CLI fallback. This closes
+the bootstrap gap if source checkout or installation fails. Once the full
+external orchestrator matches its reviewed tree hash, the CLI verifies the
+generated files byte-for-byte and removes only that recovery directory. A
+changed, symlinked, or ambiguous recovery directory blocks cleanup and is never
+overwritten or deleted automatically.
+
+After the immutable plan exists, resolve every command through the bundled
+Skill helper. During a partial installation it uses the reviewed plan version;
+after apply creates the runtime lock it requires the matching locked version.
+Set `AUTO_RESEARCH_CLI` to the absolute path of this selected Skill, not a
+guessed global location:
 
 ```bash
 AUTO_RESEARCH_CLI=/absolute/path/to/installed/tiangong-auto-research/scripts/research_cli.mjs
@@ -191,7 +205,15 @@ succeeds, ordinary workspace doctor calls may reuse its unexpired hash-bound
 attestation after checking the current reviewer runtime fingerprint. Explicit
 smoke flags refresh it; expiry or drift remains blocking.
 
-On a blocked apply, use the exact `retryCommand` in setup state. Clear a stale
+Status reports credential persistence separately from overall readiness and
+includes the effective CLI package/version/root plus the selected orchestrator
+path and install status. A stored broker or adapter credential is not an
+ambient shell credential, and a readiness blocker must not be reported as a
+missing ambient key.
+
+On a blocked apply, use the exact-version-pinned `retryCommand` in setup state.
+For a failed step this command is `research setup retry --step <recorded-step>`,
+not a read-only status or doctor command. Clear a stale
 lock only with both stale-lock flags after confirming no setup process owns it.
 Do not delete plan/state/source-cache directories or overwrite installed trees.
 

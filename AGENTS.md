@@ -12,8 +12,8 @@ checkPaths:
   - .docpact/config.yaml
   - .github/workflows/docpact.yml
   - _docs/**
-lastReviewedAt: 2026-08-11
-lastReviewedCommit: a5877c2b6520af97397e4ea6d82277a8de1de41a
+lastReviewedAt: 2026-08-12
+lastReviewedCommit: 3d5d85f41bac03b7b31208e89d6c5e56da320baf
 ---
 
 # Tiangong AI Skills Agent Contract
@@ -54,6 +54,9 @@ skill 内容、skill 规范、marketplace 元数据和本仓文档治理属于�
 - route 命中的文档已 reviewed 或 updated。
 - 治理变更后 `docpact validate-config --root . --strict` 通过。
 - skill 变更按 `skill-creator` 流程运行对应校验。
+- Auto Research 及其直接 evidence wrapper 的变更必须先在
+  `scripts/test-clean-container.sh` 中观察回归测试失败，再在同一全新、
+  无宿主 HOME/全局 Skill/CLI/cache 的 Docker 契约中转绿；宿主测试不能替代。
 
 ## Skill-Creator Workflow
 

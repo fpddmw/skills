@@ -8,15 +8,21 @@ on:
   workflow_dispatch:
 
 jobs:
+  clean-container-tdd:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: sh scripts/test-clean-container.sh
+
   validate-config:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: Biaoo/docpact@v0.1.4
+      - uses: Biaoo/docpact@v0.1.9
         with:
-          version: 0.1.4
+          version: 0.1.9
           args: >
             validate-config
             --root .
@@ -29,9 +35,9 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: Biaoo/docpact@v0.1.4
+      - uses: Biaoo/docpact@v0.1.9
         with:
-          version: 0.1.4
+          version: 0.1.9
           args: >
             lint
             --root .

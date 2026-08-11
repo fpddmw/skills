@@ -26,7 +26,8 @@ service failure; do not try to bypass it.
 
 - The standalone wrapper defaults to its separately tested CLI version
   `0.0.30`. This is not the Auto Research workspace runtime. Managed research
-  resolves its exact version from `runtime-lock.json` and must use the broker.
+  resolves its exact version from the immutable setup plan or
+  `runtime-lock.json` and must use the broker.
   Set `TIANGONG_AI_CLI_BIN` to one exact executable path, or
   `TIANGONG_AI_CLI` to an explicitly reviewed command, only when overriding the
   standalone entrypoint intentionally.

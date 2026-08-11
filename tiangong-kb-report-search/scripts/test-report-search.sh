@@ -71,6 +71,17 @@ grep -F 'AUTO_RESEARCH_BROKER_REQUIRED' "$STDERR" >/dev/null
 grep -F '"credentialScope":"broker"' "$STDERR" >/dev/null
 grep -F '"networkAttempted":false' "$STDERR" >/dev/null
 
+rm "$MANAGED_WORKSPACE/.tiangong-research/runtime-lock.json"
+printf '%s\n' '{"schemaVersion":1,"kind":"tiangong-research-setup-plan","cli":{"package":"@tiangong-ai/cli","version":"9.8.7"},"planSha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}' \
+    > "$MANAGED_WORKSPACE/.tiangong-research/setup-plan.json"
+if (cd "$MANAGED_NESTED" && run_wrapper '{"query":"planned report work"}') \
+    > "$STDOUT" 2> "$STDERR"; then
+    echo 'plan-only report workspace bypassed the broker guard' >&2
+    exit 1
+fi
+[ ! -e "$MARKER" ]
+grep -F 'AUTO_RESEARCH_BROKER_REQUIRED' "$STDERR" >/dev/null
+
 (cd "$MANAGED_NESTED" && \
     TIANGONG_REPORT_APIKEY="$SECRET" \
     run_wrapper '{"query":"isolated report","execution_mode":"standalone","dry_run":true}') \

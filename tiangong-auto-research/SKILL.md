@@ -5,17 +5,18 @@ description: Orchestrate open-ended, multi-source, evidence-backed research in t
 
 # Tiangong Auto Research
 
-For an existing workspace, use the bundled resolver for every CLI operation.
+For an existing managed directory, use the bundled resolver for every CLI operation.
 Resolve `AUTO_RESEARCH_CLI` from this loaded Skill's absolute directory; do not
 guess a global Skill path. The resolver accepts only the CLI package and exact
-stable version from the workspace's regular non-symlink runtime lock:
+stable version from the regular non-symlink runtime lock, or from the immutable
+setup plan while installation is still pending or blocked:
 
 ```bash
 AUTO_RESEARCH_CLI=/absolute/path/to/installed/tiangong-auto-research/scripts/research_cli.mjs
 node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- research --help
 ```
 
-For a clean directory without a runtime lock, read
+For a clean directory without a runtime lock or setup plan, read
 [references/setup.md](references/setup.md) and ask the user to choose one
 reviewed exact bootstrap CLI version. Never substitute `latest`, a range, a
 tag, a path, or a command fragment. After setup creates the runtime lock, use
@@ -26,6 +27,14 @@ evidence, schemas, coverage, budgets, admission, the independent review process,
 the journal, and closure. The current interactive Codex or Claude Code session
 owns producer reasoning. The CLI must never launch a nested producer process.
 Do not reproduce control-plane contracts or edit control files by hand.
+
+During an accepted apply, the CLI may temporarily create the project Skill
+`tiangong-auto-research-recovery`. That generated recovery-only entry can inspect
+context and setup status and execute only the exact pinned retry command. It must
+never perform research or standalone evidence search. The CLI removes only its
+own exact plan-bound recovery bytes after this full external orchestrator matches
+the reviewed tree hash; follow [references/setup.md](references/setup.md) for the
+detailed stop and recovery rules.
 
 ## Route to the right reference
 
@@ -62,7 +71,10 @@ node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
   --path /absolute/path/to/workspace --json
 ```
 
-Follow `role` and `allowedOperations`. Stop on `invalid`; never repair immutable
+Follow `role`, `allowedOperations`, and the structured `setup` preflight.
+For `setup` or a blocked `workspace`, execute only its exact-version-pinned
+`next.retryCommand`; never fall through to a standalone provider wrapper.
+Stop on `invalid`; never repair immutable
 state, locks, journal events, evidence objects, receipts, or outputs manually.
 
 For a clean directory, show the read-only ecosystem catalog and run the guided

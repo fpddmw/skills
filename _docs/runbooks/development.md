@@ -13,8 +13,8 @@ checkPaths:
   - README.zh-CN.md
   - .claude-plugin/**
   - "*/SKILL.md"
-lastReviewedAt: 2026-08-11
-lastReviewedCommit: a5877c2b6520af97397e4ea6d82277a8de1de41a
+lastReviewedAt: 2026-08-12
+lastReviewedCommit: 3d5d85f41bac03b7b31208e89d6c5e56da320baf
 ---
 
 # Skills Development Runbook
@@ -48,6 +48,20 @@ scripts/quick_validate.py <skill-path>
 ```
 
 Run representative script tests when a skill script changes.
+
+For `tiangong-auto-research` or its direct SCI/report/patent wrappers, use
+test-driven development exclusively through the mandatory clean-room entrypoint
+for the red and green cycles:
+
+```bash
+scripts/test-clean-container.sh
+```
+
+It performs a no-cache build from the digest-pinned Node 24 image, copies only
+the secret-filtered repository context, and runs the routing, resolver, agent
+wrapper, and evidence-wrapper suites as a non-root user with isolated HOME and
+runtime networking disabled. Do not mount host agent directories, CLIs, caches,
+credentials, browser profiles, or source worktrees into the running container.
 
 ## README And Marketplace Updates
 
