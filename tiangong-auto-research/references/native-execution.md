@@ -137,6 +137,12 @@ next native producer stage through discover, acquire, analyze, and synthesize.
 The same run command may then launch only the configured independent reviewer
 CLI and, after a passing review, perform mechanical closure.
 
+For a top-journal project, this is the base research closure, not the final
+publication verdict. Continue in the same current native host to author and
+freeze the manuscript, then use four fresh independent publication-review
+sessions. Follow [publication-policy.md](publication-policy.md). Do not ask
+`research run` to launch a producer for manuscript authoring.
+
 To discard an active native session explicitly:
 
 ```bash

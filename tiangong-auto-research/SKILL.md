@@ -50,6 +50,9 @@ detailed stop and recovery rules.
   discovery, acquisition, evidence refresh, or an addendum.
 - Read [references/native-execution.md](references/native-execution.md) before
   preparing or submitting discover, acquire, analyze, or synthesize stages.
+- Read [references/publication-policy.md](references/publication-policy.md)
+  before a top-journal project, Policy approval, final manuscript freeze,
+  four-role publication review, or readiness closure.
 
 ## Choose the mode before spending budget
 
@@ -125,6 +128,12 @@ required credentials must block before any source download.
   operation. Their failure never authorizes a standalone evidence downgrade.
 
 ## Preflight and initialize a project
+
+For `--goal top-journal`, first use the project-scoped Policy Wizard and stop
+unless its exact reviewed hash is approved. Generic defaults are bounded
+feasibility guidance, not journal endorsement. Follow
+[references/publication-policy.md](references/publication-policy.md); never
+invent a target-journal policy or bypass its status gate.
 
 Prepare evidence requirements with `dimensions`, `sourceTypes`,
 `requiredCapabilityIds`, `requiredCompanionIds`, `requiredDiscoveryScopes`,
@@ -226,3 +235,10 @@ substitutes. Resume only after the handoff is explicitly resolved. A complete
 project has a passing independent review, `outputs/report.md`, and
 `outputs/closure.json`. Return the permanent evidence locators, review-packet
 binding, usage/cost, decision, and material limitations.
+
+For a top-journal goal, that base closure is not publication closure. Author the
+final paper in this current native host, freeze its exact manuscript and
+assessment, obtain fresh evidence, methods/reproducibility, domain/novelty, and
+journal-editor reviews, then mechanically close the publication generation.
+Any Policy or manuscript change invalidates downstream approval/review. Return
+only the CLI-computed bounded readiness language; never promise acceptance.

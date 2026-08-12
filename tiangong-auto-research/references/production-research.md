@@ -35,6 +35,13 @@ Before `project init`, record and show the user:
 5. Package token reservations, configured price basis, maximum cost, and
    whether the confirmation threshold is crossed.
 
+For a top-journal goal, initialize and explicitly approve the applicable
+Research Policy first. Use `research policy wizard PROJECT`; it reads the
+verified project-installed orchestrator, warns when generic defaults remain,
+and never treats them as exact-journal endorsement. See
+[publication-policy.md](publication-policy.md) for policy states, verdict
+ceilings, final manuscript freeze, and four-role review.
+
 Use `research project preflight`; do not calculate a competing checklist in the
 skill. Production `project init` requires its evidence-requirements file and,
 when the configured threshold is crossed, explicit `--confirm-budget`.
@@ -375,6 +382,8 @@ Confirm the owning CLI release passed deterministic mock coverage for:
   local-only production rejection;
 - routing and smoke/production mode boundaries;
 - discover → acquire → freeze → analyze → synthesize → review → close;
+- top-journal Policy approval, publication assessment, frozen final manuscript,
+  four fresh role-bound reviews, revision invalidation, and publication closure;
 - public `research run` never launching a producer subprocess, with native
   prepare/fetch/register/submit advancing the four producer stages;
 - native-only leads remaining supplemental until an immutable broker

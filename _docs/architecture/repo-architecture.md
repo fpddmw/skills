@@ -45,6 +45,12 @@ copy/symlink installation. Some skills require environment variables for
 external APIs; those requirements belong in the relevant skill docs and the
 repository README when broadly useful.
 
+`tiangong-auto-research/assets/research-policy/defaults/**` is the versioned,
+generic source pack for top-journal Policy initialization. It is immutable
+source material, not a user Policy or journal endorsement. The CLI copies a
+selected stack into the user-selected research workspace, where a human may
+customize and explicitly approve the exact resolved content.
+
 ## Integration Points
 
 - The root workspace pins this repository as a submodule.

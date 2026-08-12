@@ -94,4 +94,22 @@ for (const relative of [
 }
 
 assert.equal(ids.size, Object.values(expected).flat().length);
+
+const skill = await readFile(join(skillRoot, "SKILL.md"), "utf8");
+const publicationReference = await readFile(join(skillRoot, "references", "publication-policy.md"), "utf8");
+assert.match(
+  skill,
+  /references\/publication-policy\.md/,
+  "SKILL.md must route top-journal publication work to the detailed reference",
+);
+assert.match(skill, /current native host/i, "final manuscript authoring must remain in the native host");
+for (const role of [
+  "evidence",
+  "methods-reproducibility",
+  "domain-novelty",
+  "journal-editor",
+]) {
+  assert.match(publicationReference, new RegExp(`\\b${role}\\b`));
+}
+assert.match(publicationReference, /does not predict or guarantee editorial acceptance/i);
 process.stdout.write(`Research Policy default pack tests passed (${ids.size} templates)\n`);

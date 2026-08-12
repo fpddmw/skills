@@ -113,3 +113,11 @@ Anthropic 或 PPT Master 闭环后创作 Skills。workspace 可以是用户指�
 `tiangong-auto-research/references/setup.md` 和 `external-skills.md`。
 创建 PPT 时首选 PPT Master；Anthropic PPTX 仍是兼容的按场景选项，需要时可在
 同一显式计划中一起选择。
+
+当目标是顶刊论文时，orchestrator 提供保守的 Research Policy 默认模板，覆盖文章
+类型、学科、期刊类别、项目 publication brief，以及四个独立终稿审阅角色。CLI
+Policy Wizard 会把所选 Markdown 复制到研究 workspace 供人类审阅；仍在使用通用
+默认内容时会明确提示，审批必须绑定当前内容的精确哈希，任何后续修改或过期都会使
+审批失效。只有依据当前官方指南做出实质性人工定制，才可能达到精确目标期刊的就绪
+上限。这套门禁只能产出可复核的投稿候选稿，不能承诺编辑接受。详见
+`tiangong-auto-research/references/publication-policy.md`。
