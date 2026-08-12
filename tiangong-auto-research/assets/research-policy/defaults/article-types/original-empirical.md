@@ -12,6 +12,12 @@ rules:
   - alternative-explanations-tested
   - robustness-evidence-required
   - material-results-reproduced
+constraints:
+  minDirectPeerReviewedFullText: 5
+  minDirectEmpiricalFullText: 1
+  requireRecallAudit: true
+  requireCentralDimensionsCovered: true
+  requireIndependentReproduction: true
 requiredReviewers:
   - evidence
   - methods-reproducibility

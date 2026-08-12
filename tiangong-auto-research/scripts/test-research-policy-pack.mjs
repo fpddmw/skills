@@ -80,5 +80,18 @@ for (const relative of [
   }
 }
 
+for (const relative of [
+  ["baseline", "top-journal.md"],
+  ...expected["article-types"].map((file) => ["article-types", file]),
+]) {
+  const text = await readFile(join(policyRoot, ...relative), "utf8");
+  assert.match(text, /^constraints:$/m, `${relative.join("/")} lacks mechanical constraints`);
+  assert.match(
+    text,
+    /^  minDirectPeerReviewedFullText:\s*[1-9][0-9]*$/m,
+    `${relative.join("/")} lacks a positive direct full-text floor`,
+  );
+}
+
 assert.equal(ids.size, Object.values(expected).flat().length);
 process.stdout.write(`Research Policy default pack tests passed (${ids.size} templates)\n`);

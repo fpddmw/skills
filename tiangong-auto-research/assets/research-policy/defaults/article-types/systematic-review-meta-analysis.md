@@ -12,6 +12,11 @@ rules:
   - recall-audit-required
   - risk-of-bias-required
   - synthesis-method-justified
+constraints:
+  minDirectPeerReviewedFullText: 8
+  requireCompleteCandidateDisposition: true
+  requireRecallAudit: true
+  requireCentralDimensionsCovered: true
 requiredReviewers:
   - evidence
   - methods-reproducibility

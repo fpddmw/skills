@@ -11,6 +11,11 @@ rules:
   - material-results-reproduced
   - alternative-explanations-tested
   - final-manuscript-reviewed
+constraints:
+  minDirectPeerReviewedFullText: 3
+  requireRecallAudit: true
+  requireCentralDimensionsCovered: true
+  requireIndependentReproduction: true
 requiredReviewers:
   - evidence
   - methods-reproducibility

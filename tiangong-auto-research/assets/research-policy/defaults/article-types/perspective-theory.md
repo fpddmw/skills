@@ -11,6 +11,9 @@ rules:
   - empirical-boundaries-explicit
   - counterargument-required
   - novelty-comparison-required
+constraints:
+  minDirectPeerReviewedFullText: 3
+  requireRecallAudit: true
 requiredReviewers:
   - evidence
   - domain-novelty

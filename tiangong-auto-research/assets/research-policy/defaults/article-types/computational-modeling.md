@@ -12,6 +12,12 @@ rules:
   - uncertainty-propagated
   - baseline-comparison-required
   - material-results-reproduced
+constraints:
+  minDirectPeerReviewedFullText: 5
+  minDirectModelFullText: 1
+  requireRecallAudit: true
+  requireCentralDimensionsCovered: true
+  requireIndependentReproduction: true
 requiredReviewers:
   - evidence
   - methods-reproducibility

@@ -11,6 +11,11 @@ rules:
   - reuse-value-demonstrated
   - availability-contract-required
   - material-results-reproduced
+constraints:
+  minDirectPeerReviewedFullText: 3
+  minDirectEmpiricalFullText: 1
+  requireRecallAudit: true
+  requireIndependentReproduction: true
 requiredReviewers:
   - evidence
   - methods-reproducibility
