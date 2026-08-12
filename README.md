@@ -118,3 +118,13 @@ bundled or installed by a research package. See
 `tiangong-auto-research/references/setup.md` and `external-skills.md`.
 For PPT creation, prefer PPT Master; Anthropic PPTX remains compatible and may
 be selected alongside it when its workflow fits the task.
+
+For a top-journal goal, the orchestrator includes a conservative Research
+Policy template pack for article type, field, journal class, project brief, and
+four independent final-review roles. The CLI Policy Wizard copies the selected
+Markdown into the research workspace for human review; it reports when generic
+defaults remain, requires explicit approval of the exact content hash, and
+invalidates approval after any edit or expiry. Exact-journal readiness requires
+current official guidance and substantive human customization. These gates can
+produce a reviewable submission candidate, never a promise of editorial
+acceptance. See `tiangong-auto-research/references/publication-policy.md`.

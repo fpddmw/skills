@@ -59,9 +59,10 @@ scripts/test-clean-container.sh
 
 It performs a no-cache build from the digest-pinned Node 24 image, copies only
 the secret-filtered repository context, and runs the routing, resolver, agent
-wrapper, and evidence-wrapper suites as a non-root user with isolated HOME and
-runtime networking disabled. Do not mount host agent directories, CLIs, caches,
-credentials, browser profiles, or source worktrees into the running container.
+wrapper, Research Policy pack, and evidence-wrapper suites as a non-root user
+with isolated HOME and runtime networking disabled. Do not mount host agent
+directories, CLIs, caches, credentials, browser profiles, or source worktrees
+into the running container.
 
 ## README And Marketplace Updates
 

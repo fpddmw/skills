@@ -34,6 +34,10 @@ marketplace grouping metadata.
   the workspace repository.
 - Runtime credentials and user-private data do not belong in skill assets,
   references, or scripts.
+- Default Research Policy assets must remain conservative, non-secret, and
+  visibly generic. They must not claim target-journal fit or acceptance; user
+  customization, approval, expiry, and hash enforcement belong to the CLI and
+  research workspace.
 
 ## Skill Surface
 
