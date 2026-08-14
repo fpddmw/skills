@@ -13,6 +13,9 @@ checkPaths:
   - README.zh-CN.md
   - .claude-plugin/**
   - .docpact/config.yaml
+  - .dockerignore
+  - Dockerfile.clean-test
+  - scripts/**
   - "*/SKILL.md"
 lastReviewedAt: 2026-08-12
 lastReviewedCommit: 3d5d85f41bac03b7b31208e89d6c5e56da320baf
@@ -59,6 +62,9 @@ assets, generated `agents/**` files, or marketplace metadata require review of:
   including `scripts/quick_validate.py <skill-path>` from the `skill-creator`
   skill when available.
 - Regenerate or update agent config files when the skill workflow requires it.
+- Run Auto Research red/green cycles in separate clean runtime containers;
+  valid Docker build layers may be reused iteratively, while PR and release
+  evidence must include the explicit cold-build gate.
 - Do not leave install, validation, or trigger facts only in chat.
 
 `.claude-plugin/marketplace.json` is curated marketplace grouping metadata. It

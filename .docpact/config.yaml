@@ -13,6 +13,9 @@ routing:
         - AGENTS.md
         - .docpact/**
         - .github/workflows/docpact.yml
+        - .dockerignore
+        - Dockerfile.clean-test
+        - scripts/**
         - _docs/**
         - README.md
         - README.zh-CN.md
@@ -34,6 +37,9 @@ coverage:
     - README.zh-CN.md
     - .docpact/**
     - .github/workflows/docpact.yml
+    - .dockerignore
+    - Dockerfile.clean-test
+    - scripts/**
     - _docs/**
     - .claude-plugin/**
     - "*/SKILL.md"
@@ -85,6 +91,12 @@ rules:
         kind: machine-contract
       - path: .github/workflows/docpact.yml
         kind: governance-ci
+      - path: .dockerignore
+        kind: clean-container-context-policy
+      - path: Dockerfile.clean-test
+        kind: clean-container-image
+      - path: scripts/**
+        kind: repository-validation-script
       - path: _docs/**
         kind: governed-docs
       - path: README.md
@@ -101,6 +113,8 @@ rules:
       - path: _docs/contracts/repo-contract.md
         mode: review_or_update
       - path: _docs/standards/documentation-standards.md
+        mode: review_or_update
+      - path: _docs/runbooks/development.md
         mode: review_or_update
     reason: Repository entry guidance, governance config, and documentation standards must remain aligned.
   - id: skills-skill-surface

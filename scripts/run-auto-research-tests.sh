@@ -12,6 +12,7 @@ if command -v tiangong-ai >/dev/null 2>&1; then
     exit 1
 fi
 
+sh scripts/test-clean-container-entrypoint.sh
 node tiangong-auto-research/scripts/test-research-cli.mjs
 node tiangong-auto-research/scripts/test-routing-contract.mjs
 node tiangong-auto-research/scripts/test-research-policy-pack.mjs
