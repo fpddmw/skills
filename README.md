@@ -13,8 +13,8 @@ checkPaths:
   - README.zh-CN.md
   - .claude-plugin/**
   - "*/SKILL.md"
-lastReviewedAt: 2026-08-12
-lastReviewedCommit: 3d5d85f41bac03b7b31208e89d6c5e56da320baf
+lastReviewedAt: 2026-08-14
+lastReviewedCommit: d4854e6688055ea67ddc6c8a0ec2cec053712e16
 ---
 
 # Tiangong AI Skills
@@ -24,11 +24,13 @@ Repository: https://github.com/tiangong-ai/skills
 Use the `skills` CLI from https://github.com/vercel-labs/skills to install, update, and manage these skills.
 
 ## Install the CLI
+
 ```bash
 npm i skills -g
 ```
 
 ## Install
+
 - List available skills (no install):
   ```bash
   npx skills add https://github.com/tiangong-ai/skills --list
@@ -43,6 +45,7 @@ npm i skills -g
   ```
 
 ## Target agents and scope
+
 - Target specific agents:
   ```bash
   npx skills add https://github.com/tiangong-ai/skills -a codex -a claude-code
@@ -61,11 +64,13 @@ npm i skills -g
     the pinned `skills` CLI rather than deriving `~/<agent>/skills` by analogy.
 
 ## Install method
+
 - Interactive installs let you choose:
   - Symlink (recommended)
   - Copy
 
 ## Update and verify
+
 - List installed skills:
   ```bash
   npx skills list

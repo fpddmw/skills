@@ -11,6 +11,10 @@ checkPaths:
   - AGENTS.md
   - README.md
   - README.zh-CN.md
+  - .dockerignore
+  - Dockerfile.clean-test
+  - .github/workflows/docpact.yml
+  - scripts/**
   - .claude-plugin/**
   - "*/SKILL.md"
 lastReviewedAt: 2026-08-12
@@ -57,12 +61,24 @@ for the red and green cycles:
 scripts/test-clean-container.sh
 ```
 
-It performs a no-cache build from the digest-pinned Node 24 image, copies only
-the secret-filtered repository context, and runs the routing, resolver, agent
+It builds from the digest-pinned Node 24 image, copies only the secret-filtered
+repository context, and runs the routing, resolver, agent
 wrapper, Research Policy pack, and evidence-wrapper suites as a non-root user
 with isolated HOME and runtime networking disabled. Do not mount host agent
-directories, CLIs, caches, credentials, browser profiles, or source worktrees
-into the running container.
+directories, CLIs, runtime caches, credentials, browser profiles, or source
+worktrees into the running container.
+
+The default entrypoint may reuse Docker layers whose declared inputs still
+match, while every test run uses a new container. Run the explicit cold mode
+after changing `.dockerignore`, `Dockerfile.clean-test`, or dependency inputs,
+and before PR or release delivery:
+
+```bash
+scripts/test-clean-container.sh --cold-build
+```
+
+Cold mode adds `--no-cache`; neither mode uses `--pull`, so the base image can
+change only through a reviewed digest update.
 
 ## README And Marketplace Updates
 

@@ -13,8 +13,8 @@ checkPaths:
   - README.md
   - .claude-plugin/**
   - "*/SKILL.md"
-lastReviewedAt: 2026-08-12
-lastReviewedCommit: 3d5d85f41bac03b7b31208e89d6c5e56da320baf
+lastReviewedAt: 2026-08-14
+lastReviewedCommit: d4854e6688055ea67ddc6c8a0ec2cec053712e16
 ---
 
 # 天工 AI Skills
@@ -24,11 +24,13 @@ lastReviewedCommit: 3d5d85f41bac03b7b31208e89d6c5e56da320baf
 请使用 https://github.com/vercel-labs/skills 提供的 `skills` CLI 来安装、更新和管理这些 skills。
 
 ## 安装 CLI
+
 ```bash
 npm i skills -g
 ```
 
 ## 安装
+
 - 仅列出可用技能（不安装）:
   ```bash
   npx skills add https://github.com/tiangong-ai/skills --list
@@ -43,6 +45,7 @@ npm i skills -g
   ```
 
 ## 目标 agent 与作用域
+
 - 指定 agent:
   ```bash
   npx skills add https://github.com/tiangong-ai/skills -a codex -a claude-code
@@ -60,11 +63,13 @@ npm i skills -g
     `~/<agent>/skills` 类推。
 
 ## 安装方式
+
 - 交互式安装可选:
   - Symlink (recommended)
   - Copy
 
 ## 更新与确认
+
 - 列出已安装技能:
   ```bash
   npx skills list

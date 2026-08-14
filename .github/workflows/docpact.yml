@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - run: sh scripts/test-clean-container.sh
+      - run: sh scripts/test-clean-container.sh --cold-build
 
   validate-config:
     runs-on: ubuntu-latest
