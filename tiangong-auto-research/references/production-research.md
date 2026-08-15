@@ -42,6 +42,14 @@ and never treats them as exact-journal endorsement. See
 [publication-policy.md](publication-policy.md) for policy states, verdict
 ceilings, final manuscript freeze, and four-role review.
 
+Then have the current native host create the closed scientific-design contract
+and pass that same exact file to preflight and project init. Preflight evaluates
+observable estimands, claim/edge feasibility, endpoint truth roles, quantity and
+denominator scope, independent units, threshold types, evidence-role/full-text
+requirements, known gaps, context fit, and baseline fairness. It also reserves
+three early scientific reviews, four final publication reviews, and one bounded
+revision cycle. See [scientific-design.md](scientific-design.md).
+
 Use `research project preflight`; do not calculate a competing checklist in the
 skill. Production `project init` requires its evidence-requirements file and,
 when the configured threshold is crossed, explicit `--confirm-budget`.
@@ -79,8 +87,8 @@ The budget includes:
 - broker calls, response bytes, context items, and estimated context tokens;
 - the cost-confirmation threshold.
 
-New production workspaces use finite runaway ceilings of 20,000,000 total
-tokens and USD 2,000. Package ceilings are 12,000,000 for discovery, 2,000,000
+New production workspaces use finite runaway ceilings of 50,000,000 total
+tokens and USD 5,000. Package ceilings are 12,000,000 for discovery, 2,000,000
 for acquisition, 1,500,000 each for analysis and synthesis, and 2,500,000 for
 review. Primary output is bounded at 32,000 tokens and repair at 16,000. Input
 context is bounded at 128,000 tokens. These values are not a target spend:
@@ -88,6 +96,12 @@ coverage-driven working plans, early stop, three attempts per package, and
 explicit confirmation above USD 10 control ordinary execution. Smoke-test
 workspaces retain smaller low-cost defaults. Lower production ceilings only
 when preflight proves every complete reservation still fits.
+
+The lifecycle reserves up to 500,000 tokens for each early scientific review,
+750,000 for each final publication review, and 4,000,000 for one revision,
+with corresponding finite wall-time reserves. These are hard runaway ceilings,
+not expected consumption. Do not start a call when its reservation plus all
+remaining mandatory gates cannot fit the confirmed total.
 
 The CLI will not prepare or launch a package unless its full token and
 conservative price reservation fits. Native producer preparation reserves the
@@ -334,10 +348,21 @@ inherit only verified completed discovery/acquisition/analysis/synthesis
 artifacts; review and closure always run again. A closed-project evidence
 refresh uses `research project addendum`, not a fork or in-place mutation.
 
+For a top-journal source, initialize and approve Policy for `TARGET`, create a
+new target-specific design, and add `--design`, `--design-producer-agent`, and
+`--design-producer-session` to fork/addendum. Old scientific reviews never carry
+forward. The new generation re-enters the applicable early gates, even when it
+inherits completed outputs; an inherited later package cannot bypass them.
+
 The fork becomes authoritative immediately and its source becomes stale. The
 default status/run path excludes superseded, archived, and abandoned projects;
 `research status --all` is the audit view. Archive complete/stale history and
 abandon unfinished history with an explicit reason.
+
+At a milestone, use `research project audit export` followed by
+`research project audit verify`. The portable bundle includes exact formal
+evidence/artifact bytes and project review objects while excluding credentials,
+host-specific paths, active native state, capsules, and unrelated projects.
 
 When the next material step cannot be performed autonomously, use one of two
 durable states rather than another retry:

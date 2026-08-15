@@ -97,10 +97,20 @@ assert.equal(ids.size, Object.values(expected).flat().length);
 
 const skill = await readFile(join(skillRoot, "SKILL.md"), "utf8");
 const publicationReference = await readFile(join(skillRoot, "references", "publication-policy.md"), "utf8");
+const scientificDesignReference = await readFile(
+  join(skillRoot, "references", "scientific-design.md"),
+  "utf8",
+);
+const openAiMetadata = await readFile(join(skillRoot, "agents", "openai.yaml"), "utf8");
 assert.match(
   skill,
   /references\/publication-policy\.md/,
   "SKILL.md must route top-journal publication work to the detailed reference",
+);
+assert.match(
+  skill,
+  /references\/scientific-design\.md/,
+  "SKILL.md must route scientific design and early-gate work to the detailed reference",
 );
 assert.match(skill, /current native host/i, "final manuscript authoring must remain in the native host");
 for (const role of [
@@ -112,4 +122,21 @@ for (const role of [
   assert.match(publicationReference, new RegExp(`\\b${role}\\b`));
 }
 assert.match(publicationReference, /does not predict or guarantee editorial acceptance/i);
+for (const marker of [
+  "real-record construct canary",
+  "effective independent units",
+  "reviewer prose cannot override",
+  "project audit export",
+  "futureGateObligations",
+  "raw-file-bytes",
+  "executable-frozen",
+  "jointStateBindings",
+]) {
+  assert.match(scientificDesignReference, new RegExp(marker, "i"));
+}
+assert.match(scientificDesignReference, /current native Codex or Claude host/i);
+assert.match(scientificDesignReference, /does not create the study design or launch a nested producer/i);
+assert.match(openAiMetadata, /scientific design/i);
+assert.match(openAiMetadata, /independent scientific and final publication reviews/i);
+assert.match(openAiMetadata, /portable audit/i);
 process.stdout.write(`Research Policy default pack tests passed (${ids.size} templates)\n`);

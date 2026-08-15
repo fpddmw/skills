@@ -59,6 +59,14 @@ Status is mechanical: `missing`, `default-unapproved`, `custom-draft`,
 `invalid`. Any content edit after approval yields `changed`; expiry yields
 `stale`. Both stop project stages and publication review until re-approved.
 
+Policy approval is necessary but not sufficient for project admission. The
+current native host must also create a project-specific scientific design, and
+fresh independent reviews must pass at research design, real-record evidence
+construction, and outcome-blind methods pilot boundaries. Read
+[scientific-design.md](scientific-design.md). These early gates are reverified
+before final manuscript freeze; a manually changed status field or missing
+review object cannot inherit publication approval.
+
 ## Verdict ceilings
 
 Defaults support feasibility and planning but are not journal endorsement. The
@@ -138,3 +146,8 @@ Closure re-verifies every hash and requires all four reviews. Report only the
 returned verdict, bounded statement, limitations, and pivots.
 `target-journal-submission-ready` means the frozen artifact passed its declared
 gates; it does not predict or guarantee editorial acceptance.
+
+After closure, export and verify the portable audit directory from
+[scientific-design.md](scientific-design.md). Handing off only the manuscript,
+receipt hashes, or a workspace-specific path is not sufficient for independent
+editorial or reproducibility audit.

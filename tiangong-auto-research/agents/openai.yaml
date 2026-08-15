@@ -1,4 +1,4 @@
 interface:
   display_name: "Tiangong Auto Research"
-  short_description: "Run native research with policy-bound review"
-  default_prompt: "Use $tiangong-auto-research for this open-ended or multi-source research task. Resolve the exact CLI from the workspace runtime lock, verify required capabilities, budget, and any top-journal Research Policy, perform producer and manuscript work in this current native host, and use fresh independent reviewer sessions only through the controlled review workflow."
+  short_description: "Run native top-journal research with audited gates"
+  default_prompt: "Use $tiangong-auto-research to author this study's scientific design and execute it in the current native host, pass independent scientific and final publication reviews, and export a verified portable audit bundle."

@@ -44,10 +44,29 @@ counterevidence, and applicability requirements for each central claim.
 Define data, methods, controls, baselines, alternatives, uncertainty,
 robustness, external validation, and computational reproduction.
 
+## Scientific identity, claims, and quantities
+
+Define the central study kind and every supporting component; the estimand;
+claim/evidence edges; endpoint truth roles and compatible comparisons; units,
+quantities, denominators, allowed terms, prohibited overclaims; and which result
+classes may appear in title, abstract, and conclusions.
+
+## Independence, thresholds, and early feasibility
+
+Define original units, independent clusters, effective independent units,
+shared upstream data, independent data-generating processes, resampling units,
+threshold classes, sensitivity analyses, and baseline decision-loss metrics.
+Specify an outcome-blind real-record construct canary and a pre-analysis methods
+pilot. Synthetic schema examples are not feasibility evidence.
+
 ## Novelty and recall plan
 
 Define databases, query families, closest known work, citation searches,
 counterevidence, and the stopping or saturation rule.
+
+Assign every central claim an evidence role, minimum independent sources, and
+minimum full texts. State how closest work is obtained and dispositioned before
+novelty language is frozen.
 
 ## Deliverables
 

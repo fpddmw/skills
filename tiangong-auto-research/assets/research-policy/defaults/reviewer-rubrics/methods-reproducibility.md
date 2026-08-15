@@ -34,6 +34,11 @@ applicable source or an explicit tested assumption.
 
 Challenge identification, controls, leakage, baselines, sensitivity, external
 validity, uncertainty, failure cases, and alternative explanations.
+Recompute original units, independent clusters, effective independent units,
+and resampling units. Verify endpoint truth roles, shared upstream data,
+quantity/denominator scope, threshold classes, and decision-loss metrics. A
+large resampling count cannot override four independent structures, a circular
+validation route, or an unobserved endpoint.
 
 ## Reproducibility
 
@@ -45,6 +50,8 @@ every material table and figure.
 - A central statistic or figure cannot be recomputed.
 - Results are identities or scenarios presented as observed effects.
 - Validation is absent, circular, or outside the claimed population.
+- A real-record construct canary is missing, inspected outcomes before freezing
+  the method, or failed a central evidence edge.
 
 ## Required reviewer questions
 

@@ -18,6 +18,9 @@ constraints:
   requireRecallAudit: true
   requireCentralDimensionsCovered: true
   requireIndependentReproduction: true
+  requireScientificDesignContract: true
+  requireEarlyScientificReviews: true
+  requireRealRecordConstructCanary: true
 requiredReviewers:
   - evidence
   - methods-reproducibility
@@ -48,6 +51,12 @@ assumed, fitted, transferred, and independently measured values.
 Require baseline comparisons, identifiability or sensitivity analysis,
 uncertainty propagation, failure cases, and independent empirical validation
 where the paper makes real-world claims.
+Classify cross-model comparison, mechanism-model output, scenario output,
+accounting output, calibrated estimates, and independently observed validation
+as different result classes. Declare shared upstream data, independent
+data-generating processes, original units, independent clusters, effective
+units, and the cluster-preserving resampling unit. More bootstrap iterations do
+not create more independent observations.
 
 ## Reproducibility
 
@@ -59,6 +68,9 @@ complete table and figure generation path.
 - The main result follows algebraically from assumptions.
 - Calibration and validation use the same evidence without justification.
 - A scenario analysis is presented as a forecast or observed effect.
+- A model discrepancy is presented as field error without a declared observed
+  truth endpoint, or gross installed material is relabeled as a narrower or
+  network-wide quantity without a supported conversion.
 - Code or material parameters cannot be independently reconstructed.
 
 ## Required reviewer questions
