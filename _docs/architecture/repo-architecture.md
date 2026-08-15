@@ -13,7 +13,7 @@ checkPaths:
   - README.zh-CN.md
   - .claude-plugin/**
   - "*/SKILL.md"
-lastReviewedAt: 2026-08-14
+lastReviewedAt: 2026-08-15
 lastReviewedCommit: d4854e6688055ea67ddc6c8a0ec2cec053712e16
 ---
 
@@ -50,6 +50,16 @@ generic source pack for top-journal Policy initialization. It is immutable
 source material, not a user Policy or journal endorsement. The CLI copies a
 selected stack into the user-selected research workspace, where a human may
 customize and explicitly approve the exact resolved content.
+
+`tiangong-auto-research/references/scientific-design.md` defines the Skill-side
+native workflow for a closed project-specific design, three early independent
+scientific review gates, Policy-owned future freeze obligations for models,
+environment locks, and source-derived uncertainty states, authoritative
+recovery generations, and portable audit handoff. The Skill supplies
+instructions and conservative defaults only. The CLI owns schemas, hashing,
+stage admission, mechanical evaluation, lifecycle reservations, reviewer
+isolation, and audit verification; native Codex or Claude remains the
+scientific producer.
 
 ## Integration Points
 

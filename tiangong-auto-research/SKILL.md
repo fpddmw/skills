@@ -53,6 +53,9 @@ detailed stop and recovery rules.
 - Read [references/publication-policy.md](references/publication-policy.md)
   before a top-journal project, Policy approval, final manuscript freeze,
   four-role publication review, or readiness closure.
+- Read [references/scientific-design.md](references/scientific-design.md) before
+  top-journal admission, any scope change, the three early scientific gates,
+  a target-specific recovery generation, or portable audit export.
 
 ## Choose the mode before spending budget
 
@@ -135,6 +138,15 @@ feasibility guidance, not journal endorsement. Follow
 [references/publication-policy.md](references/publication-policy.md); never
 invent a target-journal policy or bypass its status gate.
 
+Before top-journal preflight, the current native host must write the closed
+`scientific-design` contract. It must distinguish observation, validation,
+cross-model comparison, scenario, and accounting roles; freeze units,
+denominators, independent clusters, thresholds, baselines, evidence roles,
+closest-work requirements, known gaps, and handoff conditions. Pass the same
+exact file to preflight and init with the native producer's opaque session ID.
+Follow [references/scientific-design.md](references/scientific-design.md); never
+let the CLI invent a study design or describe resampling as new independent data.
+
 Prepare evidence requirements with `dimensions`, `sourceTypes`,
 `requiredCapabilityIds`, `requiredCompanionIds`, `requiredDiscoveryScopes`,
 `minSources`, `minFullTextSources`, `minDatedSources`, and nullable date bounds.
@@ -167,22 +179,30 @@ visible, but do not block unrelated research or weaken evidence coverage.
 node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
   research project preflight \
   --workspace /absolute/path/to/workspace \
+  --goal top-journal --policy-project PROJECT \
   --question "Research question" \
   --requirements /absolute/path/to/evidence-requirements.json \
-  --input-plan /absolute/path/to/input-plan.json --json
+  --input-plan /absolute/path/to/input-plan.json \
+  --design /absolute/path/to/scientific-design.json --json
 
 node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
   research project init PROJECT \
   --workspace /absolute/path/to/workspace \
+  --goal top-journal \
   --question "Research question" \
   --requirements /absolute/path/to/evidence-requirements.json \
   --input-plan /absolute/path/to/input-plan.json \
+  --design /absolute/path/to/scientific-design.json \
+  --design-producer-agent codex \
+  --design-producer-session OPAQUE_NATIVE_SESSION \
   --confirm-budget --json
 ```
 
 Stop when capability/input coverage is insufficient or the projected cost has
 not been accepted. Use the same requirements and input plan for preflight and
-initialization.
+initialization. For an explicitly selected evidence-report goal, omit the
+top-journal Policy/design options; do not silently downgrade a requested
+top-journal study to make admission pass.
 
 ## Validate, run, and recover
 
@@ -214,6 +234,13 @@ mechanical closure. Follow
 [references/native-execution.md](references/native-execution.md) for the exact
 commands and recovery rules.
 
+For a top-journal project, `research status` may require `research-design`,
+`evidence-construct`, or `pilot-methods` review before it exposes the next
+native stage. Produce the bounded assessment in this native host, then use a
+fresh configured reviewer session through the CLI. A real-record construct
+canary occurs before acquisition and an outcome-blind methods pilot occurs
+before analysis. Reviewer prose cannot override their mechanical failures.
+
 Proceed only when doctor reports ready. Discovery uses only locked broker
 capabilities; later stages are tool-free. Doctor, preflight, dependency,
 provider, and evidence-coverage failures must stop the workflow. Never silently
@@ -242,3 +269,6 @@ assessment, obtain fresh evidence, methods/reproducibility, domain/novelty, and
 journal-editor reviews, then mechanically close the publication generation.
 Any Policy or manuscript change invalidates downstream approval/review. Return
 only the CLI-computed bounded readiness language; never promise acceptance.
+Export and independently verify a portable project audit bundle before external
+handoff or archival; it must contain the formal evidence bytes and review
+objects, not merely receipts or local-path references.

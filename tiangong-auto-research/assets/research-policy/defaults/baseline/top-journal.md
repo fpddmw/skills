@@ -16,6 +16,9 @@ constraints:
   requireRecallAudit: true
   requireCentralDimensionsCovered: true
   requireIndependentReproduction: true
+  requireScientificDesignContract: true
+  requireEarlyScientificReviews: true
+  requireRealRecordConstructCanary: true
 requiredReviewers:
   - evidence
   - methods-reproducibility
@@ -54,6 +57,10 @@ blocking for an original or systematic claim.
 Require a research design capable of answering the central question, explicit
 assumptions, tested alternative explanations, uncertainty analysis, and
 validation appropriate to the claimed scope. Disclosed fatal gaps remain fatal.
+Freeze endpoint truth roles, quantity/denominator scope, original and independent
+units, resampling units, threshold classes, and baseline fairness before result
+inspection. Require a real-record, outcome-blind construct canary before the
+main acquisition/analysis budget is spent.
 
 ## Reproducibility
 
@@ -69,6 +76,9 @@ as computational reproduction.
   or validated.
 - The contribution is incremental, outside scope, or unsupported by direct
   evidence.
+- Synthetic examples stand in for a feasible real-record join, repeated rows are
+  counted as independent units, or one model is called ground truth without an
+  independently observed endpoint.
 - The final manuscript was created or materially changed after review.
 
 ## Required reviewer questions

@@ -20,6 +20,31 @@ node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
 producer stage. It is not an error and must not trigger a nested `codex exec` or
 `claude -p` call.
 
+For a top-journal project, `research status` can instead return a pending
+`research-design`, `evidence-construct`, or `pilot-methods` gate. Complete that
+gate before preparing a native stage. The current native host writes the
+schema-bound assessment; only the configured other agent family performs the
+fresh independent review. See [scientific-design.md](scientific-design.md).
+
+The ordering is deliberate:
+
+```text
+design review → discover → real-record construct review → acquire
+→ outcome-blind methods pilot review → analyze → synthesize
+```
+
+Do not replace the real-record canary with a synthetic schema example, inspect
+outcome values while proving construction, or use repeated cells/rows as
+independent resampling units. A later inherited package cannot bypass an earlier
+gate.
+
+Read `mechanicalAssessment.futureGateObligations` before continuing. Pending
+source-derived parameter values, executable model bytes, and exact environment
+locks are permitted only until their declared gate and only when an exact
+planned Policy rule owns them. They are not usable results. Freeze replacements
+through a new authoritative generation before the deadline; at the due gate the
+CLI must stop on the corresponding mechanical error.
+
 ## Prepare the exact stage
 
 Use the host agent selected by the immutable setup plan:
@@ -158,3 +183,8 @@ Use `research status` to follow the authoritative project. A recovery fork
 supersedes its source and is the only default-runnable descendant. Use
 `research status --all` for lineage audit, `research project archive` for
 complete/stale history, and `research project abandon` for unfinished history.
+
+Before an external handoff or archival milestone, export and verify the project
+audit bundle described in [scientific-design.md](scientific-design.md). A local
+manifest or receipt hash without the referenced evidence bytes is not a
+portable audit package.

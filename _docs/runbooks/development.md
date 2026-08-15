@@ -17,7 +17,7 @@ checkPaths:
   - scripts/**
   - .claude-plugin/**
   - "*/SKILL.md"
-lastReviewedAt: 2026-08-12
+lastReviewedAt: 2026-08-15
 lastReviewedCommit: 3d5d85f41bac03b7b31208e89d6c5e56da320baf
 ---
 
@@ -62,8 +62,9 @@ scripts/test-clean-container.sh
 ```
 
 It builds from the digest-pinned Node 24 image, copies only the secret-filtered
-repository context, and runs the routing, resolver, agent
-wrapper, Research Policy pack, and evidence-wrapper suites as a non-root user
+repository context, and runs the routing, resolver, agent wrapper, Research
+Policy/scientific-design/native-execution contract, generated agent metadata,
+and evidence-wrapper suites as a non-root user
 with isolated HOME and runtime networking disabled. Do not mount host agent
 directories, CLIs, runtime caches, credentials, browser profiles, or source
 worktrees into the running container.

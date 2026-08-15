@@ -15,7 +15,7 @@ checkPaths:
   - .github/workflows/docpact.yml
   - scripts/**
   - _docs/**
-lastReviewedAt: 2026-08-13
+lastReviewedAt: 2026-08-15
 lastReviewedCommit: 126b3e177739064f5b4b29eb240930c9020bb2ef
 ---
 

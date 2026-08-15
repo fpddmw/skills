@@ -126,3 +126,11 @@ Policy Wizard 会把所选 Markdown 复制到研究 workspace 供人类审阅；
 审批失效。只有依据当前官方指南做出实质性人工定制，才可能达到精确目标期刊的就绪
 上限。这套门禁只能产出可复核的投稿候选稿，不能承诺编辑接受。详见
 `tiangong-auto-research/references/publication-policy.md`。
+
+在 discovery 之前，当前原生 Codex 或 Claude host 还必须给出封闭、目标特定的科学
+设计。CLI 只负责验证和冻结设计，并依次在 discovery、acquisition、analysis 前强制
+独立的 `research-design`、真实记录 `evidence-construct`、`pilot-methods` 审查；它
+会为全部早期审查、终稿审查和一次修订预留预算，每个权威恢复世代都必须重新审批，
+并可导出包含正式证据原文而不是宿主本地路径的可移植审计目录。CLI 仍是确定性控制
+平面，不会启动嵌套 producer 来替用户发明科学设计。详见
+`tiangong-auto-research/references/scientific-design.md`。

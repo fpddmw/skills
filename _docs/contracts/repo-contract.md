@@ -17,7 +17,7 @@ checkPaths:
   - Dockerfile.clean-test
   - scripts/**
   - "*/SKILL.md"
-lastReviewedAt: 2026-08-12
+lastReviewedAt: 2026-08-15
 lastReviewedCommit: 3d5d85f41bac03b7b31208e89d6c5e56da320baf
 ---
 
@@ -41,6 +41,14 @@ marketplace grouping metadata.
   visibly generic. They must not claim target-journal fit or acceptance; user
   customization, approval, expiry, and hash enforcement belong to the CLI and
   research workspace.
+- Scientific-design guidance and defaults must preserve the native-producer
+  boundary, distinguish observation from model comparison/scenario/accounting,
+  distinguish byte identity from model executability, bind pending model,
+  environment, and uncertainty objects to explicit future gates, require exact
+  joint-state mappings, never treat resampling as additional independent data,
+  and defer closed schemas, mechanical gates, reviewer-session enforcement,
+  lifecycle budgets, authoritative generations, and portable audit verification
+  to the CLI.
 
 ## Skill Surface
 
