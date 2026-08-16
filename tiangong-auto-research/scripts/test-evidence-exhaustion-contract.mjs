@@ -31,6 +31,11 @@ for (const phrase of [
   /resume criteria/i,
   /do not fabricate/i,
   /do not continue substitute searching/i,
+  /research project access status/i,
+  /acquisition_route_id/,
+  /acquisitionRouteId/,
+  /422/,
+  /narrow or abandon/i,
 ]) {
   assert.match(exhaustion, phrase);
 }

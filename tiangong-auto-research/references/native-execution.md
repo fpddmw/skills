@@ -149,7 +149,9 @@ Login, MFA, CAPTCHA, Turnstile, paywall, security-warning, or authorization
 activity cannot be submitted as ordinary completion. Record it as `blocked`
 through `recordActivity`, create an `interactive-challenge`
 `user-action-required` record with the packet's `requestHandoff` argv, and stop.
-This immediate safety pause is not an evidence-exhausted claim. When all
+This immediate safety pause is not an evidence-exhausted claim, does not create
+a terminal acquisition-route event, and must be resolved by the user before
+that route can continue. When all
 plan-bound lawful routes have terminal evidence but a required role still needs
 licensed or owner material, follow
 [evidence-exhaustion.md](evidence-exhaustion.md) and request an

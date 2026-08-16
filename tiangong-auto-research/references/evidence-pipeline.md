@@ -22,6 +22,12 @@ context, reservation, and expected-cost gaps.
 Production requires an independent public-internet capability. Add every
 owner-whitelisted database whose contents matter to the question as an exact
 required capability; a general web result cannot silently substitute for it.
+For top-journal work, the frozen scientific design must also enumerate every
+lawful, relevant route available in the configured environment: broker
+capabilities, native Web/Browser channels, OA/download adapters, explicitly
+authorized browsers, licensed or owner-provided material, external requests,
+and field collection. Omitting an applicable route is a design/review defect,
+not permission to stop early.
 
 ## 2. Search broadly in bounded batches
 
@@ -62,6 +68,8 @@ use, reviewer binding, and supersession.
 The current native Codex or Claude app may use its own Web/Browser experience
 to find additional leads. Record every material search, navigation, download,
 or file-inspection occurrence through the packet's `recordActivity` command.
+For a top-journal project, pass the exact frozen route as
+`acquisitionRouteId`; the control plane rejects unbound or mismatched activity.
 The control plane persists only a sanitized input hash, channel, counts, status,
 challenge class, and candidate IDs. Then register safe, non-secret candidate
 metadata through `registerCandidate`. Such a lead remains
@@ -104,6 +112,9 @@ object or equivalent transport completion, save it to a unique planned staging
 path, and first bind that event through `bindDownload`. A failed or cancelled
 event creates no successful binding and cannot register an artifact. Never scan
 a directory for the newest file and never infer success from file existence.
+For a top-journal project, the binding record must carry the exact
+`acquisitionRouteId`. Broker fetches use the corresponding snake-case
+`acquisition_route_id` argument.
 
 ```bash
 node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \

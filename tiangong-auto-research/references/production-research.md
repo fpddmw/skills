@@ -377,7 +377,8 @@ remaining evidence gaps. `research run` returns `handoff-required` and does not
 schedule more work. Resolve it explicitly only after the action or response has
 been registered; never treat continued substitute searching as resolution.
 
-For a material evidence ceiling, inspect the project evidence access status
+For a material evidence ceiling, run the evidence access status command,
+`research project access status PROJECT --workspace /absolute/path --json`
 before requesting the handoff. An `evidence-exhausted` record must cite every
 terminal event hash for all required plan-bound agent routes and must bind each
 remaining purchase, subscription, authorization, or external request to a

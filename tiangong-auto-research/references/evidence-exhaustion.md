@@ -12,6 +12,15 @@ lawful routes. An agent route selects one auditable mechanism: a locked broker
 capability, a named native activity channel, an OA download backend, or an
 authorized browser backend. A non-agent route identifies licensed material,
 owner-provided material, an external data request, or field collection.
+Every declared agent route that maps a required evidence role must itself be
+required. Every `requiredCapabilityId` must map to a required broker route whose
+capability exists in the current verified lock; preflight rejects optional,
+unmapped, or unavailable routes.
+
+Bind every broker request with the exact design route in
+`acquisition_route_id`. Bind native activity and download events with the exact
+route in `acquisitionRouteId`. A missing, mismatched, or after-the-fact route ID
+is rejected and cannot prove exhaustion.
 
 Do not add a route after results are known merely to justify stopping. A
 material route change requires a new authoritative scientific-design
@@ -27,13 +36,26 @@ trigger automatic bypass.
 An `evidence-exhausted` handoff is valid only when all required,
 agent-executable routes mapped to every cited missing required evidence role
 have a verified terminal event hash. A completed search with insufficient
-admissible evidence or a deterministic access block may be terminal. A timeout,
-429, retryable server failure, cancelled download, or an unrecorded assertion is
+admissible evidence, an explicit broker authentication/entitlement block, or a
+validated deterministic no-OA/unavailable download result may be terminal. A
+malformed request, configuration mismatch, HTTP 422, timeout, 429, 5xx,
+cancelled download, blocked interactive challenge, or unrecorded assertion is
 not exhaustion.
 
-Inspect the CLI evidence access status before requesting this handoff. If it
-lists an untried required agent route, continue that route or revise the
-reviewed design; do not continue substitute searching outside the plan.
+Inspect the exact status before requesting this handoff:
+
+```bash
+node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
+  research project access status PROJECT \
+  --workspace /absolute/path/to/workspace --json
+```
+
+Use only the returned route IDs, terminal event hashes, classifications, and
+recommended action. If it lists an untried required agent route, continue that
+route or revise the reviewed design; do not continue substitute searching
+outside the plan. When all agent routes are terminal, first assess the required
+evidence-role coverage. Follow `ifEvidenceStillInsufficient` only when a cited
+required role genuinely remains below its reviewed floor.
 
 ## Make every access request actionable
 
@@ -63,6 +85,12 @@ authorization, VPN, or owner-supplied material. Use
 `external-response-required` when a government, institution, data owner, or
 collaborator must respond. Once either state is durable, stop model work and do
 not continue substitute searching.
+
+If every required agent route is proven terminal and no lawful user or
+external-party route remains, request the reviewed scope-pivot disposition with
+empty remaining routes and access requests. The user must narrow or abandon
+the unsupported scope or claim; absence of obtainable evidence is never a
+positive result.
 
 Resolve only after the requested condition is true. Resolution reopens the
 same reviewed route; it does not mark the missing evidence role satisfied.
