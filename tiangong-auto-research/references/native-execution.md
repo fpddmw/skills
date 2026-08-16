@@ -147,13 +147,16 @@ It does not silently retry research or invoke another model.
 
 Login, MFA, CAPTCHA, Turnstile, paywall, security-warning, or authorization
 activity cannot be submitted as ordinary completion. Record it as `blocked`
-through `recordActivity`, create a `user-action-required` record with the
-packet's `requestHandoff` argv, and stop. When the missing material requires an
-institution or another third party to respond, request
-`external-response-required` instead of searching indefinite substitutes. Both
-states are durable and do not burn the prepared attempt. Resume only after an
-operator explicitly runs `research project handoff resolve` with a non-secret
-resolution note.
+through `recordActivity`, create an `interactive-challenge`
+`user-action-required` record with the packet's `requestHandoff` argv, and stop.
+This immediate safety pause is not an evidence-exhausted claim. When all
+plan-bound lawful routes have terminal evidence but a required role still needs
+licensed or owner material, follow
+[evidence-exhaustion.md](evidence-exhaustion.md) and request an
+`evidence-exhausted` handoff. Use `external-response-required` when an
+institution or another third party must respond. Both states are durable and do
+not burn the prepared attempt. Resume only after an operator explicitly runs
+`research project handoff resolve` with a non-secret resolution note.
 
 ## Continue, review, or abort
 

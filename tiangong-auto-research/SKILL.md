@@ -48,6 +48,9 @@ detailed stop and recovery rules.
   before production preflight, execution, recovery, or closure.
 - Read [references/evidence-pipeline.md](references/evidence-pipeline.md) before
   discovery, acquisition, evidence refresh, or an addendum.
+- Read [references/evidence-exhaustion.md](references/evidence-exhaustion.md)
+  before declaring a material evidence gap exhausted, requesting paid or
+  authorized access, waiting for an external response, or narrowing scope.
 - Read [references/native-execution.md](references/native-execution.md) before
   preparing or submitting discover, acquire, analyze, or synthesize stages.
 - Read [references/publication-policy.md](references/publication-policy.md)
@@ -144,6 +147,9 @@ cross-model comparison, scenario, and accounting roles; freeze units,
 denominators, independent clusters, thresholds, baselines, evidence roles,
 closest-work requirements, known gaps, and handoff conditions. Pass the same
 exact file to preflight and init with the native producer's opaque session ID.
+The design must map every required evidence role to its lawful acquisition
+routes. All plan-bound lawful agent routes must have immutable terminal events
+before an evidence-exhausted handoff is valid.
 Follow [references/scientific-design.md](references/scientific-design.md); never
 let the CLI invent a study design or describe resampling as new independent data.
 

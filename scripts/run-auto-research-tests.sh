@@ -16,6 +16,7 @@ sh scripts/test-clean-container-entrypoint.sh
 node tiangong-auto-research/scripts/test-research-cli.mjs
 node tiangong-auto-research/scripts/test-routing-contract.mjs
 node tiangong-auto-research/scripts/test-research-policy-pack.mjs
+node tiangong-auto-research/scripts/test-evidence-exhaustion-contract.mjs
 sh tiangong-auto-research/scripts/test-agent-wrapper-posix.sh
 bash tiangong-kb-sci-search/scripts/test-sci-search.sh
 bash tiangong-kb-report-search/scripts/test-report-search.sh
