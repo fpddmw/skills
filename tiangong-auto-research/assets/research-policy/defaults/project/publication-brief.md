@@ -62,7 +62,9 @@ pilot. Synthetic schema examples are not feasibility evidence.
 ## Novelty and recall plan
 
 Define databases, query families, closest known work, citation searches,
-counterevidence, and the stopping or saturation rule.
+counterevidence, lawful acquisition routes, and the stopping or saturation
+rule. Map all agent-executable routes to immutable attempt evidence before an
+evidence-exhausted disposition.
 
 Assign every central claim an evidence role, minimum independent sources, and
 minimum full texts. State how closest work is obtained and dispositioned before
@@ -76,4 +78,6 @@ and journal-specific submission materials.
 ## Stop, handoff, and pivot conditions
 
 Define conditions for additional autonomous work, user authorization, external
-response, research redesign, article-type change, or journal change.
+response, research redesign, article-type change, or journal change. State the
+required evidence role, alternatives tried, and exact resume criteria for every
+purchase, subscription, authorization, or external response.

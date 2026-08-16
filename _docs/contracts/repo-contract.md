@@ -17,8 +17,8 @@ checkPaths:
   - Dockerfile.clean-test
   - scripts/**
   - "*/SKILL.md"
-lastReviewedAt: 2026-08-15
-lastReviewedCommit: 3d5d85f41bac03b7b31208e89d6c5e56da320baf
+lastReviewedAt: 2026-08-16
+lastReviewedCommit: cc090cd161bff05cd41e15b74b7ef281165ae6d3
 ---
 
 # Skills Repository Contract
