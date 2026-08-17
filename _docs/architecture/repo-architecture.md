@@ -13,8 +13,8 @@ checkPaths:
   - README.zh-CN.md
   - .claude-plugin/**
   - "*/SKILL.md"
-lastReviewedAt: 2026-08-16
-lastReviewedCommit: cc090cd161bff05cd41e15b74b7ef281165ae6d3
+lastReviewedAt: 2026-08-17
+lastReviewedCommit: c26f4b17d8e50cd04267a1d86ff9d3ad9a07039a
 ---
 
 # Skills Repository Architecture
@@ -44,6 +44,13 @@ Skills are consumed by external agent runtimes through the `skills` CLI or by
 copy/symlink installation. Some skills require environment variables for
 external APIs; those requirements belong in the relevant skill docs and the
 repository README when broadly useful.
+
+`tiangong-auto-research` documents both the interactive setup Wizard and the
+CLI-owned declarative path. Its references explain fixed workspace-local YAML
+discovery, owner-only env input, no interactive fallback after a declaration
+error, and complete-readiness gating. The Skill does not duplicate the closed
+YAML schema or parse configuration; the CLI-generated template and validator
+remain authoritative.
 
 `tiangong-auto-research/assets/research-policy/defaults/**` is the versioned,
 generic source pack for top-journal Policy initialization. It is immutable

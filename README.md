@@ -13,8 +13,8 @@ checkPaths:
   - README.zh-CN.md
   - .claude-plugin/**
   - "*/SKILL.md"
-lastReviewedAt: 2026-08-16
-lastReviewedCommit: cc090cd161bff05cd41e15b74b7ef281165ae6d3
+lastReviewedAt: 2026-08-17
+lastReviewedCommit: c26f4b17d8e50cd04267a1d86ff9d3ad9a07039a
 ---
 
 # Tiangong AI Skills
@@ -108,6 +108,20 @@ npx --yes --package "@tiangong-ai/cli@$REVIEWED_BOOTSTRAP_CLI_VERSION" -- \
   tiangong-ai research setup \
   --workspace /absolute/path/to/workspace
 ```
+
+For repeatable non-interactive provisioning, run `research setup init` first.
+It creates a no-overwrite `.tiangong-research/setup.yaml` template plus
+`setup.env.example`. After the user reviews the current catalog, licenses,
+models, pricing, checks, and confirmations, bare `research setup` detects only
+that workspace-local YAML and bypasses the Wizard. The optional real
+`setup.env` must be owner-only and contains only values for variable names
+referenced by the YAML. Invalid declarations fail closed; they never trigger an
+interactive fallback or parent-directory search. Setup returns success only
+after every selected dependency, provider live check, Policy compatibility
+check, and independent reviewer smoke reaches complete readiness. Use explicit
+`research setup wizard` to choose the interactive path. See
+`tiangong-auto-research/references/setup.md` and
+`tiangong-auto-research/references/env.md`.
 
 The bootstrap version is an explicit new-workspace choice, never `latest`, a
 tag, or a range. After apply creates `runtime-lock.json`, the installed

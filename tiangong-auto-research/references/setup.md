@@ -26,7 +26,72 @@ confirmation and exact targets are frozen into the plan. Setup never installs
 system packages or Python packages, never runs `pip install`, never follows a
 Skill destination symlink, and never performs a floating update.
 
-## Clean-directory Wizard
+## Declarative clean-directory setup
+
+Use the declarative path for reviewed, repeatable provisioning without a TTY.
+The workspace may still be any user-selected absolute directory; the CLI never
+derives a product default from a sample or repository path.
+
+Generate no-overwrite examples with the exact reviewed bootstrap CLI:
+
+```bash
+npx --yes --package "@tiangong-ai/cli@$REVIEWED_BOOTSTRAP_CLI_VERSION" -- \
+  tiangong-ai research setup init \
+  --workspace /absolute/path/to/research-workspace --json
+```
+
+This creates `.tiangong-research/setup.yaml`,
+`.tiangong-research/setup.env.example`, and a control-directory `.gitignore`
+that excludes `setup.env`. The YAML contains only non-secret selections,
+settings, environment variable names, agent routes, checks, and confirmations.
+The generated template deliberately does not accept licenses, network writes,
+global mutation, or paid smoke cost for the user. Review the current catalog,
+complete those fields explicitly, and treat the generated CLI template—not
+this reference—as the authoritative closed schema.
+
+When file-based credentials are useful, copy the env example locally, fill only
+the variable names referenced by `credentialEnvironment`, and make it
+owner-only:
+
+```bash
+cp .tiangong-research/setup.env.example .tiangong-research/setup.env
+chmod 600 .tiangong-research/setup.env
+```
+
+Then run ordinary setup. Bare setup detects only the fixed workspace-local
+`.tiangong-research/setup.yaml`; it never scans a parent directory. Absolute
+`--config` and `--env-file` are explicit alternatives. If a declaration exists,
+the command is non-interactive and does not fall back to the Wizard after a
+YAML, schema, permission, credential, install, provider, reviewer, or readiness
+failure. Use `research setup wizard` only when the user explicitly chooses the
+interactive path.
+
+```bash
+npx --yes --package "@tiangong-ai/cli@$REVIEWED_BOOTSTRAP_CLI_VERSION" -- \
+  tiangong-ai research setup \
+  --workspace /absolute/path/to/research-workspace --json
+```
+
+Declarative setup requires live provider checks and the independent reviewer
+CLI agent smoke with explicit cost authorization. It runs them through the
+same apply/doctor pipeline as the Wizard and succeeds only when
+`overallReadiness=READY`. Missing dependencies, skipped checks, provider
+failure, reviewer failure, and warnings from any selected component remain a
+non-zero incomplete result. The current native producer is never launched as a
+child process.
+
+The CLI binds the semantic YAML hash to the immutable plan. An unchanged file
+reuses the same plan and reruns verification. A changed declaration stops; only
+after reviewing the complete change may the owner set
+`replaceExistingPlan: true`. The CLI then archives the prior immutable plan and
+declaration binding before creating the replacement. Never edit a plan or
+binding file directly.
+
+Read [env.md](env.md) before creating `setup.env`. Secret values are imported
+into the existing owner-only stores before downloads and are excluded from the
+YAML, plan, binding, stdout, stderr, report, and journal.
+
+## Interactive clean-directory Wizard
 
 The workspace may be any ordinary user-selected directory. Example paths below
 are placeholders, not defaults or repository requirements.
@@ -47,7 +112,7 @@ REVIEWED_BOOTSTRAP_CLI_VERSION=X.Y.Z
 npx --yes --package "@tiangong-ai/cli@$REVIEWED_BOOTSTRAP_CLI_VERSION" -- \
   tiangong-ai --version
 npx --yes --package "@tiangong-ai/cli@$REVIEWED_BOOTSTRAP_CLI_VERSION" -- \
-  tiangong-ai research setup \
+  tiangong-ai research setup wizard \
   --workspace /absolute/path/to/research-workspace
 ```
 
@@ -196,7 +261,9 @@ requires `--agent-smoke --confirm-agent-smoke-cost`. Doctor does not launch the
 native producer. It probes a required capability only once and skips the paid
 reviewer smoke when an earlier blocking prerequisite fails.
 
-Read `researchReadiness` for admission. `preprocessingReadiness`,
+Setup commands return success only when `overallReadiness` is `READY`; this is
+the complete selected-configuration result. Read `researchReadiness` for later
+research-core admission. `preprocessingReadiness`,
 `acquisitionReadiness`, and `authoringReadiness` describe optional domains;
 `overallReadiness` may be `PARTIALLY_READY` while unrelated research remains
 ready. An optional component becomes blocking only when the current project or

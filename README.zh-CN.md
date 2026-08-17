@@ -13,8 +13,8 @@ checkPaths:
   - README.md
   - .claude-plugin/**
   - "*/SKILL.md"
-lastReviewedAt: 2026-08-16
-lastReviewedCommit: cc090cd161bff05cd41e15b74b7ef281165ae6d3
+lastReviewedAt: 2026-08-17
+lastReviewedCommit: c26f4b17d8e50cd04267a1d86ff9d3ad9a07039a
 ---
 
 # 天工 AI Skills
@@ -105,6 +105,17 @@ npx --yes --package "@tiangong-ai/cli@$REVIEWED_BOOTSTRAP_CLI_VERSION" -- \
   tiangong-ai research setup \
   --workspace /absolute/path/to/workspace
 ```
+
+需要可重复、非交互式配置时，先运行 `research setup init`。它会以不覆盖已有
+文件的方式创建 `.tiangong-research/setup.yaml` 模板和
+`setup.env.example`。用户审阅当前 catalog、许可证、模型、价格、检查和确认项后，
+普通 `research setup` 只检测该 workspace 内的固定 YAML，并跳过 Wizard。可选的
+真实 `setup.env` 必须仅 owner 可读写，其中只能放 YAML 所引用变量名对应的值。
+无效声明会直接失败，不会回退到交互流程，也不会向父目录搜索。只有所有已选依赖、
+provider live check、Policy 兼容性检查和独立 reviewer smoke 都完全就绪，setup
+才返回成功。需要明确选择交互流程时使用 `research setup wizard`。详见
+`tiangong-auto-research/references/setup.md` 和
+`tiangong-auto-research/references/env.md`。
 
 bootstrap 版本是新 workspace 的显式选择，不得使用 `latest`、tag 或 range。
 apply 创建 `runtime-lock.json` 后，已安装 orchestrator 的内置 resolver 会让
