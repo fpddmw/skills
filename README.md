@@ -110,12 +110,16 @@ npx --yes --package "@tiangong-ai/cli@$REVIEWED_BOOTSTRAP_CLI_VERSION" -- \
 ```
 
 For repeatable non-interactive provisioning, run `research setup init` first.
-It creates a no-overwrite `.tiangong-research/setup.yaml` template plus
-`setup.env.example`. After the user reviews the current catalog, licenses,
-models, pricing, checks, and confirmations, bare `research setup` detects only
-that workspace-local YAML and bypasses the Wizard. The optional real
-`setup.env` must be owner-only and contains only values for variable names
-referenced by the YAML. Invalid declarations fail closed; they never trigger an
+It creates a no-overwrite schema-v2 `.tiangong-research/setup.yaml` template
+plus `setup.env.example`. The YAML explicitly lists every current catalog Skill,
+credential, and setting, including disabled optional entries; the env example
+lists every credential variable with an empty placeholder. After the user
+reviews the current catalog, enabled states, licenses, models, pricing, checks,
+and confirmations, bare `research setup` detects only that workspace-local YAML
+and bypasses the Wizard. The optional real `setup.env` must be owner-only;
+disabled credentials stay empty and a non-empty disabled value is rejected.
+The removed v1 declaration and all invalid or incomplete declarations fail
+closed; they never trigger an
 interactive fallback or parent-directory search. Setup returns success only
 after every selected dependency, provider live check, Policy compatibility
 check, and independent reviewer smoke reaches complete readiness. Use explicit

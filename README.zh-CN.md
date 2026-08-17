@@ -107,13 +107,15 @@ npx --yes --package "@tiangong-ai/cli@$REVIEWED_BOOTSTRAP_CLI_VERSION" -- \
 ```
 
 需要可重复、非交互式配置时，先运行 `research setup init`。它会以不覆盖已有
-文件的方式创建 `.tiangong-research/setup.yaml` 模板和
-`setup.env.example`。用户审阅当前 catalog、许可证、模型、价格、检查和确认项后，
-普通 `research setup` 只检测该 workspace 内的固定 YAML，并跳过 Wizard。可选的
-真实 `setup.env` 必须仅 owner 可读写，其中只能放 YAML 所引用变量名对应的值。
-无效声明会直接失败，不会回退到交互流程，也不会向父目录搜索。只有所有已选依赖、
-provider live check、Policy 兼容性检查和独立 reviewer smoke 都完全就绪，setup
-才返回成功。需要明确选择交互流程时使用 `research setup wizard`。详见
+文件的方式创建 schema v2 `.tiangong-research/setup.yaml` 模板和
+`setup.env.example`。YAML 会显式列出当前 catalog 中的全部 Skill、凭据和设置，
+包括处于关闭状态的可选项；env example 同样列出全部凭据变量及空占位。用户审阅
+启用状态、许可证、模型、价格、检查和确认项后，普通 `research setup` 只检测该
+workspace 内的固定 YAML，并跳过 Wizard。可选的真实 `setup.env` 必须仅 owner
+可读写；禁用凭据必须保持空值，非空的禁用凭据会直接报错。旧 v1、无效或不完整声明会失败，
+不会回退到交互流程，也不会向父目录搜索。只有所有已选依赖、provider live check、
+Policy 兼容性检查和独立 reviewer smoke 都完全就绪，setup 才返回成功。需要明确
+选择交互流程时使用 `research setup wizard`。详见
 `tiangong-auto-research/references/setup.md` 和
 `tiangong-auto-research/references/env.md`。
 

@@ -18,7 +18,7 @@ checkPaths:
   - .claude-plugin/**
   - "*/SKILL.md"
 lastReviewedAt: 2026-08-17
-lastReviewedCommit: c26f4b17d8e50cd04267a1d86ff9d3ad9a07039a
+lastReviewedCommit: 29598568e966c4d6ae019d1c7bd6946d3390b277
 ---
 
 # Skills Development Runbook

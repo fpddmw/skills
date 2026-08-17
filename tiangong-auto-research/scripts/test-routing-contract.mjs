@@ -48,7 +48,12 @@ for (const marker of [
 
 for (const marker of [
   "## Declarative clean-directory setup",
+  "schemaVersion: 2",
   ".tiangong-research/setup.env.example",
+  "selection.skills",
+  "all current catalog Skills",
+  "requirement",
+  "enabled: false",
   "replaceExistingPlan: true",
   "does not fall back to the Wizard",
   "overallReadiness=READY",
@@ -60,6 +65,8 @@ for (const marker of [
   ".tiangong-research/setup.env",
   "chmod 600",
   "literal `NAME=value`",
+  "all catalog credentials",
+  "disabled credential",
   "must not differ",
   "owner-only logical stores",
 ]) {
