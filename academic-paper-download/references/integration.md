@@ -1,5 +1,8 @@
 # Library Integration
 
+Install the compatible dependency range declared by `pyproject.toml` in the
+host application's own environment. The CLI/test `requirements.lock` is exact
+for reproducibility, but embedding supports the tested `pypdf>=6.14,<7` range.
 Add `scripts/` to the Python import path, then use the stable library entry:
 
 ```python

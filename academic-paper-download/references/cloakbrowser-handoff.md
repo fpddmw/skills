@@ -19,8 +19,15 @@ warnings.
 Install optional dependencies in an isolated Python 3.10+ environment:
 
 ```bash
-python3 -m pip install -r requirements.txt -r requirements-cloakbrowser.txt
+CLOAK_VENV='/absolute/path/to/isolated-cloakbrowser-venv'
+python3 -m venv "$CLOAK_VENV"
+CLOAK_PYTHON="$CLOAK_VENV/bin/python"
+"$CLOAK_PYTHON" -m pip install \
+  -r "$SKILL_DIR/requirements.lock" \
+  -r "$SKILL_DIR/requirements-cloakbrowser.txt"
 ```
+
+On Windows, set `CLOAK_PYTHON` to the environment's `Scripts/python.exe`.
 
 The lock uses `cloakbrowser==0.4.12`. The executor pins the official free
 browser binary per platform:
@@ -37,11 +44,11 @@ allowed inside the handoff:
 ```bash
 CLOAKBROWSER_AUTO_UPDATE=false \
 CLOAKBROWSER_VERSION=145.0.7632.109.2 \
-python -m cloakbrowser install
+"$CLOAK_PYTHON" -m cloakbrowser install
 
 CLOAKBROWSER_AUTO_UPDATE=false \
 CLOAKBROWSER_VERSION=145.0.7632.109.2 \
-python -m cloakbrowser info --json
+"$CLOAK_PYTHON" -m cloakbrowser info --json
 ```
 
 Use the table's version for the host platform. The official installer verifies
@@ -76,7 +83,7 @@ yourself in that dedicated profile.
 Prefer an accessibility role and exact visible name for the download control:
 
 ```bash
-python3 scripts/cloakbrowser_handoff.py \
+"$CLOAK_PYTHON" "$SKILL_DIR/scripts/cloakbrowser_handoff.py" \
   --browser-backend cloakbrowser \
   --profile-dir /absolute/path/to/dedicated-paper-profile \
   --url 'https://publisher.example/article' \
@@ -130,7 +137,7 @@ Configuration errors are structured and actionable:
   installation occurs.
 - `cloakbrowser_binary_missing`: run the returned exact pinned install command.
 - `cloakbrowser_binary_incompatible`: inspect the pinned binary with
-  `python -m cloakbrowser info --json`.
+  `"$CLOAK_PYTHON" -m cloakbrowser info --json`.
 - `cloakbrowser_macos_launch_blocked`: review the pinned app with normal macOS
   security controls.
 - `human_action_required`: complete or assess the displayed challenge; no

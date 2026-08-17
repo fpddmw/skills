@@ -51,7 +51,7 @@ def validate_pdf(path: Path, max_bytes: int = DEFAULT_MAX_BYTES) -> tuple[int, s
     except ImportError as exc:
         raise PaperFetchError(
             "pdf_validator_unavailable",
-            "PDF structural validation requires pypdf; install academic-paper-download/requirements.txt",
+            "PDF structural validation requires pypdf; run runtime.py bootstrap --locked or satisfy pyproject.toml when embedding",
             retryable=False,
             path=str(path),
         ) from exc
