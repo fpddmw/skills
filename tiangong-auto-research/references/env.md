@@ -32,6 +32,33 @@ must contain exactly one line per logical ID listed with
 `--credential-stdin <id[,id...]>`. Neither path writes a value to the command
 line, setup plan, stdout, stderr, journal, report, or shell history.
 
+### Declarative credential input
+
+`research setup init` creates
+`.tiangong-research/setup.env.example` beside the non-secret
+`.tiangong-research/setup.yaml`. If file-based input is needed, copy it to the
+fixed `.tiangong-research/setup.env` path and restrict it before setup:
+
+```bash
+cp .tiangong-research/setup.env.example .tiangong-research/setup.env
+chmod 600 .tiangong-research/setup.env
+```
+
+The real file must be regular, non-symlink, no larger than 64 KiB, and
+owner-only on POSIX. It accepts one literal `NAME=value` line per variable
+referenced by `credentialEnvironment` in `setup.yaml`. It does not execute
+`export`, interpolation, command substitution, or other shell syntax. Extra and
+duplicate names are rejected. If the same name also exists in the owner shell,
+the two values must not differ; the CLI never chooses one silently.
+
+The control-directory `.gitignore` excludes `setup.env`. Values are held only
+in memory during declarative apply, sanitized as configured secrets, and then
+written to the same owner-only logical stores used by interactive setup. They
+never enter YAML, immutable plans, declaration bindings, output, reports, or
+journals. After setup reaches full readiness, the source env file is no longer
+required because subsequent checks can use the owner-only logical stores; the
+owner may securely remove it unless repeatable provisioning still needs it.
+
 Environment-variable mode remains available for developers and CI. Recommended
 default names are:
 

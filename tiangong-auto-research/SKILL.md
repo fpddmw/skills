@@ -22,6 +22,15 @@ reviewed exact bootstrap CLI version. Never substitute `latest`, a range, a
 tag, a path, or a command fragment. After setup creates the runtime lock, use
 the resolver above.
 
+If that clean directory contains the fixed workspace-local
+`.tiangong-research/setup.yaml`, bare `research setup` must use its declarative
+path without a TTY. It never scans parent directories and must not fall back to
+the Wizard after a declaration error. Use `research setup init` to generate the
+no-overwrite YAML and env examples, or explicit `research setup wizard` when the
+user chooses the interactive path. Follow [references/setup.md](references/setup.md)
+and [references/env.md](references/env.md); the generated CLI template is the
+only authoritative declaration schema.
+
 The CLI is the deterministic control plane: it owns setup, locks, brokered
 evidence, schemas, coverage, budgets, admission, the independent review process,
 the journal, and closure. The current interactive Codex or Claude Code session
@@ -97,6 +106,13 @@ node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
   research setup \
   --workspace /absolute/path/to/workspace --json
 ```
+
+When the user asks for repeatable non-interactive configuration, first create
+the safe template with `research setup init --workspace
+/absolute/path/to/workspace --json`, then let the user review and complete it.
+Never pre-accept licenses, downloads, global writes, quota, or agent-smoke cost.
+Setup is complete only when the resulting `overallReadiness` is `READY`; a
+planned, skipped-check, partially ready, or blocked result is not success.
 
 The user must explicitly confirm the recommended project-local
 `tiangong-auto-research` orchestrator and every external source, then accept its

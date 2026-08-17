@@ -24,6 +24,48 @@ const descriptions = Object.fromEntries(
   await Promise.all(skillNames.map(async (name) => [name, await description(name)])),
 );
 
+const autoResearchSkill = await readFile(
+  join(skillsRoot, "tiangong-auto-research", "SKILL.md"),
+  "utf8",
+);
+const setupReference = await readFile(
+  join(skillsRoot, "tiangong-auto-research", "references", "setup.md"),
+  "utf8",
+);
+const environmentReference = await readFile(
+  join(skillsRoot, "tiangong-auto-research", "references", "env.md"),
+  "utf8",
+);
+
+for (const marker of [
+  ".tiangong-research/setup.yaml",
+  "research setup init",
+  "never scans parent directories",
+  "overallReadiness",
+]) {
+  assert.ok(autoResearchSkill.includes(marker), `Auto Research entry must explain ${marker}`);
+}
+
+for (const marker of [
+  "## Declarative clean-directory setup",
+  ".tiangong-research/setup.env.example",
+  "replaceExistingPlan: true",
+  "does not fall back to the Wizard",
+  "overallReadiness=READY",
+]) {
+  assert.ok(setupReference.includes(marker), `Setup reference must explain ${marker}`);
+}
+
+for (const marker of [
+  ".tiangong-research/setup.env",
+  "chmod 600",
+  "literal `NAME=value`",
+  "must not differ",
+  "owner-only logical stores",
+]) {
+  assert.ok(environmentReference.includes(marker), `Environment reference must explain ${marker}`);
+}
+
 for (const marker of [
   "open-ended",
   "multi-source",
