@@ -88,6 +88,9 @@ npm i skills -g
 
 Environment requirements live with each skill. Before using a skill that calls
 an external service, read that skill's `references/env.md` when present.
+`npx skills add` installs or links skill files; it does not provision language
+runtimes or execute post-install hooks. When a skill provides a locked runtime
+bootstrap and smoke command, run those explicit steps from its own instructions.
 
 ## Auto Research External Skill Setup
 

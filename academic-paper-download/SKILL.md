@@ -33,34 +33,50 @@ Unpaywall, Semantic Scholar OA, arXiv, then browser handoff.
 
 ## CLI
 
-Install the pinned dependency before use; scripts never install packages:
+Resolve the installed skill directory to an absolute path. Use the path exposed
+by the skill loader or `npx skills list --json`; do not assume the current
+working directory is the skill directory:
 
 ```bash
-python3 -m pip install -r requirements.txt
+SKILL_DIR='/absolute/path/to/academic-paper-download'
 ```
 
-Install `requirements-cloakbrowser.txt` only in an isolated environment when
-that optional backend is explicitly selected. Its browser binary is a separate,
-preflight-verified installation; the handoff script never downloads it.
+After installation, explicitly create the hash-locked CLI runtime and prove it
+with the network-free smoke test. `bootstrap` is the only core command that
+installs packages; normal commands never install or update dependencies:
+
+```bash
+python3 "$SKILL_DIR/scripts/runtime.py" bootstrap --locked --json
+python3 "$SKILL_DIR/scripts/runtime.py" smoke --offline --json
+```
+
+The runtime lives outside the installed skill directory and works for copy,
+symlink, and read-only installations. Install `requirements-cloakbrowser.txt`
+only in a separate isolated environment when that optional backend is
+explicitly selected. Its browser binary is a separate, preflight-verified
+installation; the handoff script never downloads it.
 
 Fetch by DOI:
 
 ```bash
-python3 scripts/fetch.py '10.48550/arXiv.1706.03762' \
+python3 "$SKILL_DIR/scripts/runtime.py" fetch \
+  '10.48550/arXiv.1706.03762' \
   --out ./papers --format json --pretty
 ```
 
 Fetch by exact title:
 
 ```bash
-python3 scripts/fetch.py \
+python3 "$SKILL_DIR/scripts/runtime.py" fetch \
   --title 'A precise paper title' \
   --author 'First Author' --year 2024 \
   --out ./papers --format json --pretty
 ```
 
-Use `schema` to inspect the unchanged machine contract version. A verified
-existing artifact may return `skipped: true`.
+Use `fetch schema` to inspect the unchanged machine contract version. A
+verified existing artifact may return `skipped: true`. Read
+[references/env.md](references/env.md) when embedding the library or diagnosing
+Python/runtime compatibility.
 
 ## Result Rules
 

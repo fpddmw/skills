@@ -87,6 +87,9 @@ npm i skills -g
 
 环境变量要求由各 skill 自己维护。使用会调用外部服务的 skill 前，优先阅读该
 skill 的 `references/env.md`（如存在）。
+`npx skills add` 只安装或链接 Skill 文件，不会配置语言运行时或执行安装后 hook。
+如果 Skill 提供锁定运行时的 bootstrap 与 smoke 命令，应按该 Skill 的说明显式
+执行这些步骤。
 
 ## Auto Research 外部 Skill 配置
 

@@ -1,5 +1,5 @@
 # Optional browser-handoff environment. Generated for Python >=3.10 as a
-# universal lock; installing the ordinary requirements.txt never installs it.
+# universal optional lock; installing the core requirements.lock never installs it.
 anyio==4.14.2
 certifi==2026.7.22
 cffi==2.1.0 ; platform_python_implementation != 'PyPy'

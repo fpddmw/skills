@@ -36,7 +36,7 @@ select its newest PDF. Stop if neither exact binding is possible.
 1. Plan a staging filename in the browser Downloads directory:
 
 ```bash
-python3 scripts/finalize_browser_download.py plan-save \
+python3 "$SKILL_DIR/scripts/runtime.py" browser-finalize plan-save \
   --downloads-dir "$HOME/Downloads" \
   --author 'First Author' --year '2024' \
   --title 'Concise paper title' --doi '10.1038/example'
@@ -45,7 +45,7 @@ python3 scripts/finalize_browser_download.py plan-save \
 2. Snapshot that exact path before starting the browser download:
 
 ```bash
-python3 scripts/finalize_browser_download.py snapshot \
+python3 "$SKILL_DIR/scripts/runtime.py" browser-finalize snapshot \
   --downloads-dir "$HOME/Downloads" \
   --expected-filename 'FirstAuthor_2024_Concise_paper_title.pdf' \
   --output /tmp/academic-paper-download.snapshot.json
@@ -56,7 +56,7 @@ python3 scripts/finalize_browser_download.py snapshot \
 4. Finalize only the snapshot-bound file into an explicit final directory:
 
 ```bash
-python3 scripts/finalize_browser_download.py finalize \
+python3 "$SKILL_DIR/scripts/runtime.py" browser-finalize finalize \
   --snapshot /tmp/academic-paper-download.snapshot.json \
   --expected-filename 'FirstAuthor_2024_Concise_paper_title.pdf' \
   --filename 'FirstAuthor_2024_Concise_paper_title.pdf' \
@@ -83,7 +83,7 @@ When login, SSO, CAPTCHA, VPN, browser setup, or a security decision requires
 the user, stop retries. On macOS first attempt:
 
 ```bash
-python3 scripts/notify_human.py \
+python3 "$SKILL_DIR/scripts/runtime.py" notify-human \
   --title 'Paper download needs your action' \
   --message 'Complete the publisher login, then return to this chat.' \
   --button 'OK'
