@@ -47,10 +47,11 @@ repository README when broadly useful.
 
 `tiangong-auto-research` documents both the interactive setup Wizard and the
 CLI-owned declarative path. Its references explain fixed workspace-local YAML
-discovery, owner-only env input, no interactive fallback after a declaration
-error, and complete-readiness gating. The Skill does not duplicate the closed
-YAML schema or parse configuration; the CLI-generated template and validator
-remain authoritative.
+discovery, complete explicit materialization of every current catalog Skill,
+credential, and setting, owner-only env input with empty disabled options, no
+interactive fallback after a declaration error, and complete-readiness gating.
+The Skill does not duplicate the closed YAML schema or parse configuration; the
+CLI-generated template and validator remain authoritative.
 
 `tiangong-auto-research/assets/research-policy/defaults/**` is the versioned,
 generic source pack for top-journal Policy initialization. It is immutable

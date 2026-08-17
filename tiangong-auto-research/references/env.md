@@ -45,11 +45,24 @@ chmod 600 .tiangong-research/setup.env
 ```
 
 The real file must be regular, non-symlink, no larger than 64 KiB, and
-owner-only on POSIX. It accepts one literal `NAME=value` line per variable
-referenced by `credentialEnvironment` in `setup.yaml`. It does not execute
-`export`, interpolation, command substitution, or other shell syntax. Extra and
-duplicate names are rejected. If the same name also exists in the owner shell,
-the two values must not differ; the CLI never chooses one silently.
+owner-only on POSIX. It exposes all catalog credentials with one literal `NAME=value`
+line per variable declared under `credentials` in `setup.yaml`.
+Leave every disabled credential empty. A non-empty disabled credential is
+rejected rather than selected implicitly; enable it explicitly in YAML or
+remove the value. The parser does not execute `export`, interpolation, command
+substitution, or other shell syntax. Extra and duplicate names are rejected. If
+the same name also exists in the owner shell, the two values must not differ;
+the CLI never chooses one silently.
+
+The YAML is the choice authority. `requirement` is derived from the catalog and
+the current Skill selection, `appliesTo` is catalog metadata, and `enabled`
+records the owner decision. A required credential must be enabled whenever its
+applicable required Skill is enabled; the same credential is conditional while
+none of those Skills is selected. An optional credential may remain
+`enabled: false` even when its
+Skill is selected; changing it to true makes that credential explicitly
+selected and therefore required from `setup.env`, the same named owner
+environment variable, or an already persisted logical store.
 
 The control-directory `.gitignore` excludes `setup.env`. Values are held only
 in memory during declarative apply, sanitized as configured secrets, and then
@@ -66,11 +79,14 @@ default names are:
 | --- | --- | --- |
 | `BRAVE_API_KEY` | `brave.search.api-key` | Required for a selected Brave public-internet profile. |
 | `TIANGONG_SCI_APIKEY` | `tiangong.sci.api-key` | Required only when the owner-authorized Tiangong SCI capability is selected. |
+| `TIANGONG_REPORT_APIKEY` | `tiangong.report.api-key` | Required only when the owner-authorized Tiangong report capability is selected. |
+| `TIANGONG_PATENT_APIKEY` | `tiangong.patent.api-key` | Required only when the owner-authorized Tiangong patent capability is selected. |
 | `UNSTRUCTURED_AUTH_TOKEN` | `tiangong.unstructure.auth-token` | Required only when document preprocessing is selected. |
 | `SEMANTIC_SCHOLAR_API_KEY` | `semantic-scholar.api-key` | Optional for academic paper acquisition. |
 
-The variable name can differ, but it must be explicitly bound in the immutable
-plan. Values must be non-trivial. After a successful apply, later
+The variable name can differ, but it must appear in the explicit credential
+entry and is then bound in the immutable plan only when that entry is enabled.
+Enabled values must be non-trivial. After a successful apply, later
 status/doctor/run commands use the owner-only logical stores and do not require
 those source shell variables to remain exported. Do not put values in setup
 JSON files, CLI arguments, shell history, Skill files, capability declarations,

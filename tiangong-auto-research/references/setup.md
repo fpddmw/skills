@@ -40,18 +40,33 @@ npx --yes --package "@tiangong-ai/cli@$REVIEWED_BOOTSTRAP_CLI_VERSION" -- \
   --workspace /absolute/path/to/research-workspace --json
 ```
 
-This creates `.tiangong-research/setup.yaml`,
+This creates a closed `schemaVersion: 2` `.tiangong-research/setup.yaml`,
 `.tiangong-research/setup.env.example`, and a control-directory `.gitignore`
-that excludes `setup.env`. The YAML contains only non-secret selections,
-settings, environment variable names, agent routes, checks, and confirmations.
-The generated template deliberately does not accept licenses, network writes,
-global mutation, or paid smoke cost for the user. Review the current catalog,
-complete those fields explicitly, and treat the generated CLI template—not
-this reference—as the authoritative closed schema.
+that excludes `setup.env`. The YAML contains only non-secret choices and
+materializes all current catalog Skills under `selection.skills`, all
+credentials, and all settings. Every Skill includes an explicit `enabled`
+state and its catalog license ID. Every credential and setting includes its
+catalog- and current-selection-derived `requirement`, catalog `appliesTo`, and
+explicit enabled state; optional
+omission is not a state. The generated template deliberately does not accept
+licenses, network writes, global mutation, or paid smoke cost for the user.
+Review the current catalog, complete those fields explicitly, and treat the
+generated CLI template—not this reference—as the authoritative closed schema.
+The removed v1 declaration is rejected; regenerate the v2 template instead of
+hand-migrating an old file.
 
-When file-based credentials are useful, copy the env example locally, fill only
-the variable names referenced by `credentialEnvironment`, and make it
-owner-only:
+The closed schema requires exactly all current catalog entries. Missing or
+extra entries, changed license/requirement/applicability metadata, an incomplete
+Brave profile combination, a disabled currently required entry, or an
+enabled setting without a value fails before network access. Optional entries
+remain visible with `enabled: false`; set one to true only after intentionally
+selecting its applicable Skill and reviewing the corresponding license,
+dependency, provider, and cost.
+
+When file-based credentials are useful, copy the env example locally. It lists
+all catalog credentials, including disabled optional entries. Fill only values
+whose `credentials.<id>.enabled` choice is true, leave the rest empty, and make
+the file owner-only:
 
 ```bash
 cp .tiangong-research/setup.env.example .tiangong-research/setup.env

@@ -26,10 +26,14 @@ If that clean directory contains the fixed workspace-local
 `.tiangong-research/setup.yaml`, bare `research setup` must use its declarative
 path without a TTY. It never scans parent directories and must not fall back to
 the Wizard after a declaration error. Use `research setup init` to generate the
-no-overwrite YAML and env examples, or explicit `research setup wizard` when the
-user chooses the interactive path. Follow [references/setup.md](references/setup.md)
-and [references/env.md](references/env.md); the generated CLI template is the
-only authoritative declaration schema.
+no-overwrite YAML and env examples. The YAML and env example explicitly expose
+all current catalog Skills, credentials, and settings, including disabled
+optional entries. Only declaration schema v2 is accepted; omission is invalid
+and a disabled credential must remain empty. Use explicit
+`research setup wizard` when the user chooses the
+interactive path. Follow [references/setup.md](references/setup.md) and
+[references/env.md](references/env.md); the generated CLI template is the only
+authoritative declaration schema.
 
 The CLI is the deterministic control plane: it owns setup, locks, brokered
 evidence, schemas, coverage, budgets, admission, the independent review process,
