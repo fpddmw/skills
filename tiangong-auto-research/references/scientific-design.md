@@ -119,16 +119,21 @@ hash-invalid.
 1. `research-design` blocks discovery. It checks identity, observability,
    claims/edges, truth roles, quantity ontology, validation semantics, known-gap
    dispositions, and lifecycle feasibility.
-2. `evidence-construct` runs after discovery and blocks acquisition. The native
-   producer must construct the central joins/edges on real records without
-   inspecting result values, record the exact canary artifacts, demonstrate that
-   each required evidence role reaches its full-text and independent-source
-   floor, disposition closest work, and prove central evidence fits the bounded
-   context route.
+2. `evidence-construct` runs after acquisition has frozen
+   `evidence-snapshot.json` and blocks analysis. The native producer must
+   construct the central joins/edges on real records without inspecting result
+   values, record the exact canary artifacts, demonstrate that each required
+   evidence role reaches its full-text and independent-source floor, disposition
+   closest work, and prove central evidence fits the bounded context route.
 
 This real-record construct canary is a feasibility gate, not a result-producing
-analysis.
-3. `pilot-methods` runs after acquisition and blocks analysis. It checks
+analysis. Discovery metadata alone cannot satisfy it. Every coverage ID must
+exist in the frozen snapshot, and full-text/date claims are checked against that
+snapshot. Put canary artifact SHA-256 values in the assessment and supply their
+absolute canonical paths in a separate owner-reviewed JSON array through
+`--canary-artifacts`; the CLI promotes the exact non-symlink JSON bytes and
+binds them into the packet without persisting the host source paths.
+3. `pilot-methods` runs after the evidence-construct review and blocks analysis. It checks
    leakage/circularity, endpoint compatibility, baseline fairness, units and
    denominators, threshold types, decision-loss metrics, validation-plan
    coverage, and the original/cluster/effective/resampling-unit audit.
@@ -158,7 +163,9 @@ node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
   --workspace /absolute/path/to/workspace --json
 ```
 
-Repeat with `evidence-construct` and `pilot-methods`. The reviewer must use the
+Repeat with `evidence-construct`, adding
+`--canary-artifacts /absolute/path/to/canary-paths.json`, and then with
+`pilot-methods`. The reviewer must use the
 configured other agent family and a session unused by the producer or any prior
 review. The packet binds exact design, Policy, assessment, stage outputs, and
 reviewer identity hashes. Reviewer prose cannot override a failed mechanical

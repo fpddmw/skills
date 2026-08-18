@@ -29,14 +29,17 @@ fresh independent review. See [scientific-design.md](scientific-design.md).
 The ordering is deliberate:
 
 ```text
-design review → discover → real-record construct review → acquire
-→ outcome-blind methods pilot review → analyze → synthesize
+design review → discover → acquire and freeze evidence
+→ real-record construct review → outcome-blind methods pilot review
+→ analyze → synthesize
 ```
 
-Do not replace the real-record canary with a synthetic schema example, inspect
-outcome values while proving construction, or use repeated cells/rows as
-independent resampling units. A later inherited package cannot bypass an earlier
-gate.
+The post-acquisition order is a correctness boundary: discovery metadata cannot
+prove a full-text floor, and acquisition artifacts must be frozen before the
+construct canary cites them. Do not replace the real-record canary with a
+synthetic schema example, inspect outcome values while proving construction,
+or use repeated cells/rows as independent resampling units. A later inherited
+package cannot bypass an earlier gate.
 
 Read `mechanicalAssessment.futureGateObligations` before continuing. Pending
 source-derived parameter values, executable model bytes, and exact environment
@@ -44,6 +47,15 @@ locks are permitted only until their declared gate and only when an exact
 planned Policy rule owns them. They are not usable results. Freeze replacements
 through a new authoritative generation before the deadline; at the due gate the
 CLI must stop on the corresponding mechanical error.
+
+For `evidence-construct`, write one or more bounded JSON canary artifacts outside
+`.tiangong-research`. Put their exact SHA-256 values in the assessment and pass
+an owner-reviewed JSON array of their absolute canonical paths with
+`--canary-artifacts`. The CLI rejects symlinks, duplicates, oversized or
+credential-like content, promotes exact bytes into content-addressed project
+storage, and binds them into the review packet. Coverage IDs must exist in the
+post-acquisition frozen snapshot; claimed full-text and publication-date states
+are re-derived from that snapshot rather than trusted from producer JSON.
 
 ## Prepare the exact stage
 
