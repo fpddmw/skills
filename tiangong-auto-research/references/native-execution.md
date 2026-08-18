@@ -30,8 +30,9 @@ The ordering is deliberate:
 
 ```text
 design review → discover → acquire and freeze evidence
+→ decompose acquired content → register atoms → freeze typed content
 → real-record construct review → outcome-blind methods pilot review
-→ analyze → synthesize
+→ freeze inference → analyze → freeze Claim-Evidence Graph → synthesize
 ```
 
 The post-acquisition order is a correctness boundary: discovery metadata cannot
@@ -132,6 +133,16 @@ alone does not claim producer-readable full text. Register a separately derived
 UTF-8 text/JSON/CSV/Markdown artifact when one was legitimately produced
 and should be embedded within the bounded producer context.
 
+Acquisition submit freezes the complete result even when it contains honest
+blocking gaps. Before preparing `evidence-construct` or `analyze`, follow
+[evidence-pipeline.md](evidence-pipeline.md): record a complete/limited/failed
+decomposition for every acquired full-text or data artifact, register exact
+line-range or JSON-Pointer evidence atoms, and run `research project evidence
+content freeze`. Do not leave acquired PDFs, spreadsheets, archives, or
+structured files as unexamined binary attachments. `research status` must show
+the typed content as verified; a stopped content/acquisition gate requires a
+scope/access handoff rather than analysis.
+
 ## Submit producer output
 
 Save only the schema-conforming JSON object to a new regular non-symlink file.
@@ -175,9 +186,12 @@ not burn the prepared attempt. Resume only after an operator explicitly runs
 ## Continue, review, or abort
 
 After each successful submit, call `research run` again. Prepare/submit the
-next native producer stage through discover, acquire, analyze, and synthesize.
-The same run command may then launch only the configured independent reviewer
-CLI and, after a passing review, perform mechanical closure.
+next native producer stage through discover, acquire, analyze, and synthesize,
+performing the typed-content steps between acquire and analyze. Analyze prepare
+freezes the exact inference snapshot; analyze submit mechanically freezes the
+Claim-Evidence Graph. The same run command may then launch only the configured
+independent reviewer CLI and, after a passing review, perform mechanical
+closure.
 
 For a top-journal project, this is the base research closure, not the final
 publication verdict. Continue in the same current native host to author and

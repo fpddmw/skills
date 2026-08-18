@@ -254,7 +254,11 @@ packet's broker command. Record discovery assessments incrementally instead of
 returning all source metadata in the final stage output. Record native
 Web/Browser activity, formalize useful leads through the broker, and bind every
 network download to its exact download event before artifact registration.
-Repeat for discover, acquire, analyze, and synthesize. Only then may
+After acquire, disposition every acquired content artifact, register exact
+line-range/JSON-Pointer evidence atoms, and freeze typed content. A stopped
+acquisition/content gate still preserves these frozen results but prohibits
+inference. Only then proceed through inference, analyze, the mechanically
+generated Claim-Evidence Graph, and synthesize. Only after that may
 `research run` launch the configured independent reviewer and perform
 mechanical closure. Follow
 [references/native-execution.md](references/native-execution.md) for the exact
@@ -264,10 +268,10 @@ For a top-journal project, `research status` may require `research-design`,
 `evidence-construct`, or `pilot-methods` review before it exposes the next
 native stage. Produce the bounded assessment in this native host, then use a
 fresh configured reviewer session through the CLI. A real-record construct
-canary occurs only after acquisition has frozen the evidence snapshot, and an
-outcome-blind methods pilot occurs after that canary and before analysis. The
-construct assessment may reference only source IDs and full-text/date states
-from the frozen snapshot. Pass its exact, external JSON canary files through
+canary occurs only after acquisition and typed-content snapshots are frozen,
+and an outcome-blind methods pilot occurs after that canary and before analysis.
+The construct assessment may reference only source IDs, exact atoms, and
+full-text/date states from the frozen chain. Pass its exact, external JSON canary files through
 `--canary-artifacts`; an unbound digest or invented source ID is a mechanical
 failure. Reviewer prose cannot override these failures.
 
@@ -294,10 +298,13 @@ project has a passing independent review, `outputs/report.md`, and
 binding, usage/cost, decision, and material limitations.
 
 For a top-journal goal, that base closure is not publication closure. Author the
-final paper in this current native host, freeze its exact manuscript and
-assessment, obtain fresh evidence, methods/reproducibility, domain/novelty, and
+final paper and role-complete submission files in this current native host,
+freeze their exact manifest with the assessment, inference chain,
+Claim-Evidence Graph, and reproducibility record, obtain fresh configured
+other-family evidence, methods/reproducibility, domain/novelty, and
 journal-editor reviews, then mechanically close the publication generation.
-Any Policy or manuscript change invalidates downstream approval/review. Return
+Any Policy, manuscript, or submission-file change invalidates downstream
+approval/review. Return
 only the CLI-computed bounded readiness language; never promise acceptance.
 Export and independently verify a portable project audit bundle before external
 handoff or archival; it must contain the formal evidence bytes and review

@@ -145,8 +145,12 @@ Policy Wizard 会把所选 Markdown 复制到研究 workspace 供人类审阅；
 
 在 discovery 之前，当前原生 Codex 或 Claude host 还必须给出封闭、目标特定的科学
 设计。CLI 只负责验证和冻结设计，并依次在 discovery、acquisition、analysis 前强制
-独立的 `research-design`、真实记录 `evidence-construct`、`pilot-methods` 审查；它
-会为全部早期审查、终稿审查和一次修订预留预算，每个权威恢复世代都必须重新审批，
-并可导出包含正式证据原文而不是宿主本地路径的可移植审计目录。CLI 仍是确定性控制
-平面，不会启动嵌套 producer 来替用户发明科学设计。详见
+独立的 `research-design`、真实记录 `evidence-construct`、`pilot-methods` 审查。
+acquisition 后还必须完成逐文件拆解、精确 evidence atom、typed-content snapshot、
+passing inference snapshot、可复现分析和机械生成的 Claim-Evidence Graph。投稿冻结
+要求完整论文章节及显式的 cover/title/checklist/data/code/source-data 文件；四个终稿
+审阅必须使用与原生 producer 不同的已配置 agent family 和全新 session。CLI 会为
+全部早期审查、终稿审查和一次修订预留预算，每个权威恢复世代都必须重新审批，并只
+在语义复核完整冻结链后导出包含正式证据原文而不是宿主本地路径的可移植审计目录。
+CLI 仍是确定性控制平面，不会启动嵌套 producer 来替用户发明科学设计。详见
 `tiangong-auto-research/references/scientific-design.md`。

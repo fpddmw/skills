@@ -84,10 +84,43 @@ recall, missing direct evidence, or unreproduced result.
 
 ## Author in the current native host
 
-After the base `discover → acquire → analyze → synthesize → review → close`
-project is complete, write the final manuscript and assessment in the current
-Codex app/session or interactive Claude Code session. The CLI remains a control
-plane and must not launch a nested producer. Inspect the schema, then freeze:
+After the base research chain is complete, write the final manuscript,
+assessment, and submission files in the current Codex app/session or
+interactive Claude Code session. The CLI remains a control plane and must not
+launch a nested producer. The Markdown/plain-text manuscript must contain
+Abstract, Introduction, Methods (or Materials and Methods), Results,
+Discussion, Data availability, Code availability, and References/Bibliography.
+
+Create an owner-reviewed submission manifest outside `.tiangong-research`. It
+uses `schemaVersion: 1` and distinct absolute canonical paths. Required roles
+are `cover-letter`, `title-page`, `reporting-checklist`, `data-availability`,
+`code-availability`, and `source-data`; optional roles are
+`figure-table-index`, `extended-data`, and `supplementary-methods`:
+
+```json
+{
+  "schemaVersion": 1,
+  "files": [
+    { "role": "cover-letter", "path": "/absolute/path/cover-letter.md" },
+    { "role": "title-page", "path": "/absolute/path/title-page.md" },
+    {
+      "role": "reporting-checklist",
+      "path": "/absolute/path/reporting-checklist.md"
+    },
+    {
+      "role": "data-availability",
+      "path": "/absolute/path/data-availability.md"
+    },
+    {
+      "role": "code-availability",
+      "path": "/absolute/path/code-availability.md"
+    },
+    { "role": "source-data", "path": "/absolute/path/source-data.csv" }
+  ]
+}
+```
+
+Inspect the assessment schema, then freeze:
 
 ```bash
 node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
@@ -96,14 +129,20 @@ node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
   research publication freeze PROJECT \
   --manuscript /absolute/path/to/final-manuscript.md \
   --assessment /absolute/path/to/publication-assessment.json \
+  --submission /absolute/path/to/submission-package.json \
   --producer-agent codex --producer-session OPAQUE_NATIVE_SESSION \
   --workspace /absolute/path/to/workspace --json
 ```
 
-Freeze content-addresses the manuscript, assessment, supplements, approved
-Policy, final evidence snapshot, and base outputs. It evaluates central claims,
-outcomes, result classes, evidence composition, owner-input trust, recall,
-novelty, reproduction, and pivots. File existence alone is never success.
+Freeze requires the configured native producer family and content-addresses the
+manuscript, assessment, supplements, submission files, approved Policy, final
+acquisition/content/inference snapshots, reproduced analysis, Claim-Evidence
+Graph, reproducibility manifest, and base outputs. It validates every finding's
+exact graph topology to atoms, sources, design claims, and the analysis run; a
+graph with the right edge names but disconnected endpoints fails even if its
+own hash was recomputed. It evaluates central claims, outcomes, result classes,
+evidence composition, owner-input trust, recall, novelty, reproduction, and
+pivots. File existence alone is never success.
 
 ## Four fresh independent final reviews
 
@@ -123,15 +162,19 @@ node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
   --workspace /absolute/path/to/workspace --json
 ```
 
-Repeat with fresh sessions. A reviewer may use the configured headless Codex or
-Claude CLI, but must not be the producer session or any prior project reviewer
-session. The append-only journal stores only its SHA-256 for reuse detection;
-deleting a mutable cache does not permit reuse.
+Repeat with fresh sessions. A reviewer uses the configured headless Codex or
+Claude CLI family, which must differ from the native producer family. Merely
+changing the session while keeping the producer family is not independent. It
+must also differ from every prior project reviewer session. The append-only
+journal stores only the session SHA-256 for reuse detection; deleting a mutable
+cache does not permit reuse.
 
-Each packet binds the exact Policy, evidence snapshot, base closure, manuscript,
-assessment, supplements, mechanical result, role, reviewer, and schema. Review
-cannot add evidence. A manuscript revision creates a new generation and
-invalidates every old review; a Policy change or expiry blocks publication.
+Each packet binds the exact Policy, evidence/content/inference snapshots,
+Claim-Evidence Graph, reproducibility manifest, base closure, manuscript,
+assessment, submission files, supplements, mechanical result, role, reviewer,
+and schema. Review cannot add evidence. A manuscript or submission-file
+revision creates a new generation and invalidates every old review; a Policy
+change or expiry blocks publication.
 
 ## Close and report bounded language
 
@@ -147,7 +190,10 @@ returned verdict, bounded statement, limitations, and pivots.
 `target-journal-submission-ready` means the frozen artifact passed its declared
 gates; it does not predict or guarantee editorial acceptance.
 
-After closure, export and verify the portable audit directory from
+`publication status` exposes `submissionPackageSha256`, `submissionRoles`,
+`contentSnapshotSha256`, `inferenceSnapshotSha256`, and
+`claimEvidenceGraphSha256`; inspect these before launching a paid review. After
+closure, export and verify the portable audit directory from
 [scientific-design.md](scientific-design.md). Handing off only the manuscript,
 receipt hashes, or a workspace-specific path is not sufficient for independent
 editorial or reproducibility audit.

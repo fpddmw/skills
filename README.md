@@ -159,10 +159,17 @@ Before discovery, the current native Codex or Claude host must also provide a
 closed, target-specific scientific design. The CLI validates and freezes the
 design, then enforces independent `research-design`, real-record
 `evidence-construct`, and `pilot-methods` reviews before discovery, acquisition,
-and analysis respectively. It reserves the complete early/final-review and
-revision lifecycle, requires reapproval for every authoritative recovery
-generation, and exports a portable audit directory containing exact formal
-evidence rather than host-local pointers. The CLI remains the deterministic
-control plane; it never launches a nested producer to invent the science. See
+and analysis respectively. After acquisition it also requires exact
+decomposition records, evidence atoms, a typed-content snapshot, a passing
+inference snapshot, a reproduced analysis, and a mechanically generated
+Claim-Evidence Graph. Publication freeze requires the complete manuscript
+sections and explicit cover/title/checklist/availability/source-data files;
+four fresh reviews must use the configured agent family that differs from the
+native producer. It reserves the complete early/final-review and revision
+lifecycle, requires reapproval for every authoritative recovery generation,
+and exports a semantic-chain-verified portable audit directory containing exact
+formal evidence rather than host-local pointers. The CLI remains the
+deterministic control plane; it never launches a nested producer to invent the
+science. See
 `tiangong-auto-research/references/publication-policy.md` and
 `tiangong-auto-research/references/scientific-design.md`.

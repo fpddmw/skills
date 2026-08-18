@@ -162,26 +162,91 @@ Keep these distinctions exact:
 
 An accepted source may remain metadata/abstract-only when the requirements
 allow it, but the audit must state that limitation. Unresolved blocking gaps
-stop snapshot creation.
+do not erase successfully acquired evidence: acquisition freezes the complete
+source/artifact/gap audit and marks its separate `inferenceGate=stop`.
+Continue only far enough to decompose everything already acquired and freeze
+the typed-content record; then request the exact access/scope handoff. Never
+report the stopped snapshot as inference-ready.
 
 ## 5. Freeze, then infer
 
 Successful acquisition creates `outputs/evidence-snapshot.json` plus an
 immutable project-local copy under `evidence/snapshots/`. The semantic snapshot
 hash binds the question, evidence and acquisition records, ledger head,
-receipts, selected artifacts, coverage, limitations, and parent/delta lineage.
-For top-journal work, the real-record evidence-construct canary and its exact
-content-addressed JSON artifacts are reviewed against this snapshot before the
-outcome-blind methods pilot. Only snapshot source IDs count; full-text and date
-states are re-derived mechanically. Analysis and synthesis may use only the
-verified snapshot after both gates pass. They cannot fetch, register, or
-silently substitute new evidence.
+receipts, selected artifacts, coverage, explicit gaps, the inference decision,
+and parent/delta lineage. File existence is not readiness; inspect the semantic
+hash and gate through `research status --json`.
 
-The review packet binds the current snapshot chain, selected exact artifacts,
-permanent broker objects, bounded excerpts, analysis, and report. Claim and
-review bindings are appended to the ledger. Mechanical closure re-verifies all
-hashes and refuses a missing, changed, or stale snapshot, packet, context,
-receipt, artifact, or source.
+Before any evidence-construct assessment or analysis, disposition every
+acquired full-text/data artifact. Use the installed document/PDF/spreadsheet
+tools to create legitimate producer-readable derivatives, register each exact
+derived artifact with its parent, and record one decomposition object per
+source artifact:
+
+```bash
+node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
+  research project evidence decomposition record PROJECT \
+  --record /absolute/path/to/decomposition.json \
+  --workspace /absolute/path/to/workspace --json
+```
+
+A complete decomposition names the parser/version, exact parent and output
+artifact IDs, content classes, and limitations. A limited or failed
+decomposition is an explicit disposition, not permission to omit the file.
+Never claim that a PDF, workbook, archive, or HTML challenge page was read
+merely because it was downloaded.
+
+Register claim-usable evidence as exact atoms from a producer-readable
+UTF-8/JSON/CSV/Markdown artifact. Each atom binds the admitted source and
+candidate, exact artifact hash, a one-based line range or JSON Pointer, the
+control-plane-extracted excerpt and excerpt hash, evidence role/dimension,
+support/counterevidence/method/limitation function, scope, and limitations:
+
+```bash
+node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
+  research project evidence atom register PROJECT \
+  --record /absolute/path/to/evidence-atom.json \
+  --workspace /absolute/path/to/workspace --json
+```
+
+Do not paste an invented excerpt or cite only a source-level ID when an exact
+atom is required. Freeze the typed universe only after all acquired artifacts
+have dispositions and all material claims have atoms:
+
+```bash
+node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
+  research project evidence content freeze PROJECT \
+  --workspace /absolute/path/to/workspace --json
+node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
+  research status --project PROJECT \
+  --workspace /absolute/path/to/workspace --json
+```
+
+The `evidencePipeline` status reports acquisition gaps/gate, decomposition and
+atom counts, typed role gaps, inference identity, and Claim-Evidence Graph
+identity. A stopped acquisition or content gate prohibits inference. It does
+not justify further low-yield substitute search after lawful routes are
+exhausted.
+
+For top-journal work, the real-record evidence-construct canary and its exact
+content-addressed JSON artifacts are reviewed against both frozen acquisition
+and typed-content snapshots before the outcome-blind methods pilot. Only
+snapshot source IDs and exact atoms count; full-text and date states are
+re-derived mechanically. After those gates pass, preparing `analyze` freezes an
+immutable `inference-snapshot.json` containing the exact sources, atoms, design
+claims/edges, policy/review bindings, input artifacts, implementations, and
+environment locks. Analyze schema v2 must bind that snapshot, one reproduced
+analysis run, and for every finding the admitted source IDs, exact atom IDs,
+design claim IDs, uncertainty, and applicability. Successful submit generates
+`claim-evidence-graph.json` mechanically; do not hand-author it. Synthesis and
+review may use only this verified chain and cannot fetch, register, or silently
+substitute new evidence.
+
+The review packet binds the current acquisition/content/inference/graph chain,
+selected exact artifacts, permanent broker objects, bounded excerpts, analysis,
+and report. Claim and review bindings are appended to the ledger. Mechanical
+closure re-verifies all hashes and refuses a missing, changed, or stale
+snapshot, graph, packet, context, receipt, artifact, or source.
 
 ## 6. Refresh through an addendum
 
@@ -205,5 +270,6 @@ Use `research project archive` for complete/stale history and
 `research project abandon` for unfinished history; never infer the latest
 project from its name or version suffix.
 
-Use the status response's `discovery`, `snapshot`, `nativeStage`, `lineage`, and
-`recommendedAction` fields instead of inspecting control files manually.
+Use the status response's `discovery`, `snapshot`, `evidencePipeline`,
+`nativeStage`, `lineage`, and `recommendedAction` fields instead of inspecting
+control files manually.
