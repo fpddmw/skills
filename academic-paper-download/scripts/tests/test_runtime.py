@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
 import re
@@ -8,6 +9,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 SKILL_ROOT = Path(__file__).resolve().parents[2]
 RUNTIME = SKILL_ROOT / "scripts" / "runtime.py"
@@ -51,6 +53,50 @@ class RuntimeContractTests(unittest.TestCase):
         source = RUNTIME.read_text(encoding="utf-8")
         self.assertIn("Path(__file__).resolve()", source)
         self.assertNotRegex(source, re.compile(r"Path\([\"']requirements\.lock[\"']\)"))
+
+    def test_entrypoint_options_are_forwarded_without_double_dash(self) -> None:
+        spec = importlib.util.spec_from_file_location("academic_paper_runtime", RUNTIME)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        runtime = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(runtime)
+        completed = subprocess.CompletedProcess(args=[], returncode=0)
+
+        with (
+            mock.patch.object(runtime, "_verify_environment", return_value=Path("/locked/python")),
+            mock.patch.object(runtime.subprocess, "run", return_value=completed) as run,
+        ):
+            result = runtime.main(
+                [
+                    "notify-human",
+                    "--title",
+                    "Paper download needs your action",
+                    "--message",
+                    "Complete the security challenge normally.",
+                    "--button",
+                    "OK",
+                    "--timeout",
+                    "120",
+                ]
+            )
+
+        self.assertEqual(result, 0)
+        argv = run.call_args.args[0]
+        self.assertEqual(argv[0], "/locked/python")
+        self.assertEqual(Path(argv[1]).name, "notify_human.py")
+        self.assertEqual(
+            argv[2:],
+            [
+                "--title",
+                "Paper download needs your action",
+                "--message",
+                "Complete the security challenge normally.",
+                "--button",
+                "OK",
+                "--timeout",
+                "120",
+            ],
+        )
 
 
 if __name__ == "__main__":
