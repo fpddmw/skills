@@ -289,13 +289,16 @@ body. GET remains the default method inside an explicit HTTP endpoint policy.
 ## Coverage, retry, and recovery
 
 Discovery output is promoted for diagnosis, then acquisition audits every
-provisionally admitted source. The CLI freezes only accepted/limited sources
-and their explicitly selected artifacts, then derives producer-readable
-full-text availability, source types, source counts, dated counts, date range,
-per-dimension source IDs, and the pass/insufficient decision from that snapshot.
-`partial` is usable but incomplete; `missing`, an acquisition gap, or any unmet
-source/full-text/date minimum blocks analysis. Model-provided qualitative gaps
-remain visible but cannot override those derived fields. See
+provisionally admitted source. The CLI freezes accepted/limited sources, their
+explicitly selected artifacts, and honest unresolved gaps in one immutable
+snapshot; the separate inference gate records whether the chain may continue.
+It derives producer-readable full-text availability, source types, source
+counts, dated counts, date range, per-dimension source IDs, and the
+pass/insufficient decision mechanically. `partial` is usable but incomplete;
+`missing`, an acquisition gap, or any unmet source/full-text/date minimum stops
+inference after all acquired material has been decomposed and typed. Model-
+provided qualitative gaps remain visible but cannot override those derived
+fields. See
 [evidence-pipeline.md](evidence-pipeline.md) for exact full-file versus
 producer-readable semantics and addendum lineage.
 
@@ -311,9 +314,12 @@ the packet's `research project evidence fetch` argv for admitted network
 evidence; standalone web/search/database tools cannot replace required broker
 receipts. Broker results include the exact bounded view inline with the receipt.
 Acquire receives the provisional evidence record and exact artifact registry
-command, then produces a complete audit. Analyze receives the frozen evidence
-snapshot; synthesize receives the snapshot and analysis. Neither later stage
-may gather new evidence. Review is tool-free and embeds
+command, then produces a complete audit. Between acquire and analyze, the
+native host records exact decomposition lineage and evidence atoms and freezes
+the typed-content snapshot. Analyze receives only a passing immutable inference
+snapshot and emits schema v2 with a reproduced analysis run; submit generates
+the Claim-Evidence Graph. Synthesize receives that chain and analysis. Neither
+later stage may gather new evidence. Review is tool-free and embeds
 generated artifacts plus deterministic excerpts from bounded local/broker
 evidence views within the reviewer's route-specific structured-output turn cap.
 Preflight and runtime reserve the same
@@ -422,16 +428,20 @@ Confirm the owning CLI release passed deterministic mock coverage for:
 - explicit owner-database import, required-discovery receipt enforcement, and
   local-only production rejection;
 - routing and smoke/production mode boundaries;
-- discover → acquire → freeze → analyze → synthesize → review → close;
-- top-journal Policy approval, publication assessment, frozen final manuscript,
-  four fresh role-bound reviews, revision invalidation, and publication closure;
+- discover → acquire → decompose/atomize → content freeze → inference freeze →
+  analyze → Claim-Evidence Graph → synthesize → review → close;
+- top-journal Policy approval, publication assessment, required manuscript
+  sections, complete submission roles, content/inference/graph/reproducibility
+  binding, four fresh configured other-family role-bound reviews, revision
+  invalidation, and publication closure;
 - public `research run` never launching a producer subprocess, with native
   prepare/fetch/register/submit advancing the four producer stages;
 - native-only leads remaining supplemental until an immutable broker
   occurrence formalizes the same candidate;
 - exact artifact registration, binary-only full-text semantics, immutable
   snapshot/delta lineage, and addendum supersession;
-- permanent evidence and review-packet hash verification;
+- permanent evidence and review-packet hash verification plus semantic
+  pre-export validation of the named portable audit research chain;
 - persistent bounded review-context verification and packet/context tamper
   rejection before closure;
 - malformed JSON repair and a second-failure stop;

@@ -36,6 +36,14 @@ const environmentReference = await readFile(
   join(skillsRoot, "tiangong-auto-research", "references", "env.md"),
   "utf8",
 );
+const evidencePipelineReference = await readFile(
+  join(skillsRoot, "tiangong-auto-research", "references", "evidence-pipeline.md"),
+  "utf8",
+);
+const publicationReference = await readFile(
+  join(skillsRoot, "tiangong-auto-research", "references", "publication-policy.md"),
+  "utf8",
+);
 
 for (const marker of [
   ".tiangong-research/setup.yaml",
@@ -71,6 +79,33 @@ for (const marker of [
   "owner-only logical stores",
 ]) {
   assert.ok(environmentReference.includes(marker), `Environment reference must explain ${marker}`);
+}
+
+for (const marker of [
+  "evidence decomposition record",
+  "evidence atom register",
+  "evidence content freeze",
+  "inference-snapshot.json",
+  "claim-evidence-graph.json",
+  "evidencePipeline",
+]) {
+  assert.ok(
+    evidencePipelineReference.includes(marker),
+    `Evidence pipeline reference must explain ${marker}`,
+  );
+}
+
+for (const marker of [
+  "--submission",
+  "reporting-checklist",
+  "source-data",
+  "Claim-Evidence Graph",
+  "submissionPackageSha256",
+]) {
+  assert.ok(
+    publicationReference.includes(marker),
+    `Publication reference must explain ${marker}`,
+  );
 }
 
 for (const marker of [

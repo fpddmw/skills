@@ -61,14 +61,16 @@ customize and explicitly approve the exact resolved content.
 
 `tiangong-auto-research/references/scientific-design.md` defines the Skill-side
 native workflow for a closed project-specific design, three early independent
-scientific review gates, post-acquisition evidence-construct canary binding,
-Policy-owned future freeze obligations for models,
-environment locks, and source-derived uncertainty states, authoritative
-recovery generations, and portable audit handoff. The Skill supplies
-instructions and conservative defaults only. The CLI owns schemas, hashing,
-stage admission, mechanical evaluation, lifecycle reservations, reviewer
-isolation, and audit verification; native Codex or Claude remains the
-scientific producer.
+scientific review gates, post-acquisition decomposition/evidence-atom/content
+freeze, evidence-construct canary binding, inference snapshot, reproducible
+analysis and Claim-Evidence Graph, role-complete submission packaging,
+Policy-owned future freeze obligations for models, environment locks, and
+source-derived uncertainty states, authoritative recovery generations, and
+portable audit handoff. The Skill supplies instructions and conservative
+defaults only. The CLI owns schemas, hashing, stage admission, mechanical
+evaluation, lifecycle reservations, other-family reviewer isolation, and
+semantic audit verification; native Codex or Claude remains the scientific
+producer.
 
 ## Integration Points
 

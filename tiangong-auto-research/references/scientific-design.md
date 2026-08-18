@@ -119,17 +119,21 @@ hash-invalid.
 1. `research-design` blocks discovery. It checks identity, observability,
    claims/edges, truth roles, quantity ontology, validation semantics, known-gap
    dispositions, and lifecycle feasibility.
-2. `evidence-construct` runs after acquisition has frozen
-   `evidence-snapshot.json` and blocks analysis. The native producer must
+2. `evidence-construct` runs only after acquisition has frozen
+   `evidence-snapshot.json` and the producer has dispositioned every acquired
+   artifact, registered exact evidence atoms, and frozen
+   `content-snapshot.json`. It blocks analysis. The native producer must
    construct the central joins/edges on real records without inspecting result
    values, record the exact canary artifacts, demonstrate that each required
-   evidence role reaches its full-text and independent-source floor, disposition
-   closest work, and prove central evidence fits the bounded context route.
+   evidence role reaches its full-text, atom, and independent-source floor,
+   disposition closest work, and prove central evidence fits the bounded
+   context route.
 
 This real-record construct canary is a feasibility gate, not a result-producing
-analysis. Discovery metadata alone cannot satisfy it. Every coverage ID must
-exist in the frozen snapshot, and full-text/date claims are checked against that
-snapshot. Put canary artifact SHA-256 values in the assessment and supply their
+analysis. Discovery metadata or a binary file alone cannot satisfy it. Every
+coverage ID must exist in the frozen acquisition/content chain, claim-usable
+support must bind exact atoms, and full-text/date claims are checked against the
+snapshots. Put canary artifact SHA-256 values in the assessment and supply their
 absolute canonical paths in a separate owner-reviewed JSON array through
 `--canary-artifacts`; the CLI promotes the exact non-symlink JSON bytes and
 binds them into the packet without persisting the host source paths.
@@ -223,11 +227,16 @@ node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
   --bundle /absolute/path/to/new-audit-directory --json
 ```
 
-The bundle includes only the selected project, portable input copies, formal
-evidence/artifact bytes, Policy/design/review objects, outputs, environment
-fingerprints, and project journal proofs. It omits credentials, setup sources,
-browser profiles, active native state, ephemeral capsules, and unrelated files.
-Export refuses an existing/symlink destination, host-specific workspace paths,
-sensitive text, missing evidence bytes, or any hash drift. Verification rejects
-every extra, missing, or changed byte; it never scans a Downloads directory or
-substitutes a newer file.
+Before copying, export semantically reloads every present acquisition,
+typed-content, inference, Claim-Evidence Graph, and publication object; a stale
+or internally rehashed-but-disconnected chain is not exportable. The manifest's
+`researchChain` records their intrinsic IDs/hashes and the publication
+generation/package binding. The bundle includes only the selected project,
+portable input copies, formal evidence/artifact bytes, Policy/design/review
+objects, outputs, environment fingerprints, and safe journal derivatives that
+retain source event/payload hashes without operational session values. It omits
+credentials, setup sources, browser profiles, active native state, ephemeral
+capsules, and unrelated files. Export refuses an existing/symlink destination,
+host-specific workspace paths, sensitive text, missing evidence bytes, semantic
+drift, or any hash drift. Verification rejects every extra, missing, or changed
+byte; it never scans a Downloads directory or substitutes a newer file.
