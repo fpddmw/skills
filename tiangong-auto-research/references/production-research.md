@@ -50,6 +50,13 @@ requirements, known gaps, context fit, and baseline fairness. It also reserves
 three early scientific reviews, four final publication reviews, and one bounded
 revision cycle. See [scientific-design.md](scientific-design.md).
 
+The scientific gate order is design review, discovery, acquisition and evidence
+freeze, evidence-construct review, outcome-blind methods pilot, then inference.
+This prevents discovery metadata from being misreported as acquired full text.
+The evidence-construct packet binds owner-supplied canary JSON artifacts and
+revalidates every referenced source ID, full-text state, and publication date
+against the frozen snapshot.
+
 Use `research project preflight`; do not calculate a competing checklist in the
 skill. Production `project init` requires its evidence-requirements file and,
 when the configured threshold is crossed, explicit `--confirm-budget`.

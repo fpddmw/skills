@@ -45,7 +45,8 @@ marketplace grouping metadata.
   boundary, distinguish observation from model comparison/scenario/accounting,
   distinguish byte identity from model executability, bind pending model,
   environment, and uncertainty objects to explicit future gates, require exact
-  joint-state mappings, never treat resampling as additional independent data,
+  joint-state mappings, bind real-record construct artifacts only after a
+  frozen acquisition snapshot, never treat resampling as additional independent data,
   and defer closed schemas, mechanical gates, reviewer-session enforcement,
   lifecycle budgets, authoritative generations, and portable audit verification
   to the CLI.

@@ -170,8 +170,12 @@ Successful acquisition creates `outputs/evidence-snapshot.json` plus an
 immutable project-local copy under `evidence/snapshots/`. The semantic snapshot
 hash binds the question, evidence and acquisition records, ledger head,
 receipts, selected artifacts, coverage, limitations, and parent/delta lineage.
-Analysis and synthesis may use only this verified snapshot. They cannot fetch,
-register, or silently substitute new evidence.
+For top-journal work, the real-record evidence-construct canary and its exact
+content-addressed JSON artifacts are reviewed against this snapshot before the
+outcome-blind methods pilot. Only snapshot source IDs count; full-text and date
+states are re-derived mechanically. Analysis and synthesis may use only the
+verified snapshot after both gates pass. They cannot fetch, register, or
+silently substitute new evidence.
 
 The review packet binds the current snapshot chain, selected exact artifacts,
 permanent broker objects, bounded excerpts, analysis, and report. Claim and

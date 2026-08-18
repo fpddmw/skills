@@ -264,8 +264,12 @@ For a top-journal project, `research status` may require `research-design`,
 `evidence-construct`, or `pilot-methods` review before it exposes the next
 native stage. Produce the bounded assessment in this native host, then use a
 fresh configured reviewer session through the CLI. A real-record construct
-canary occurs before acquisition and an outcome-blind methods pilot occurs
-before analysis. Reviewer prose cannot override their mechanical failures.
+canary occurs only after acquisition has frozen the evidence snapshot, and an
+outcome-blind methods pilot occurs after that canary and before analysis. The
+construct assessment may reference only source IDs and full-text/date states
+from the frozen snapshot. Pass its exact, external JSON canary files through
+`--canary-artifacts`; an unbound digest or invented source ID is a mechanical
+failure. Reviewer prose cannot override these failures.
 
 Proceed only when doctor reports ready. Discovery uses only locked broker
 capabilities; later stages are tool-free. Doctor, preflight, dependency,

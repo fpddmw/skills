@@ -61,7 +61,8 @@ customize and explicitly approve the exact resolved content.
 
 `tiangong-auto-research/references/scientific-design.md` defines the Skill-side
 native workflow for a closed project-specific design, three early independent
-scientific review gates, Policy-owned future freeze obligations for models,
+scientific review gates, post-acquisition evidence-construct canary binding,
+Policy-owned future freeze obligations for models,
 environment locks, and source-derived uncertainty states, authoritative
 recovery generations, and portable audit handoff. The Skill supplies
 instructions and conservative defaults only. The CLI owns schemas, hashing,
