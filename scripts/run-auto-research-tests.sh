@@ -18,6 +18,7 @@ node tiangong-auto-research/scripts/test-routing-contract.mjs
 node tiangong-auto-research/scripts/test-research-policy-pack.mjs
 node tiangong-auto-research/scripts/test-evidence-exhaustion-contract.mjs
 sh tiangong-auto-research/scripts/test-agent-wrapper-posix.sh
+python3 -m unittest discover -s academic-paper-download/scripts/tests -v
 bash tiangong-kb-sci-search/scripts/test-sci-search.sh
 bash tiangong-kb-report-search/scripts/test-report-search.sh
 bash tiangong-kb-patent-search/scripts/test-patent-search.sh

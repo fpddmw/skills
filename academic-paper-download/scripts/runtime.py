@@ -354,16 +354,20 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = _parser().parse_args(argv)
-    as_json = bool(getattr(args, "json", False))
+    arguments = list(sys.argv[1:] if argv is None else argv)
+    as_json = False
     try:
+        if arguments and arguments[0] in ENTRYPOINTS:
+            return run_entrypoint(arguments[0], arguments[1:])
+        args = _parser().parse_args(arguments)
+        as_json = bool(getattr(args, "json", False))
         if args.command == "bootstrap":
             return bootstrap(as_json=as_json)
         if args.command == "doctor":
             return doctor(as_json=as_json)
         if args.command == "smoke":
             return smoke(as_json=as_json)
-        return run_entrypoint(args.command, args.arguments)
+        raise RuntimeFailure("runtime_command_invalid", "Unknown runtime command")
     except RuntimeFailure as exc:
         _emit({"ok": False, "error": exc.payload()}, as_json=as_json)
         return 4 if exc.code == "dependency_install_failed" else 3

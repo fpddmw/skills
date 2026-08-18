@@ -14,7 +14,7 @@ checkPaths:
   - _docs/**
   - "*/SKILL.md"
 lastReviewedAt: 2026-08-18
-lastReviewedCommit: 174a9c195ff2287bda59b15600b500365196fe86
+lastReviewedCommit: f95d0f8ecf6649e6f7512beb5c209936bdf24c28
 ---
 
 # Skills Documentation Standards

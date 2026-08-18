@@ -18,7 +18,7 @@ checkPaths:
   - .claude-plugin/**
   - "*/SKILL.md"
 lastReviewedAt: 2026-08-18
-lastReviewedCommit: 174a9c195ff2287bda59b15600b500365196fe86
+lastReviewedCommit: f95d0f8ecf6649e6f7512beb5c209936bdf24c28
 ---
 
 # Skills Development Runbook
@@ -53,7 +53,8 @@ scripts/quick_validate.py <skill-path>
 
 Run representative script tests when a skill script changes.
 
-For `tiangong-auto-research` or its direct SCI/report/patent wrappers, use
+For `tiangong-auto-research` or any direct evidence wrapper, including
+`academic-paper-download`, use
 test-driven development exclusively through the mandatory clean-room entrypoint
 for the red and green cycles:
 
@@ -64,10 +65,16 @@ scripts/test-clean-container.sh
 It builds from the digest-pinned Node 24 image, copies only the secret-filtered
 repository context, and runs the routing, resolver, agent wrapper, Research
 Policy/scientific-design/native-execution contract, generated agent metadata,
-and evidence-wrapper suites as a non-root user
+SCI/report/patent wrapper suites, and the complete `academic-paper-download`
+unittest discovery as a non-root user
 with isolated HOME and runtime networking disabled. Do not mount host agent
 directories, CLIs, runtime caches, credentials, browser profiles, or source
 worktrees into the running container.
+
+The test image installs only `academic-paper-download/requirements.lock` with
+hash verification. It never installs the optional CloakBrowser requirements or
+downloads a browser binary; those remain explicit integration checks outside
+the network-disabled unit gate.
 
 The default entrypoint may reuse Docker layers whose declared inputs still
 match, while every test run uses a new container. Run the explicit cold mode

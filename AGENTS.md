@@ -16,7 +16,7 @@ checkPaths:
   - scripts/**
   - _docs/**
 lastReviewedAt: 2026-08-18
-lastReviewedCommit: 174a9c195ff2287bda59b15600b500365196fe86
+lastReviewedCommit: f95d0f8ecf6649e6f7512beb5c209936bdf24c28
 ---
 
 # Tiangong AI Skills Agent Contract
@@ -61,6 +61,9 @@ skill 内容、skill 规范、marketplace 元数据和本仓文档治理属于�
   `scripts/test-clean-container.sh` 创建的独立、无宿主 HOME/全局
   Skill/CLI/runtime cache 的容器中观察回归测试失败，再在另一个新容器中转绿；
   构建可复用输入未变化的 Docker layer，宿主测试不能替代。
+- 该容器必须运行 `academic-paper-download/scripts/tests` 的完整 unittest
+  discovery；测试镜像只安装 `requirements.lock` 中哈希锁定的核心依赖，绝不安装
+  可选 CloakBrowser 运行时或浏览器二进制。
 - 修改 `.dockerignore`、`Dockerfile.clean-test`、依赖输入，或准备 PR/发布时，
   必须额外运行 `scripts/test-clean-container.sh --cold-build` 验证冷构建路径。
 
