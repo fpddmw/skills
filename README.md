@@ -13,8 +13,8 @@ checkPaths:
   - README.zh-CN.md
   - .claude-plugin/**
   - "*/SKILL.md"
-lastReviewedAt: 2026-08-18
-lastReviewedCommit: f95d0f8ecf6649e6f7512beb5c209936bdf24c28
+lastReviewedAt: 2026-08-19
+lastReviewedCommit: 1a8f768d3b489d8cf7583a2b4e9bea5913a03903
 ---
 
 # Tiangong AI Skills
@@ -42,6 +42,11 @@ npm i skills -g
 - Install specific skills:
   ```bash
   npx skills add https://github.com/tiangong-ai/skills --skill tiangong-auto-research --skill tiangong-kb-sci-search
+  ```
+- For a WorkBuddy/CodeBuddy producer, install the thin adapter beside the
+  canonical orchestrator:
+  ```bash
+  npx skills add https://github.com/tiangong-ai/skills --skill tiangong-auto-research --skill tiangong-auto-research-workbuddy
   ```
 
 ## Target agents and scope
@@ -142,6 +147,9 @@ The workspace can be any user-selected directory. Every entry is external,
 separately licensed, pinned, and explicitly confirmed/selected; nothing is
 bundled or installed by a research package. See
 `tiangong-auto-research/references/setup.md` and `external-skills.md`.
+`tiangong-auto-research-workbuddy` is only a sandboxed-IDE adapter. It routes
+back to the canonical orchestrator and its signed reviewer-bridge reference;
+it does not define a second research workflow.
 For PPT creation, prefer PPT Master; Anthropic PPTX remains compatible and may
 be selected alongside it when its workflow fits the task.
 

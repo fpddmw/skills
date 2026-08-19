@@ -18,7 +18,7 @@ checkPaths:
   - .claude-plugin/**
   - "*/SKILL.md"
 lastReviewedAt: 2026-08-19
-lastReviewedCommit: e05a056e422c178a1ba5de66b2e561c3574717a2
+lastReviewedCommit: 1a8f768d3b489d8cf7583a2b4e9bea5913a03903
 ---
 
 # Skills Development Runbook
@@ -87,6 +87,11 @@ scripts/test-clean-container.sh --cold-build
 
 Cold mode adds `--no-cache`; neither mode uses `--pull`, so the base image can
 change only through a reviewed digest update.
+
+When changing sandboxed-IDE routing, keep its deterministic markers in
+`tiangong-auto-research/scripts/test-routing-contract.mjs` and require the thin
+adapter, canonical reference, exact structured bridge errors, and no-bypass
+language to pass in the clean container.
 
 ## README And Marketplace Updates
 

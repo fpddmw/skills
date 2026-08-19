@@ -1,8 +1,8 @@
 # Native producer execution
 
 Discover, acquire, analyze, and synthesize are performed by the current
-interactive Codex app/session or Claude Code session. The CLI is not a
-producer-agent launcher. It prepares a hash-bound packet, brokers authorized
+interactive Codex, Claude Code, WorkBuddy, or CodeBuddy session. The CLI is not
+a producer-agent launcher. It prepares a hash-bound packet, brokers authorized
 evidence, registers exact acquired artifacts, admits the result, launches the
 other agent family only for independent review, and closes mechanically.
 
@@ -60,12 +60,14 @@ are re-derived from that snapshot rather than trusted from producer JSON.
 
 ## Prepare the exact stage
 
-Use the host agent selected by the immutable setup plan:
+Use the exact native host selected by the immutable setup plan. Valid host
+identities are `codex`, `claude`, `workbuddy`, and `codebuddy`; never label one
+host as another merely to pass admission:
 
 ```bash
 node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
   research project stage prepare PROJECT \
-  --stage discover --host-agent codex \
+  --stage discover --host-agent workbuddy \
   --workspace /absolute/path/to/workspace --json
 ```
 

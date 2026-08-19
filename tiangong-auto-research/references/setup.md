@@ -52,6 +52,10 @@ omission is not a state. The generated template deliberately does not accept
 licenses, network writes, global mutation, or paid smoke cost for the user.
 Review the current catalog, complete those fields explicitly, and treat the
 generated CLI template—not this reference—as the authoritative closed schema.
+The same template makes `reviewerExecution.transport` explicit. Use
+`native-direct` when the current host can create the platform capsule, or
+`sandbox-bridge` for an outer-sandboxed IDE with an owner-started sidecar. Read
+[sandboxed-ide.md](sandboxed-ide.md) before selecting the bridge.
 The removed v1 declaration is rejected; regenerate the v2 template instead of
 hand-migrating an old file.
 
