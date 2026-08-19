@@ -65,7 +65,10 @@ function invoke(workspace, extraEnv = {}) {
         ...extraEnv,
         AUTO_RESEARCH_NPX: fakeNpx,
         FAKE_NPX_AUDIT: auditPath,
-        PATH: `${fakeBin}:${process.env.PATH ?? ""}`,
+        // Model an outer IDE whose PATH has no usable Node.js. The resolver is
+        // responsible for keeping its selected Node 24 runtime authoritative
+        // when npx and the installed CLI bin follow /usr/bin/env node shebangs.
+        PATH: `${fakeBin}:/usr/bin:/bin`,
       },
     },
   );

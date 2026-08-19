@@ -3,7 +3,7 @@
 import { constants as fsConstants } from "node:fs";
 import { access, lstat, readFile, realpath } from "node:fs/promises";
 import { spawn } from "node:child_process";
-import { dirname, isAbsolute, join, resolve } from "node:path";
+import { delimiter, dirname, isAbsolute, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 const MAX_RUNTIME_LOCK_BYTES = 64 * 1024;
@@ -244,6 +244,8 @@ async function run() {
   const parsed = parseArguments(process.argv.slice(2));
   const runtime = await resolveWorkspaceRuntime(parsed.workspace);
   const executable = await resolveNpxExecutable();
+  const runtimeBin = dirname(process.execPath);
+  const inheritedPath = process.env.PATH ?? "";
   const args = [
     "--yes",
     "--package",
@@ -255,7 +257,11 @@ async function run() {
 
   const exitCode = await new Promise((resolveExit, rejectExit) => {
     const child = spawn(executable, args, {
-      env: { ...process.env, DO_NOT_TRACK: "1" },
+      env: {
+        ...process.env,
+        PATH: inheritedPath.length > 0 ? `${runtimeBin}${delimiter}${inheritedPath}` : runtimeBin,
+        DO_NOT_TRACK: "1",
+      },
       shell: false,
       stdio: "inherit",
     });
