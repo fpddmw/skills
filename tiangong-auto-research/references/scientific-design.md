@@ -45,6 +45,47 @@ increase the number of independent experimental or observational units. Gross
 installed mixture is not automatically binder, virgin material, network demand,
 or an observed effect. Encode those boundaries in quantities and claim verbs.
 
+## Register frozen scientific objects
+
+Before writing a design that marks an implementation `executable-frozen` or an
+environment `exact-frozen`, register the external raw files through the public
+workspace-scoped intake. This happens before project initialization, so it does
+not take a project ID:
+
+```bash
+node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
+  research scientific object register \
+  --kind model-implementation \
+  --path /absolute/path/to/model.py \
+  --media-type text/x-python \
+  --workspace /absolute/path/to/workspace --json
+
+node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
+  research scientific object register \
+  --kind environment-lock \
+  --path /absolute/path/to/requirements.lock \
+  --media-type text/plain \
+  --workspace /absolute/path/to/workspace --json
+```
+
+Copy each returned `sha256` and `objectLocator` exactly into the matching design
+field. The locator has the form `lineage/objects/<sha256>/blob`. The CLI accepts
+only bounded regular non-symlink files outside `.tiangong-research`, validates
+reviewable UTF-8 media, hashes raw bytes, writes the blob atomically, and creates
+a deterministic record without the host source path. Registration is
+idempotent. Use `research scientific object inspect --kind KIND --locator
+LOCATOR` to revalidate an existing record and blob. Do not hand-copy files into
+the control directory, reuse an object under the wrong kind, or put an external
+absolute path in the design.
+
+The research-design review promotes registered Python, R, JavaScript, text,
+JSON, TOML, or YAML bytes as exact project-local portable blobs. It records
+their media type, object kind, safe source locator, registration-record hash,
+size, and raw-byte SHA-256 in `stageInputs`; it does not parse code or lock files
+as JSON. Preflight and project admission revalidate every frozen binding and
+report the exact model/artifact/reason when an object is missing, unsafe,
+kind-mismatched, metadata-invalid, or hash-drifted.
+
 ## Executable model and uncertainty contracts
 
 A digest proves byte identity, not scientific executability. For every model,
@@ -56,6 +97,13 @@ locators and declare `artifactHashBasis: raw-file-bytes`. A model marked
 `evidence-construct` or `pilot-methods` deadline. Specification prose,
 unresolved coefficients, an unpinned runtime, or an empty dependency lock is
 not executable merely because its bytes are hash-bound.
+
+A pending implementation must set `implementationArtifactSha256`,
+`implementationArtifactLocator`, and `implementationEntrypoint` to `null`. A
+pending environment must set `environmentLockSha256` and
+`environmentLockLocator` to `null`. The early review does not try to promote
+those absent objects; their Policy-owned future obligation remains explicit and
+becomes blocking at its declared due gate.
 
 Every pending model deadline must be owned by a `planned` Policy disposition at
 the same gate through `modelStructureIds`. Every source-pending uncertainty
@@ -136,11 +184,10 @@ support must bind exact atoms, and full-text/date claims are checked against the
 snapshots. Put canary artifact SHA-256 values in the assessment and supply their
 absolute canonical paths in a separate owner-reviewed JSON array through
 `--canary-artifacts`; the CLI promotes the exact non-symlink JSON bytes and
-binds them into the packet without persisting the host source paths.
-3. `pilot-methods` runs after the evidence-construct review and blocks analysis. It checks
-   leakage/circularity, endpoint compatibility, baseline fairness, units and
-   denominators, threshold types, decision-loss metrics, validation-plan
-   coverage, and the original/cluster/effective/resampling-unit audit.
+binds them into the packet without persisting the host source paths. 3. `pilot-methods` runs after the evidence-construct review and blocks analysis. It checks
+leakage/circularity, endpoint compatibility, baseline fairness, units and
+denominators, threshold types, decision-loss metrics, validation-plan
+coverage, and the original/cluster/effective/resampling-unit audit.
 
 For each gate, inspect its assessment schema, have the current native producer
 write a bounded assessment from the exact frozen inputs, and prepare a fresh
@@ -179,8 +226,10 @@ Revise the assessment/design/method and prepare a new packet with a new session.
 
 Review the exact promoted `stageInputs`. Their `sha256` values are digests of
 the raw file bytes at the portable `path`; `sourceLocator` records provenance,
-while `purpose` and `ownerId` bind the bytes to the scientific object under
-review. `packetSha256` is the packet's logical identity (excluding its own
+while `purpose`, `ownerId`, `mediaType`, `objectKind`, and
+`registrationRecordSha256` bind the bytes to the scientific object under
+review. Model implementations and environment locks use an exact portable
+`blob`, not a newest-file scan or JSON reinterpretation. `packetSha256` is the packet's logical identity (excluding its own
 identity field); the portable audit manifest separately records the raw stored
 packet-file digest. Do not interchange those two hash meanings.
 

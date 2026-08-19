@@ -171,6 +171,9 @@ cross-model comparison, scenario, and accounting roles; freeze units,
 denominators, independent clusters, thresholds, baselines, evidence roles,
 closest-work requirements, known gaps, and handoff conditions. Pass the same
 exact file to preflight and init with the native producer's opaque session ID.
+Before referencing a frozen model implementation or environment lock, use
+`research scientific object register` and copy its returned raw-byte hash and
+safe locator into the design; never hand-copy objects into the control store.
 The design must map every required evidence role to its lawful acquisition
 routes. All plan-bound lawful agent routes must have immutable terminal events
 before an evidence-exhausted handoff is valid.

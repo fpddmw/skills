@@ -154,7 +154,8 @@ Policy Wizard 会把所选 Markdown 复制到研究 workspace 供人类审阅；
 `tiangong-auto-research/references/publication-policy.md`。
 
 在 discovery 之前，当前原生 Codex、Claude、WorkBuddy 或 CodeBuddy host 还必须给出封闭、目标特定的科学
-设计。CLI 只负责验证和冻结设计，并依次在 discovery、acquisition、analysis 前强制
+设计。冻结的模型实现和环境锁必须先通过 `research scientific object register`
+进入 workspace；Skill 不会要求用户手工把文件写入 `.tiangong-research`。CLI 只负责验证和冻结设计，并依次在 discovery、acquisition、analysis 前强制
 独立的 `research-design`、真实记录 `evidence-construct`、`pilot-methods` 审查。
 acquisition 后还必须完成逐文件拆解、精确 evidence atom、typed-content snapshot、
 passing inference snapshot、可复现分析和机械生成的 Claim-Evidence Graph。投稿冻结
