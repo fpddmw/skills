@@ -60,7 +60,9 @@ selected stack into the user-selected research workspace, where a human may
 customize and explicitly approve the exact resolved content.
 
 `tiangong-auto-research/references/scientific-design.md` defines the Skill-side
-native workflow for a closed project-specific design, three early independent
+native workflow for a closed project-specific design, explicit public
+pre-admission registration of raw model/environment objects, frozen-versus-
+pending null semantics, exact portable review-blob promotion, three early independent
 scientific review gates, post-acquisition decomposition/evidence-atom/content
 freeze, evidence-construct canary binding, inference snapshot, reproducible
 analysis and Claim-Evidence Graph, role-complete submission packaging,

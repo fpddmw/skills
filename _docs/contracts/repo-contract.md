@@ -44,7 +44,10 @@ marketplace grouping metadata.
 - Scientific-design guidance and defaults must preserve the native-producer
   boundary, distinguish observation from model comparison/scenario/accounting,
   distinguish byte identity from model executability, bind pending model,
-  environment, and uncertainty objects to explicit future gates, require exact
+  environment, and uncertainty objects to explicit future gates, require the
+  public content-addressed intake for frozen raw model/environment bytes rather
+  than manual control-store writes, use null bindings for genuinely pending
+  objects, require exact
   joint-state mappings, bind real-record construct artifacts only after frozen
   acquisition and typed-content snapshots, require exact decomposition lineage
   and evidence atoms before inference, never treat resampling as additional

@@ -169,7 +169,9 @@ acceptance.
 
 Before discovery, the current native Codex or Claude host must also provide a
 closed, target-specific scientific design. The CLI validates and freezes the
-design, then enforces independent `research-design`, real-record
+design. Frozen model implementations and environment locks must first enter the
+workspace through `research scientific object register`; the Skill never asks
+the user to hand-copy them into `.tiangong-research`. The CLI then enforces independent `research-design`, real-record
 `evidence-construct`, and `pilot-methods` reviews before discovery, acquisition,
 and analysis respectively. After acquisition it also requires exact
 decomposition records, evidence atoms, a typed-content snapshot, a passing
