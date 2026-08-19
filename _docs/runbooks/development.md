@@ -51,6 +51,21 @@ For skill changes, run the validator required by `AGENTS.md` from the
 scripts/quick_validate.py <skill-path>
 ```
 
+For `tsinghua-graduate-thesis` PDF renderer or visual-QA behavior, write the
+real-PDF regression first and run each phase through the targeted entrypoint:
+
+```bash
+tsinghua-graduate-thesis/scripts/test-clean-container.sh
+```
+
+The test fixture is a privacy-safe binary PDF with an embedded open-license CID
+Type 0C font, `Identity-H`, `Adobe-GB1`, and no `ToUnicode`. The failure path
+loads a real Poppler library whose compiled data directory is fault-injected;
+do not replace it with mocked stderr or a text-only assertion. Record the RED,
+turn the suite GREEN in a new container, and run both the targeted and full
+repository gates with `--cold-build` before PR delivery whenever their
+Dockerfiles or dependency inputs change.
+
 Run representative script tests when a skill script changes.
 
 For `tiangong-auto-research` or any direct evidence wrapper, including
@@ -65,8 +80,8 @@ scripts/test-clean-container.sh
 It builds from the digest-pinned Node 24 image, copies only the secret-filtered
 repository context, and runs the routing, resolver, agent wrapper, Research
 Policy/scientific-design/native-execution contract, generated agent metadata,
-SCI/report/patent wrapper suites, and the complete `academic-paper-download`
-unittest discovery as a non-root user
+the Tsinghua real-PDF renderer regression, SCI/report/patent wrapper suites,
+and the complete `academic-paper-download` unittest discovery as a non-root user
 with isolated HOME and runtime networking disabled. Do not mount host agent
 directories, CLIs, runtime caches, credentials, browser profiles, or source
 worktrees into the running container.

@@ -80,6 +80,13 @@ its `sandboxed-ide.md` reference. It owns no duplicate research schema or
 control-plane behavior. Independent review remains a CLI-owned Codex/Claude
 route through either the native platform capsule or the signed sidecar bridge.
 
+`tsinghua-graduate-thesis/scripts/render-pdf.mjs` is the thesis visual-QA
+renderer boundary. It probes a known nonblank page from the actual PDF, rejects
+Poppler language-pack/font failures even when the child process exits zero, and
+may fall through to another explicit or discovered `pdftoppm` candidate. Its
+clean-container suite uses a privacy-safe embedded CID Type 0C Adobe-GB1 PDF and
+a real fault-injected Poppler library; it does not mock renderer stderr.
+
 ## Integration Points
 
 - The root workspace pins this repository as a submodule.

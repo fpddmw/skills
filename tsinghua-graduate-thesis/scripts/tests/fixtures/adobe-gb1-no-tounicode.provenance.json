@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "fixture": {
+    "path": "adobe-gb1-no-tounicode.pdf",
+    "sha256": "77f75abffb4bd5859d92225848667a4a2be4ccbf8d14e446a8fc2b02e236984a",
+    "privacy": "Synthetic Chinese thesis text only; no user or thesis source data."
+  },
+  "font": {
+    "name": "Source Han Serif SC Regular",
+    "format": "OpenType CFF",
+    "repository": "adobe-fonts/source-han-serif",
+    "commit": "7889f11bf31170b5d092a083b357c8c8130f89e0",
+    "sourceSha256": "78aa7a328fd974df2d688c8a9fd74a33d8334dfa84ab24d9d11efb2ffc464117",
+    "license": "SIL Open Font License 1.1"
+  },
+  "pdf": {
+    "fontType": "CID Type 0C",
+    "encoding": "Identity-H",
+    "cidRegistry": "Adobe",
+    "cidOrdering": "GB1",
+    "fontEmbedded": true,
+    "toUnicodePresent": false
+  },
+  "generation": {
+    "texEngine": "XeTeX 0.999998 (TeX Live 2026)",
+    "postProcessor": "pypdf 6.10.0",
+    "operation": "Remove ToUnicode and set the embedded Type0 descendant CIDSystemInfo to Adobe-GB1."
+  }
+}

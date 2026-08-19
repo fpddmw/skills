@@ -1,5 +1,12 @@
 FROM node:24.19.0-bookworm@sha256:934240a162082fd8b8a2f90cd5114446443f1eba1c5378f6687167ca405e6584
 
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends poppler-data poppler-utils python3 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY scripts/tests/prepare-broken-poppler.py /tmp/prepare-broken-poppler.py
+RUN python3 /tmp/prepare-broken-poppler.py
+
 WORKDIR /skill
 COPY --chown=node:node . .
 
@@ -7,4 +14,4 @@ USER node
 ENV CI_CLEAN_CONTAINER=1
 ENV HOME=/home/node
 
-CMD ["node", "--test", "scripts/tests/skill-contract.test.mjs"]
+CMD ["sh", "-lc", "node --test scripts/tests/*.test.mjs"]
