@@ -77,7 +77,8 @@
                 "./document-granular-decompose",
                 "./notebooklm-Invoke",
                 "./figshare-data-download",
-                "./domain-onboarding"
+                "./domain-onboarding",
+                "./tsinghua-graduate-thesis"
             ]
         },
         {

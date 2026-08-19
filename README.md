@@ -43,6 +43,10 @@ npm i skills -g
   ```bash
   npx skills add https://github.com/tiangong-ai/skills --skill tiangong-auto-research --skill tiangong-kb-sci-search
   ```
+- Install the Tsinghua graduate thesis LaTeX workflow:
+  ```bash
+  npx skills add https://github.com/tiangong-ai/skills --skill tsinghua-graduate-thesis
+  ```
 - For a WorkBuddy/CodeBuddy producer, install the thin adapter beside the
   canonical orchestrator:
   ```bash

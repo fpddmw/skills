@@ -1,0 +1,4 @@
+interface:
+  display_name: "Tsinghua Graduate Thesis"
+  short_description: "Format and verify ThuThesis LaTeX dissertations"
+  default_prompt: "Use $tsinghua-graduate-thesis to configure, compile, and visually verify my Tsinghua graduate thesis in LaTeX with ThuThesis."

@@ -43,6 +43,10 @@ npm i skills -g
   ```bash
   npx skills add https://github.com/tiangong-ai/skills --skill tiangong-auto-research --skill tiangong-kb-sci-search
   ```
+- 安装清华研究生学位论文 LaTeX 工作流:
+  ```bash
+  npx skills add https://github.com/tiangong-ai/skills --skill tsinghua-graduate-thesis
+  ```
 - WorkBuddy/CodeBuddy 作为 producer 时，在 canonical orchestrator 旁安装薄适配 Skill:
   ```bash
   npx skills add https://github.com/tiangong-ai/skills --skill tiangong-auto-research --skill tiangong-auto-research-workbuddy
