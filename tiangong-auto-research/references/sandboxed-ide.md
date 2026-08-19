@@ -84,13 +84,19 @@ reviewer CLI must reach its configured model service.
 Inside WorkBuddy/CodeBuddy, keep Default Permission and run:
 
 ```bash
-node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
+WORKBUDDY_AUTO_RESEARCH=/absolute/path/to/workspace/.agents/skills/tiangong-auto-research-workbuddy/scripts/workbuddy_research_cli.sh
+
+"$WORKBUDDY_AUTO_RESEARCH" --workspace /absolute/path/to/workspace -- \
   research reviewer status --workspace /absolute/path/to/workspace --json
 
-node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
+"$WORKBUDDY_AUTO_RESEARCH" --workspace /absolute/path/to/workspace -- \
   research reviewer doctor --confirm-agent-smoke-cost \
   --workspace /absolute/path/to/workspace --json
 ```
+
+The adapter rejects WorkBuddy's ambient Node 22 instead of continuing after
+`EBADENGINE`. It selects an explicit Node.js 24 executable and the adjacent
+`npx`, then the canonical resolver enforces the workspace's exact CLI version.
 
 Status is zero-model-cost and verifies the signed workspace/version/key binding
 plus negative probes. Doctor runs the real tool-free reviewer smoke and may use

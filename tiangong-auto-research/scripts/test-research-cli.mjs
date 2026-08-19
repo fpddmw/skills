@@ -8,6 +8,27 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const script = join(dirname(fileURLToPath(import.meta.url)), "research_cli.mjs");
+const resolverSource = await readFile(script, "utf8");
+assert.match(resolverSource, /AUTO_RESEARCH_NODE_VERSION_INVALID/);
+assert.match(resolverSource, /dirname\(process\.execPath\).*npx/s);
+const workBuddyLauncher = join(
+  dirname(script),
+  "..",
+  "..",
+  "tiangong-auto-research-workbuddy",
+  "scripts",
+  "workbuddy_research_cli.sh",
+);
+const workBuddyLauncherSource = await readFile(workBuddyLauncher, "utf8");
+for (const marker of [
+  "/usr/local/bin/node",
+  "/opt/homebrew/bin/node",
+  "AUTO_RESEARCH_NODE",
+  "process.versions.node",
+  "research_cli.mjs",
+]) {
+  assert.ok(workBuddyLauncherSource.includes(marker), `WorkBuddy launcher must include ${marker}`);
+}
 const root = await mkdtemp(join(tmpdir(), "tiangong-auto-research-resolver-"));
 const fakeBin = join(root, "bin");
 const auditPath = join(root, "npx-args.json");
@@ -41,6 +62,7 @@ function invoke(workspace, extraEnv = {}) {
       env: {
         ...process.env,
         ...extraEnv,
+        AUTO_RESEARCH_NPX: fakeNpx,
         FAKE_NPX_AUDIT: auditPath,
         PATH: `${fakeBin}:${process.env.PATH ?? ""}`,
       },

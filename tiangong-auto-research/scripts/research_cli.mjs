@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
-import { lstat, readFile, realpath } from "node:fs/promises";
+import { constants as fsConstants } from "node:fs";
+import { access, lstat, readFile, realpath } from "node:fs/promises";
 import { spawn } from "node:child_process";
-import { isAbsolute, join, resolve } from "node:path";
+import { dirname, isAbsolute, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 const MAX_RUNTIME_LOCK_BYTES = 64 * 1024;
@@ -20,6 +21,39 @@ class ResolverError extends Error {
 
 function resolverError(code, message, minimumAction) {
   return new ResolverError(code, message, minimumAction);
+}
+
+function requireNode24() {
+  if (Number(process.versions.node.split(".")[0]) === 24) return;
+  throw resolverError(
+    "AUTO_RESEARCH_NODE_VERSION_INVALID",
+    `Auto Research requires Node.js 24; the current process is Node ${process.versions.node}.`,
+    "Run this resolver with an explicit Node.js 24 executable. In WorkBuddy/CodeBuddy use the installed workbuddy_research_cli.sh adapter instead of ambient node/npx.",
+  );
+}
+
+async function resolveNpxExecutable() {
+  const configured = process.env.AUTO_RESEARCH_NPX;
+  const candidate = configured ?? join(dirname(process.execPath), process.platform === "win32" ? "npx.cmd" : "npx");
+  if (!isAbsolute(candidate) || candidate.includes("\0")) {
+    throw resolverError(
+      "AUTO_RESEARCH_NPX_INVALID",
+      "The locked Auto Research resolver requires an absolute npx executable beside Node.js 24.",
+      "Install npx beside the selected Node.js 24 runtime or set AUTO_RESEARCH_NPX to one reviewed absolute executable path.",
+    );
+  }
+  try {
+    const info = await lstat(candidate);
+    if (!info.isFile() && !info.isSymbolicLink()) throw new Error("not-file");
+    await access(candidate, fsConstants.X_OK);
+  } catch {
+    throw resolverError(
+      "AUTO_RESEARCH_NPX_INVALID",
+      "The locked Auto Research resolver could not use the npx executable beside Node.js 24.",
+      "Install npx beside the selected Node.js 24 runtime or set AUTO_RESEARCH_NPX to one reviewed absolute executable path.",
+    );
+  }
+  return candidate;
 }
 
 export async function resolveWorkspaceRuntime(workspaceInput) {
@@ -206,9 +240,10 @@ function writeStructuredError(error) {
 }
 
 async function run() {
+  requireNode24();
   const parsed = parseArguments(process.argv.slice(2));
   const runtime = await resolveWorkspaceRuntime(parsed.workspace);
-  const executable = process.platform === "win32" ? "npx.cmd" : "npx";
+  const executable = await resolveNpxExecutable();
   const args = [
     "--yes",
     "--package",

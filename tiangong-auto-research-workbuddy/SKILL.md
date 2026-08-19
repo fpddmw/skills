@@ -15,6 +15,12 @@ current stage. That canonical Skill owns the research workflow, schemas,
 budgets, evidence rules, and recovery behavior; this adapter does not duplicate
 them.
 
+Run canonical CLI operations through this adapter's
+`scripts/workbuddy_research_cli.sh`. It selects only an explicit Node.js 24
+runtime and then delegates to the sibling canonical resolver. Do not call
+WorkBuddy's ambient Node 22/npx after an `EBADENGINE` warning and do not suppress
+the engine requirement.
+
 Keep WorkBuddy in Default Permission mode. Never choose Full Access, an
 unsandboxed-command escape hatch, `dangerouslyDisableSandbox`,
 `dangerously-skip-permissions`, `excludedCommands`, or silent transport
