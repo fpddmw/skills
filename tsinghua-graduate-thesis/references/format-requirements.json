@@ -1,0 +1,294 @@
+{
+  "schemaVersion": 1,
+  "title": "清华大学研究生学位论文 LaTeX 格式要求",
+  "baseline": {
+    "asOf": "2026-08-19",
+    "graduateGuideVersion": "2025-03",
+    "deltaVersion": "2026-05",
+    "thuthesisVersion": "7.7.1",
+    "note": "通用细则来自 2025-03 指南；2026-05 授权页变化由 ThuThesis v7.7.1 更新日志与实现补足。每次任务仍须检查院系和研究生院当前来源。"
+  },
+  "dimensions": {
+    "degree": ["master", "doctor"],
+    "degreeType": ["academic", "professional"],
+    "language": ["chinese", "english"],
+    "output": ["print", "electronic"],
+    "secrecy": ["public", "secret"]
+  },
+  "sources": [
+    {
+      "id": "department-current",
+      "title": "当前院系、学位项目或学位评定分委员会要求",
+      "version": "task-specific",
+      "url": null,
+      "authority": 1
+    },
+    {
+      "id": "graduate-guide-2025-03",
+      "title": "清华大学研究生学位论文写作指南",
+      "version": "2025-03",
+      "url": "https://www.dhs.tsinghua.edu.cn/wp-content/uploads/2023/12/2025032107444819.pdf",
+      "authority": 2
+    },
+    {
+      "id": "graduate-guide-2026-05-delta",
+      "title": "2026 年 5 月研究生论文写作指南变更（授权页措辞）",
+      "version": "2026-05",
+      "url": "https://github.com/tuna/thuthesis/blob/master/CHANGELOG.md",
+      "authority": 2
+    },
+    {
+      "id": "thuthesis-7.7.1",
+      "title": "ThuThesis 使用说明与发布实现",
+      "version": "7.7.1",
+      "url": "https://github.com/tuna/thuthesis/releases/tag/v7.7.1",
+      "authority": 4
+    }
+  ],
+  "categories": [
+    {"id": "source-and-scope", "title": "来源与适用范围"},
+    {"id": "profile", "title": "论文画像"},
+    {"id": "structure", "title": "组成与顺序"},
+    {"id": "binding-and-print", "title": "装订与印刷"},
+    {"id": "cover-chinese", "title": "中文封面"},
+    {"id": "cover-english", "title": "英文封面"},
+    {"id": "committee", "title": "指导小组、评阅人与答辩委员会"},
+    {"id": "authorization", "title": "学位论文使用授权"},
+    {"id": "abstract-chinese", "title": "中文摘要"},
+    {"id": "abstract-english", "title": "英文摘要"},
+    {"id": "toc", "title": "目录"},
+    {"id": "lists", "title": "插图和附表清单"},
+    {"id": "symbols", "title": "符号和缩略语说明"},
+    {"id": "body-start", "title": "正文起始与章节"},
+    {"id": "headings", "title": "标题层级"},
+    {"id": "body-text", "title": "正文段落"},
+    {"id": "footnotes", "title": "脚注"},
+    {"id": "references-layout", "title": "参考文献版式"},
+    {"id": "references-citations", "title": "参考文献标注与组织"},
+    {"id": "appendix", "title": "附录"},
+    {"id": "acknowledgements", "title": "致谢"},
+    {"id": "statement", "title": "声明"},
+    {"id": "resume-achievements", "title": "个人简历与学术成果"},
+    {"id": "advisor-comments", "title": "指导教师或小组评语"},
+    {"id": "resolution", "title": "答辩委员会决议书"},
+    {"id": "other-materials", "title": "其他材料"},
+    {"id": "units", "title": "量和单位"},
+    {"id": "figures", "title": "插图"},
+    {"id": "tables", "title": "表格"},
+    {"id": "equations", "title": "表达式与数学符号"},
+    {"id": "page-layout", "title": "页面设置"},
+    {"id": "headers-pagination", "title": "篇眉与页码"},
+    {"id": "language-and-content", "title": "语言与内容表达"},
+    {"id": "thuthesis-build", "title": "ThuThesis 配置与构建"},
+    {"id": "pdf-submission", "title": "PDF 提交检查"},
+    {"id": "visual-qa", "title": "视觉检查"}
+  ],
+  "visualReview": {
+    "pageRoles": [
+      {"id": "chinese-cover", "selection": "中文封面页", "checks": ["题名换行与居中", "学位和导师信息字距", "封面边距"]},
+      {"id": "english-cover", "selection": "英文封面页", "checks": ["Arial 题名与大小写", "中英文信息对应", "封面边距"]},
+      {"id": "authorization", "selection": "授权说明或真实扫描替换页", "checks": ["2026-05 措辞", "签名真实性与裁切", "无篇眉页码"]},
+      {"id": "chinese-abstract", "selection": "中文摘要页", "checks": ["一页限制", "标题与正文层级", "关键词分隔", "罗马页码起点"]},
+      {"id": "table-of-contents", "selection": "目录第一页及任一跨行标题页", "checks": ["层级缩进", "悬挂对齐", "页码与点线", "字体混排"]},
+      {"id": "body-opening", "selection": "正文第 1 章第一页", "checks": ["右页起始", "阿拉伯页码重置", "章标题间距", "篇眉"]},
+      {"id": "figure-table-equation", "selection": "同时含图、表或公式的高复杂度页面", "checks": ["题注位置和间距", "编号连接符", "图中文字清晰度", "公式编号右对齐"]},
+      {"id": "references", "selection": "参考文献首尾页及一条跨行文献", "checks": ["字号和 16 磅行距", "悬挂缩进", "序号或著者年组织", "断页"]},
+      {"id": "statement", "selection": "声明页或真实扫描替换页", "checks": ["公开或涉密措辞", "页眉页码模式", "签名真实性", "页面裁切"]},
+      {"id": "final-material", "selection": "个人简历、评语、决议或最后一项适用材料的末页", "checks": ["顺序与完整性", "最后页溢出", "连续页码", "无意外空页"]}
+    ]
+  },
+  "requirements": [
+    {"id":"source.precedence","category":"source-and-scope","severity":"required","appliesTo":{},"requirement":"院系、项目或分委员会的当前专门要求优先于学校通用规则；学校指南文字优先于附件和模板实现。","source":{"id":"graduate-guide-2025-03","locator":"前言；附录 A/B 说明"},"thuthesis":{"status":"department"},"verification":["记录院系来源与日期","列出所有覆盖项"]},
+    {"id":"source.version-lock","category":"source-and-scope","severity":"required","appliesTo":{},"requirement":"每次任务锁定指南版本、ThuThesis 发布版本、获取日期与输入 SHA-256；离线包不得称为最新版。","source":{"id":"thuthesis-7.7.1","locator":"README 下载与注意事项"},"thuthesis":{"status":"manual-review"},"verification":["保存来源记录","核对发布 tag 和哈希"]},
+    {"id":"source.conflict-report","category":"source-and-scope","severity":"required","appliesTo":{},"requirement":"高低优先级来源冲突时执行高优先级规则，并在交付报告中逐项说明差异与影响。","source":{"id":"graduate-guide-2025-03","locator":"前言；附录说明"},"thuthesis":{"status":"manual-review"},"verification":["生成冲突清单","确认无静默覆盖"]},
+    {"id":"source.no-certification","category":"source-and-scope","severity":"required","appliesTo":{},"requirement":"Agent 检查只能报告已验证、有条件通过或未验证，不得宣称学校、院系或导师正式认证。","source":{"id":"department-current","locator":"任务授权与审查边界"},"thuthesis":{"status":"manual-review"},"verification":["审查最终措辞"]},
+
+    {"id":"profile.degree","category":"profile","severity":"required","appliesTo":{},"requirement":"明确硕士或博士，并映射到 documentclass 的 degree=master 或 degree=doctor。","source":{"id":"thuthesis-7.7.1","locator":"§4.2.1 学位"},"thuthesis":{"status":"configure","keys":["degree"]},"verification":["检查 documentclass 选项"]},
+    {"id":"profile.degree-type","category":"profile","severity":"required","appliesTo":{},"requirement":"明确学术学位或专业学位，并映射到 degree-type=academic 或 professional。","source":{"id":"thuthesis-7.7.1","locator":"§4.2.2 学位类型"},"thuthesis":{"status":"configure","keys":["degree-type"]},"verification":["检查 documentclass 选项","核对封面颜色与学位名称"]},
+    {"id":"profile.language","category":"profile","severity":"required","appliesTo":{},"requirement":"明确论文主要语言；国际研究生以中文或英文撰写时仍必须有中文封面。","source":{"id":"graduate-guide-2025-03","locator":"§4.1 论文的语言及表述"},"thuthesis":{"status":"configure","keys":["language"]},"verification":["检查主语言设置","检查中文封面"]},
+    {"id":"profile.output","category":"profile","severity":"required","appliesTo":{},"requirement":"明确打印版或电子提交版；两者空白页策略不同，不得混用。","source":{"id":"thuthesis-7.7.1","locator":"§4.3.1 输出格式"},"thuthesis":{"status":"configure","keys":["output"]},"verification":["检查 output 设置","核对空白页"]},
+    {"id":"profile.secrecy","category":"profile","severity":"required","appliesTo":{},"requirement":"明确公开或涉密状态；涉密级别与年限必须来自用户和学校真实记录。","source":{"id":"thuthesis-7.7.1","locator":"§4.4.10 密级"},"thuthesis":{"status":"configure","keys":["secret-level","secret-year"]},"verification":["检查封面密级","检查声明措辞"]},
+
+    {"id":"structure.canonical-order","category":"structure","severity":"required","appliesTo":{},"requirement":"按中文封面、英文封面、名单、授权、中文摘要、英文摘要、目录、图表清单、符号表、正文、参考文献、附录、致谢、声明、简历成果、评语、决议和其他材料的顺序组织。","source":{"id":"graduate-guide-2025-03","locator":"§2.1 学位论文组成部分及顺序"},"thuthesis":{"status":"author"},"verification":["对照主 tex 输入顺序","核对 PDF 书签顺序"]},
+    {"id":"structure.new-page","category":"structure","severity":"required","appliesTo":{},"requirement":"每个组成部分独立成一部分并从新页开始；正文各章另起页。","source":{"id":"graduate-guide-2025-03","locator":"§2.1；§2.3.9.1"},"thuthesis":{"status":"automatic"},"verification":["检查分页和书签","确认无手工空行模拟分页"]},
+    {"id":"structure.conditional-parts","category":"structure","severity":"conditional","appliesTo":{},"requirement":"图表清单、符号表、附录和其他材料仅在实际存在或院系要求时加入；不保留空章节。","source":{"id":"graduate-guide-2025-03","locator":"§2.1；§2.3.7-2.3.8；§2.3.11；§2.3.17"},"thuthesis":{"status":"author"},"verification":["检查条件性部分是否有真实内容"]},
+    {"id":"structure.real-records","category":"structure","severity":"required","appliesTo":{},"requirement":"授权签名、评语、答辩决议和审批内容只能来自真实材料，不得由 Agent 生成或推断。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.13；§2.3.15-2.3.16"},"thuthesis":{"status":"manual-review"},"verification":["核对来源文件和内容一致性"]},
+
+    {"id":"print.a4","category":"binding-and-print","severity":"required","appliesTo":{"output":["print"]},"requirement":"印制使用 A4 标准纸 210mm×297mm，必须是打印件、印刷件或复印件。","source":{"id":"graduate-guide-2025-03","locator":"§2.2 学位论文装订要求"},"thuthesis":{"status":"automatic"},"verification":["用 pdfinfo 核对页面尺寸"]},
+    {"id":"print.doctor-academic-cover","category":"binding-and-print","severity":"required","appliesTo":{"degree":["doctor"],"degreeType":["academic"],"output":["print"]},"requirement":"学术学位博士封面使用白色铜版纸，一般为 120 克或 150 克。","source":{"id":"graduate-guide-2025-03","locator":"§2.2"},"thuthesis":{"status":"manual-review"},"verification":["在印制交付单确认纸张"]},
+    {"id":"print.doctor-professional-cover","category":"binding-and-print","severity":"required","appliesTo":{"degree":["doctor"],"degreeType":["professional"],"output":["print"]},"requirement":"专业学位博士封面使用亮灰色铜版纸（珠光 250 克银灰）。","source":{"id":"graduate-guide-2025-03","locator":"§2.2"},"thuthesis":{"status":"manual-review"},"verification":["在印制交付单确认纸张"]},
+    {"id":"print.master-academic-cover","category":"binding-and-print","severity":"required","appliesTo":{"degree":["master"],"degreeType":["academic"],"output":["print"]},"requirement":"学术学位硕士封面为奶黄色，参考纪州色纸 NP31#。","source":{"id":"graduate-guide-2025-03","locator":"§2.2"},"thuthesis":{"status":"manual-review"},"verification":["在印制交付单确认颜色"]},
+    {"id":"print.master-professional-cover","category":"binding-and-print","severity":"required","appliesTo":{"degree":["master"],"degreeType":["professional"],"output":["print"]},"requirement":"专业学位硕士封面为湖蓝色，参考纪州色纸 NP11#。","source":{"id":"graduate-guide-2025-03","locator":"§2.2"},"thuthesis":{"status":"manual-review"},"verification":["在印制交付单确认颜色"]},
+    {"id":"print.single-sided-front","category":"binding-and-print","severity":"required","appliesTo":{"output":["print"]},"requirement":"中文封面、英文封面、名单和授权四部分单面印刷且无篇眉页码；从中文摘要起双面印刷。","source":{"id":"graduate-guide-2025-03","locator":"§2.2；§2.4.1"},"thuthesis":{"status":"automatic"},"verification":["检查前置空白页","检查摘要起双面顺序"]},
+    {"id":"print.body-right-page","category":"binding-and-print","severity":"required","appliesTo":{"output":["print"]},"requirement":"正文第 1 章从另页右页开始；打印版应保留为满足右页起始所需的空白页。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.9.1；§2.4.1"},"thuthesis":{"status":"automatic"},"verification":["以双页视图确认正文起始"]},
+
+    {"id":"cover-cn.title-length","category":"cover-chinese","severity":"required","appliesTo":{},"requirement":"中文论文题目严格控制在 25 个汉字或字符以内。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.1 论文题目"},"thuthesis":{"status":"author","keys":["title"]},"verification":["按字符核对题名"]},
+    {"id":"cover-cn.title-style","category":"cover-chinese","severity":"required","appliesTo":{},"requirement":"中文题名用一号中易黑体居中；一行放不下可分两行并用 1.25 倍行距，断行保持术语和词语完整。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.1 论文题目"},"thuthesis":{"status":"automatic"},"verification":["渲染中文封面","检查断行和字体"]},
+    {"id":"cover-cn.degree-category","category":"cover-chinese","severity":"required","appliesTo":{},"requirement":"题名下括号内准确填写学术学位所属学科门类或专业学位类别，使用三号宋体。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.1 申请学位类别"},"thuthesis":{"status":"configure","keys":["degree-category"]},"verification":["对照学科目录和画像"]},
+    {"id":"cover-cn.department-discipline","category":"cover-chinese","severity":"required","appliesTo":{},"requirement":"培养单位写院系全名且不加“清华大学”；学术学位按授权情况填写一级或二级学科正式名称。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.1 作者及指导教师信息"},"thuthesis":{"status":"configure","keys":["department","discipline"]},"verification":["对照院系与学科目录"]},
+    {"id":"cover-cn.professional-field","category":"cover-chinese","severity":"conditional","appliesTo":{"degreeType":["professional"]},"requirement":"仅设置专业领域的专业学位填写相应领域；2019 级及以前工程硕士按要求填写工程领域，其他类别不虚构。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.1 专业或工程领域"},"thuthesis":{"status":"configure","keys":["professional-field","engineering-field"]},"verification":["向院系确认适用性"]},
+    {"id":"cover-cn.advisors","category":"cover-chinese","severity":"required","appliesTo":{},"requirement":"指导教师以学籍管理系统记录为准，姓名后列专业技术职务；经批准备案的副导师或联合导师最多各按真实情况列一名。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.1 指导教师"},"thuthesis":{"status":"configure","keys":["supervisor","associate-supervisor","co-supervisor"]},"verification":["核对学籍记录","检查西文逗号分隔姓名与职称"]},
+    {"id":"cover-cn.info-date-margins","category":"cover-chinese","severity":"required","appliesTo":{},"requirement":"作者及导师信息用三号仿宋；不超过四字的姓名等宽均匀间隔；日期用三号宋体汉字不用阿拉伯数字；页边距上/下 6.0cm、左/右 4.0cm、装订线 0。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.1 作者信息、日期、页面设置"},"thuthesis":{"status":"automatic","keys":["author","date"]},"verification":["渲染封面测量边距","检查日期字形和姓名字距"]},
+
+    {"id":"cover-en.correspondence","category":"cover-english","severity":"required","appliesTo":{},"requirement":"英文封面各项内容与中文封面语义一致，不得出现不同题名、学位、导师或日期。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.2 英文封面"},"thuthesis":{"status":"author"},"verification":["逐项中英文对照"]},
+    {"id":"cover-en.title-style","category":"cover-english","severity":"required","appliesTo":{},"requirement":"英文题名用 Arial 20pt 加粗居中，英文实词首字母大写。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.2"},"thuthesis":{"status":"automatic","keys":["title*"]},"verification":["渲染英文封面检查字体和大小写"]},
+    {"id":"cover-en.degree-name","category":"cover-english","severity":"required","appliesTo":{},"requirement":"学术博士填 Doctor of Philosophy；学术硕士按门类填 Master of Arts 或 Master of Science；专业学位使用准确英文名称。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.2；ThuThesis §4.4.2 表 3"},"thuthesis":{"status":"configure","keys":["degree-category*"]},"verification":["对照学位类别中英文表"]},
+    {"id":"cover-en.margins","category":"cover-english","severity":"required","appliesTo":{},"requirement":"英文封面页边距上 5.5cm、下 5.0cm、左/右 3.6cm、装订线 0。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.2 页面设置"},"thuthesis":{"status":"automatic"},"verification":["渲染后测量英文封面边距"]},
+
+    {"id":"committee.content","category":"committee","severity":"required","appliesTo":{},"requirement":"名单以无框线列表呈现，包含实际指导小组、公开评阅人与答辩委员会信息，无需签名。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.3"},"thuthesis":{"status":"author","commands":["committee"]},"verification":["核对名单和机构","确认无伪造签名"]},
+    {"id":"committee.title","category":"committee","severity":"required","appliesTo":{},"requirement":"有指导小组和无指导小组时使用对应完整章标题；章标题三号居中，中文黑体、西文数字 Arial，单倍行距，段前 24 磅、段后 18 磅。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.3"},"thuthesis":{"status":"configure","commands":["committee name"]},"verification":["核对画像和标题","渲染测量间距"]},
+    {"id":"committee.subheads-table","category":"committee","severity":"required","appliesTo":{},"requirement":"各名单小标题用黑体四号居中、固定 20 磅、段前 24 磅段后 6 磅；表格内容小四宋体居中。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.3"},"thuthesis":{"status":"automatic"},"verification":["视觉检查小标题和表格"]},
+    {"id":"committee.anonymous-page-limit","category":"committee","severity":"conditional","appliesTo":{},"requirement":"全隐名评阅写“无（全隐名评阅）”；原则上一页内，名单过长才拆为两页并同步修改标题。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.3"},"thuthesis":{"status":"author"},"verification":["核对评阅方式","检查页数和标题"]},
+
+    {"id":"authorization.current-text","category":"authorization","severity":"required","appliesTo":{},"requirement":"使用与 2026 年 5 月指南一致的博士、硕士统一授权页措辞，不手抄旧版本。","source":{"id":"graduate-guide-2026-05-delta","locator":"v7.7.1 Added；#1064"},"thuthesis":{"status":"automatic","commands":["copyrightpage"]},"verification":["确认模板版本为 7.7.1 或更新","抽查授权页文本"]},
+    {"id":"authorization.single-use","category":"authorization","severity":"required","appliesTo":{},"requirement":"授权页命令只调用一次；真实签名扫描页只能由用户提供并通过 file 参数替换。","source":{"id":"thuthesis-7.7.1","locator":"§4.5.2 授权说明"},"thuthesis":{"status":"configure","commands":["copyrightpage"]},"verification":["搜索重复命令","核对扫描来源"]},
+    {"id":"authorization.no-header-page","category":"authorization","severity":"required","appliesTo":{},"requirement":"授权页属于前四个单面部分，不加篇眉和页码；扫描替换页保持 A4、方向和裁切一致。","source":{"id":"graduate-guide-2025-03","locator":"§2.2；§2.4.1"},"thuthesis":{"status":"automatic"},"verification":["渲染授权页","检查页眉页脚和裁切"]},
+
+    {"id":"abstract-cn.title-body","category":"abstract-chinese","severity":"required","appliesTo":{},"requirement":"标题“摘要”用黑体三号居中、单倍行距、段前 24 磅段后 18 磅；正文小四宋体两端对齐。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.5"},"thuthesis":{"status":"automatic","commands":["abstract"]},"verification":["渲染摘要页检查标题和正文"]},
+    {"id":"abstract-cn.length","category":"abstract-chinese","severity":"required","appliesTo":{},"requirement":"中文摘要控制在 800–1000 汉字或字符并限制在一页内。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.5"},"thuthesis":{"status":"author"},"verification":["统计字符","确认摘要仅一页"]},
+    {"id":"abstract-cn.no-graphics","category":"abstract-chinese","severity":"required","appliesTo":{},"requirement":"摘要中不得出现图片、图表、表格或其他插图材料。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.5"},"thuthesis":{"status":"author"},"verification":["检查摘要环境内容"]},
+    {"id":"abstract-cn.keywords","category":"abstract-chinese","severity":"required","appliesTo":{},"requirement":"关键词不超过 5 个，用分号分隔；在 LaTeX 配置中以西文逗号输入，由模板转换为规定格式。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.5；ThuThesis §4.5.3"},"thuthesis":{"status":"configure","keys":["keywords"]},"verification":["统计关键词","检查输出分号"]},
+    {"id":"abstract-cn.content","category":"abstract-chinese","severity":"required","appliesTo":{},"requirement":"摘要独立自含，概括问题与目的、方法和过程、结果与结论，重点是结果结论，不写成逐章提纲。","source":{"id":"graduate-guide-2025-03","locator":"§4.3 摘要的写法"},"thuthesis":{"status":"author"},"verification":["内容审查摘要结构"]},
+
+    {"id":"abstract-en.title","category":"abstract-english","severity":"required","appliesTo":{},"requirement":"标题“Abstract”用 Arial 三号居中、单倍行距、段前 24 磅段后 18 磅。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.5"},"thuthesis":{"status":"automatic","commands":["abstract*"]},"verification":["渲染英文摘要标题"]},
+    {"id":"abstract-en.body","category":"abstract-english","severity":"required","appliesTo":{},"requirement":"英文摘要正文用小四 Times New Roman、两端对齐并使用英文标点。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.5"},"thuthesis":{"status":"automatic"},"verification":["检查字体、对齐和标点"]},
+    {"id":"abstract-en.correspondence","category":"abstract-english","severity":"required","appliesTo":{},"requirement":"英文摘要与中文摘要内容对应；Keywords 与中文关键词一一对应并用分号分隔。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.5"},"thuthesis":{"status":"author","keys":["keywords*"]},"verification":["双语逐项对照","检查关键词数量"]},
+    {"id":"abstract-en.frontmatter-start","category":"abstract-english","severity":"required","appliesTo":{},"requirement":"篇眉和页码从中文摘要开始；英文摘要承接同一前置部分罗马页码序列。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.5；§2.4.2"},"thuthesis":{"status":"automatic"},"verification":["检查摘要页篇眉和连续页码"]},
+
+    {"id":"toc.depth-range","category":"toc","severity":"required","appliesTo":{},"requirement":"目录列到二级节标题（示例 2.2.5）即可，内容从中文摘要开始直至论文结束。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.6"},"thuthesis":{"status":"automatic","keys":["toc-depth"]},"verification":["检查目录层级和起止范围"]},
+    {"id":"toc.title","category":"toc","severity":"required","appliesTo":{},"requirement":"目录标题黑体三号居中、单倍行距、段前 24 磅段后 18 磅。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.6"},"thuthesis":{"status":"automatic","commands":["tableofcontents"]},"verification":["渲染目录标题"]},
+    {"id":"toc.indentation","category":"toc","severity":"required","appliesTo":{},"requirement":"章标题行居左，一级节缩进 1 个汉字符，二级节缩进 2 个汉字符。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.6"},"thuthesis":{"status":"automatic"},"verification":["视觉测量目录缩进"]},
+    {"id":"toc.font-spacing","category":"toc","severity":"required","appliesTo":{},"requirement":"目录章标题小四，中文黑体、西文数字 Arial；其他内容宋体小四，西文数字 Times New Roman，固定 20 磅，段前后 0。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.6"},"thuthesis":{"status":"automatic"},"verification":["检查混排字体和行距"]},
+    {"id":"toc.hanging-auto","category":"toc","severity":"required","appliesTo":{},"requirement":"标题尽量单行，跨行时悬挂对齐；目录必须自动生成并在最终编译后更新稳定，不手填页码。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.6"},"thuthesis":{"status":"automatic"},"verification":["检查跨行目录项","连续编译后比较目录"]},
+
+    {"id":"lists.selection","category":"lists","severity":"conditional","appliesTo":{},"requirement":"图表较多时分别生成插图清单和附表清单，插图在前；一类或两类较少时可合并为插图和附表清单。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.7"},"thuthesis":{"status":"configure","commands":["listoffigures","listoftables","listoffiguresandtables"]},"verification":["根据图表数量和院系要求选择"]},
+    {"id":"lists.position","category":"lists","severity":"conditional","appliesTo":{},"requirement":"清单另起一页并置于目录之后；分别列出序号、题名和页码。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.7"},"thuthesis":{"status":"automatic"},"verification":["检查顺序和分页"]},
+    {"id":"lists.style","category":"lists","severity":"conditional","appliesTo":{},"requirement":"清单标题黑体三号居中、单倍、段前 24 磅段后 18 磅；内容宋体小四、西文数字 Times New Roman、固定 20 磅、段前后 0。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.7"},"thuthesis":{"status":"automatic"},"verification":["渲染清单检查字体和间距"]},
+    {"id":"lists.hanging-subfig","category":"lists","severity":"conditional","appliesTo":{},"requirement":"跨行题名使用悬挂对齐；分图不单独出现在图表清单中；清单由 caption 自动生成。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.7；ThuThesis §4.5.4"},"thuthesis":{"status":"automatic"},"verification":["检查跨行条目","确认分图未重复"]},
+
+    {"id":"symbols.when","category":"symbols","severity":"conditional","appliesTo":{},"requirement":"大量物理量、符号、缩略词、专门单位或自定义术语时设置专门说明；数量少时在首次出现处解释。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.8"},"thuthesis":{"status":"author","commands":["denotation"]},"verification":["盘点符号和缩略语"]},
+    {"id":"symbols.style","category":"symbols","severity":"conditional","appliesTo":{},"requirement":"标题黑体三号居中、单倍、段前 24 磅段后 18 磅；内容宋体小四、西文数字 Times New Roman、固定 20 磅、段前后 0。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.8"},"thuthesis":{"status":"automatic"},"verification":["渲染符号表检查样式"]},
+    {"id":"symbols.column-width","category":"symbols","severity":"recommended","appliesTo":{},"requirement":"denotation 符号列默认宽 2.5cm；仅在符号溢出或空白过大时用可选参数调整，并保持全表一致。","source":{"id":"thuthesis-7.7.1","locator":"§4.5.5 符号对照表"},"thuthesis":{"status":"configure","commands":["denotation optional width"]},"verification":["视觉检查符号列和说明列"]},
+
+    {"id":"body.right-page","category":"body-start","severity":"required","appliesTo":{"output":["print"]},"requirement":"正文从另页右页开始，不能为了电子预览手工删除打印版所需空白页。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.9.1"},"thuthesis":{"status":"automatic"},"verification":["双页模式检查正文第一页"]},
+    {"id":"body.chapter-new-page","category":"body-start","severity":"required","appliesTo":{},"requirement":"每一章另起页，主体一般从引言或绪论开始并以结论结束。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.9.1"},"thuthesis":{"status":"automatic"},"verification":["检查 chapter 分页和顺序"]},
+    {"id":"body.logical-sequence","category":"body-start","severity":"required","appliesTo":{},"requirement":"正文分章节论述、层次分明且逻辑连贯，不能把相互无关的工作拼接成一个主题。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.9.1；第4章引言"},"thuthesis":{"status":"author"},"verification":["结构审查章节关系"]},
+
+    {"id":"heading.chapter","category":"headings","severity":"required","appliesTo":{},"requirement":"章标题格式为“第 1 章　标题”，阿拉伯章号与标题间空一个汉字符；三号居中，中文黑体、西文数字 Arial，单倍，段前 24 磅段后 18 磅。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.9.2"},"thuthesis":{"status":"automatic","commands":["chapter"]},"verification":["渲染章首页检查格式"]},
+    {"id":"heading.level-one","category":"headings","severity":"required","appliesTo":{},"requirement":"一级节标题四号 14pt 左对齐，中文黑体、西文数字 Arial，固定 20 磅，段前 24 磅段后 6 磅。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.9.2"},"thuthesis":{"status":"automatic","commands":["section"]},"verification":["检查一级节样式"]},
+    {"id":"heading.level-two","category":"headings","severity":"required","appliesTo":{},"requirement":"二级节标题 13pt 左对齐，中文黑体、西文数字 Arial，固定 20 磅，段前 12 磅段后 6 磅。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.9.2"},"thuthesis":{"status":"automatic","commands":["subsection"]},"verification":["检查二级节样式"]},
+    {"id":"heading.level-three","category":"headings","severity":"recommended","appliesTo":{},"requirement":"三级节标题小四 12pt 左对齐，中文黑体、西文数字 Arial，固定 20 磅，段前 12 磅段后 6 磅；一般不建议使用。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.9.2"},"thuthesis":{"status":"automatic","commands":["subsubsection"]},"verification":["确认确有必要使用三级节"]},
+    {"id":"heading.unnumbered-equivalence","category":"headings","severity":"required","appliesTo":{},"requirement":"摘要、目录、清单、符号表、参考文献、附录、致谢、声明、简历成果、评语和决议等标题与章标题同级；Abstract 使用 Arial 三号。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.9.2"},"thuthesis":{"status":"automatic"},"verification":["抽查全部无编号部分标题"]},
+
+    {"id":"body-text.font","category":"body-text","severity":"required","appliesTo":{},"requirement":"正文小四 12pt，中文宋体，英文 Times New Roman，两端对齐。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.9.3"},"thuthesis":{"status":"automatic"},"verification":["抽查正文混排字体"]},
+    {"id":"body-text.paragraph","category":"body-text","severity":"required","appliesTo":{},"requirement":"段落首行缩进 2 个汉字符，固定 20 磅行距，段前 0、段后 0；含数学表达式的段落可按需要调整行距。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.9.3"},"thuthesis":{"status":"automatic"},"verification":["测量段落缩进和行距","检查公式段落无碰撞"]},
+    {"id":"body-text.backmatter","category":"body-text","severity":"required","appliesTo":{},"requirement":"附录、致谢、个人简历与成果、评语和决议的普通段落沿用正文文字格式。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.9.3"},"thuthesis":{"status":"automatic"},"verification":["抽查各后置部分正文样式"]},
+
+    {"id":"footnote.marker","category":"footnotes","severity":"required","appliesTo":{},"requirement":"脚注引用在句末用①②③等带圈数字以上标标示，并按页重新编号。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.9.4"},"thuthesis":{"status":"automatic","keys":["footnote-numbering"]},"verification":["跨页检查脚注编号重置"]},
+    {"id":"footnote.text-style","category":"footnotes","severity":"required","appliesTo":{},"requirement":"脚注正文小五号，中文宋体、西文数字 Times New Roman，两端对齐、单倍、段前后 0。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.9.4"},"thuthesis":{"status":"automatic"},"verification":["渲染脚注页检查字体和间距"]},
+    {"id":"footnote.hanging","category":"footnotes","severity":"required","appliesTo":{},"requirement":"脚注序号在脚注区使用正文而非上标字形，序号与文字间空半个汉字符，悬挂缩进 1.5 字符。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.9.4 页下注释"},"thuthesis":{"status":"automatic"},"verification":["放大检查脚注标记和悬挂"]},
+    {"id":"footnote.relevance","category":"footnotes","severity":"recommended","appliesTo":{},"requirement":"只对与正文关系不大的具体说明使用脚注；有来源的学术引用仍进入参考文献。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.9.4；§3.2"},"thuthesis":{"status":"author"},"verification":["区分注释和文献引用"]},
+
+    {"id":"references-layout.title","category":"references-layout","severity":"required","appliesTo":{},"requirement":"“参考文献”标题使用与章标题相同的格式并另起页。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.10；§3.1"},"thuthesis":{"status":"automatic"},"verification":["检查标题和分页"]},
+    {"id":"references-layout.body","category":"references-layout","severity":"required","appliesTo":{},"requirement":"参考文献正文五号，中文宋体、西文数字 Times New Roman，固定 16 磅，段前 3 磅段后 0。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.10；§3.5"},"thuthesis":{"status":"automatic"},"verification":["抽查文献字体和间距"]},
+    {"id":"references-layout.hanging","category":"references-layout","severity":"required","appliesTo":{},"requirement":"每条文献使用悬挂格式，悬挂缩进 2 个汉字符或 1cm。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.10；§3.5"},"thuthesis":{"status":"automatic"},"verification":["测量跨行文献悬挂"]},
+    {"id":"references-layout.page-break","category":"references-layout","severity":"recommended","appliesTo":{},"requirement":"尽量让同一条文献完整处于同一页；被迫分页时优先用合理留白或轻微局部调整，不能破坏全局版式。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.10"},"thuthesis":{"status":"manual-review"},"verification":["检查文献首尾页断行"]},
+
+    {"id":"citations.one-system","category":"references-citations","severity":"required","appliesTo":{},"requirement":"顺序编码制与著者-出版年制二选一，并在正文标注和文献表组织中全文一致。","source":{"id":"graduate-guide-2025-03","locator":"§3.4-3.5"},"thuthesis":{"status":"configure"},"verification":["检查引用命令与文献样式"]},
+    {"id":"citations.numeric","category":"references-citations","severity":"required","appliesTo":{},"requirement":"顺序编码制按首次出现顺序连续编号并置于方括号；同处多篇用逗号，连续序号用短横线。","source":{"id":"graduate-guide-2025-03","locator":"§3.4.1"},"thuthesis":{"status":"automatic","keys":["cite-style"]},"verification":["抽查多篇和连续引用"]},
+    {"id":"citations.numeric-pages","category":"references-citations","severity":"required","appliesTo":{},"requirement":"重复引用同一文献沿用首次序号，引文页码标在方括号序号之外。","source":{"id":"graduate-guide-2025-03","locator":"§3.4.1"},"thuthesis":{"status":"author"},"verification":["抽查带页码重复引用"]},
+    {"id":"citations.author-year","category":"references-citations","severity":"required","appliesTo":{},"requirement":"著者-出版年标注由著者姓氏和年份组成；多著者西文用首著者加 et al.，中文用首著者加空格和“等”；同年多篇用 a、b、c 区分。","source":{"id":"graduate-guide-2025-03","locator":"§3.4.2"},"thuthesis":{"status":"automatic"},"verification":["抽查多著者和同年文献"]},
+    {"id":"citations.list-order","category":"references-citations","severity":"required","appliesTo":{},"requirement":"顺序编码制文献表按正文序号；著者-出版年制先按文种集中，再按著者字顺和出版年排列，并与正文一一对应。","source":{"id":"graduate-guide-2025-03","locator":"§3.5"},"thuthesis":{"status":"configure"},"verification":["检查排序和孤立条目"]},
+    {"id":"citations.thuthesis-styles","category":"references-citations","severity":"required","appliesTo":{},"requirement":"BibTeX 顺序制使用 thuthesis-numeric，著者年制使用 thuthesis-author-year；BibLaTeX 使用同名 style，且不得与 natbib 混用。","source":{"id":"thuthesis-7.7.1","locator":"§4.7.1 参考文献"},"thuthesis":{"status":"configure","keys":["bibliography backend","bibliography style"]},"verification":["检查导言区宏包和构建日志"]},
+
+    {"id":"appendix.optional-label","category":"appendix","severity":"conditional","appliesTo":{},"requirement":"附录按 A、B、C 顺序编号；即使只有一个也命名为附录 A，每个附录必须有标题。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.11"},"thuthesis":{"status":"author","commands":["appendix","chapter"]},"verification":["检查附录标签和标题"]},
+    {"id":"appendix.body-style","category":"appendix","severity":"conditional","appliesTo":{},"requirement":"附录正文格式与正文相同，附录序号和标题之间空一个汉字符。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.11"},"thuthesis":{"status":"automatic"},"verification":["抽查附录标题和正文"]},
+    {"id":"appendix.local-numbering","category":"appendix","severity":"conditional","appliesTo":{},"requirement":"附录图、表、公式和文献独立于正文编号，并冠附录字母，如图 A.1、表 B.2、式（C-3）。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.11"},"thuthesis":{"status":"automatic"},"verification":["抽查附录交叉引用"]},
+    {"id":"appendix.toc-depth","category":"appendix","severity":"conditional","appliesTo":{},"requirement":"模板默认目录仅列附录章标题；院系另有要求时在 appendix 后用 toc-depth 显式调整。","source":{"id":"thuthesis-7.7.1","locator":"§4.7.4 附录"},"thuthesis":{"status":"configure","keys":["toc-depth"]},"verification":["检查附录目录层级"]},
+
+    {"id":"acknowledgements.one-page","category":"acknowledgements","severity":"required","appliesTo":{},"requirement":"致谢限制为一页，标题和篇眉均为“致谢”。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.12"},"thuthesis":{"status":"automatic","commands":["acknowledgements"]},"verification":["确认致谢页数和篇眉"]},
+    {"id":"acknowledgements.scope","category":"acknowledgements","severity":"required","appliesTo":{},"requirement":"致谢对象限于资助、协助、重要建议或帮助，以及授权转载引用资料、图片、思想和设想的主体。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.12"},"thuthesis":{"status":"author"},"verification":["内容审查致谢对象"]},
+    {"id":"acknowledgements.body-style","category":"acknowledgements","severity":"required","appliesTo":{},"requirement":"致谢普通段落沿用正文小四宋体/Times New Roman、20 磅、首行两字的格式。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.9.3；§2.3.12"},"thuthesis":{"status":"automatic"},"verification":["渲染致谢页"]},
+
+    {"id":"statement.position-page","category":"statement","severity":"required","appliesTo":{},"requirement":"声明置于致谢之后并单独一页，标题和篇眉均为“声明”。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.13"},"thuthesis":{"status":"automatic","commands":["statement"]},"verification":["检查顺序、分页和篇眉"]},
+    {"id":"statement.current-text","category":"statement","severity":"required","appliesTo":{"secrecy":["public"]},"requirement":"公开论文使用当前模板内置声明文本，并保留“不包含涉及国家秘密的内容”等当前规定措辞。","source":{"id":"thuthesis-7.7.1","locator":"§4.4.10；v7.6.0 变更"},"thuthesis":{"status":"automatic"},"verification":["检查模板版本和声明文本"]},
+    {"id":"statement.secret-text","category":"statement","severity":"required","appliesTo":{"secrecy":["secret"]},"requirement":"设置 secret-level 后由模板移除公开论文专用的非涉密声明措辞；不得手工拼接两套文本。","source":{"id":"thuthesis-7.7.1","locator":"§4.4.10 密级"},"thuthesis":{"status":"automatic","keys":["secret-level"]},"verification":["检查涉密声明差异"]},
+    {"id":"statement.scan-workflow","category":"statement","severity":"required","appliesTo":{},"requirement":"先以 page-style=empty 生成供打印签名页，用户提供真实扫描后再以 file 和 page-style=plain 替换；命令只调用一次。","source":{"id":"thuthesis-7.7.1","locator":"§4.7.3 声明"},"thuthesis":{"status":"configure","commands":["statement"]},"verification":["核对扫描来源","检查替换页篇眉页码和裁切"]},
+
+    {"id":"resume.personal","category":"resume-achievements","severity":"required","appliesTo":{},"requirement":"个人简历包含出生年月、获得学士和硕士学位的学校及时间等真实信息。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.14"},"thuthesis":{"status":"author","commands":["resume"]},"verification":["核对用户提供资料"]},
+    {"id":"resume.categories-numbering","category":"resume-achievements","severity":"required","appliesTo":{},"requirement":"在学期间成果按学术论文、专著/译著、专利、研究报告、作品等类型分列并连续编号。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.14"},"thuthesis":{"status":"author","commands":["achievements"]},"verification":["检查分类和连续编号"]},
+    {"id":"resume.none","category":"resume-achievements","severity":"required","appliesTo":{},"requirement":"没有相关成果时，在“在学期间完成的相关学术成果”标题下明确写“无”，不删除该事实或伪造成果。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.14"},"thuthesis":{"status":"author"},"verification":["检查空成果处理"]},
+    {"id":"resume.status-labels","category":"resume-achievements","severity":"required","appliesTo":{},"requirement":"论文、专著和专利参照参考文献书写；仅正式录用、决定出版或申请中的项目按指南注明期刊/出版社/预计时间/申请号，不夸大状态。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.14 各类成果"},"thuthesis":{"status":"author"},"verification":["逐条核对证明与状态措辞"]},
+
+    {"id":"advisor-comments.exact","category":"advisor-comments","severity":"required","appliesTo":{},"requirement":"评语内容与学位或毕业审批材料完全一致，导师或小组成员无需在论文内再次签名。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.15"},"thuthesis":{"status":"author"},"verification":["与审批材料逐字核对"]},
+    {"id":"advisor-comments.variants","category":"advisor-comments","severity":"conditional","appliesTo":{},"requirement":"有指导小组时可用小组评语替代或并列；并列时导师评语在前、小组评语在后。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.15"},"thuthesis":{"status":"author"},"verification":["按画像核对标题和顺序"]},
+    {"id":"advisor-comments.additional","category":"advisor-comments","severity":"conditional","appliesTo":{},"requirement":"备案联合导师或获同意成立评审小组时，可在导师评语后加入对应评语，并同步修改篇眉和章标题。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.15"},"thuthesis":{"status":"author"},"verification":["核对备案/批准事实","检查篇眉标题"]},
+
+    {"id":"resolution.exact","category":"resolution","severity":"required","appliesTo":{},"requirement":"答辩委员会决议书内容与学位或毕业审批材料完全一致，主席、委员和秘书无需在论文内再次签名。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.16"},"thuthesis":{"status":"author"},"verification":["与审批材料逐字核对"]},
+    {"id":"resolution.body-style","category":"resolution","severity":"required","appliesTo":{},"requirement":"决议书标题与章标题同级，正文段落沿用论文正文格式。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.9.2-2.3.9.3；§2.3.16"},"thuthesis":{"status":"automatic"},"verification":["渲染决议书页面"]},
+
+    {"id":"other-materials.authority","category":"other-materials","severity":"conditional","appliesTo":{},"requirement":"其他材料只在学位评定分委员会或院系明确要求时加入，不自行扩展提交包。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.17"},"thuthesis":{"status":"department"},"verification":["记录院系要求"]},
+    {"id":"other-materials.position-style","category":"other-materials","severity":"conditional","appliesTo":{},"requirement":"其他材料原则上置于答辩委员会决议书之后的最末位置，格式与全文总体一致并保持简洁。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.17"},"thuthesis":{"status":"author"},"verification":["检查顺序和页面样式"]},
+
+    {"id":"units.standards","category":"units","severity":"required","appliesTo":{},"requirement":"量和单位执行 GB 3100—1993、GB/T 3101—1993 和 GB/T 3102—1993 的规定。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.18"},"thuthesis":{"status":"author"},"verification":["抽查量符号和单位"]},
+    {"id":"units.consistency","category":"units","severity":"required","appliesTo":{},"requirement":"单位名称可用国际通用符号或中文名称，但全文选择一种表达并保持一致，不得混用。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.18"},"thuthesis":{"status":"author"},"verification":["全局搜索常用单位变体"]},
+
+    {"id":"figures.numbering","category":"figures","severity":"required","appliesTo":{},"requirement":"图按章用两段阿拉伯数字编号，章号与顺序号之间统一使用半角横线或小数点。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.19 图、表和表达式"},"thuthesis":{"status":"configure","keys":["figure-number-separator"]},"verification":["抽查全篇图号和连接符"]},
+    {"id":"figures.caption","category":"figures","severity":"required","appliesTo":{},"requirement":"图序和图题置于图下方，11pt 居中，中文宋体、西文数字 Times New Roman，段前 6 磅段后 12 磅、单倍，图序题名间空一汉字符。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.19 图"},"thuthesis":{"status":"automatic","commands":["caption"]},"verification":["渲染图页测量题注"]},
+    {"id":"figures.labels","category":"figures","severity":"required","appliesTo":{},"requirement":"图内标注宜 9–10.5pt 且全文一致；坐标轴题名、词组和描述性文字用中文，术语、符号、单位与正文一致。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.19 图"},"thuthesis":{"status":"author"},"verification":["放大检查图内文字和术语"]},
+    {"id":"figures.accessibility","category":"figures","severity":"recommended","appliesTo":{},"requirement":"不同序列优先用形状、线型或填充图案区分，避免仅依靠颜色。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.19 图"},"thuthesis":{"status":"author"},"verification":["灰度或色觉安全检查"]},
+    {"id":"figures.subfigures","category":"figures","severity":"required","appliesTo":{},"requirement":"分图以 (a)、(b)、(c) 编序并各有分图题；分图序号字号与放置方式全篇一致。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.19 图"},"thuthesis":{"status":"author"},"verification":["检查所有组合图"]},
+    {"id":"figures.placement-continuation","category":"figures","severity":"required","appliesTo":{},"requirement":"图紧随首次引用，尽量同页；过宽图逆时针旋转 90°，跨页图在续页注明“续图”及完整图题。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.19 图"},"thuthesis":{"status":"author"},"verification":["检查浮动位置、旋转和续图"]},
+    {"id":"figures.bilingual","category":"figures","severity":"conditional","appliesTo":{},"requirement":"需要英文图名时，中英文对照，英文图序与图名另起一行置于中文下方且内容一致。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.19 图"},"thuthesis":{"status":"author"},"verification":["逐项核对双语图题"]},
+
+    {"id":"tables.three-line","category":"tables","severity":"required","appliesTo":{},"requirement":"表格原则上采用三线表：上、下边线 1.5 磅，第三条线 1 磅；确实无法清晰表达时才使用其他格式。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.19 表"},"thuthesis":{"status":"author"},"verification":["检查表线数量和粗细"]},
+    {"id":"tables.cells","category":"tables","severity":"required","appliesTo":{},"requirement":"单元格一般上下左右居中，不能居中时两端对齐；文字 11pt，中文宋体、西文数字 Times New Roman，单倍，段前后各 3 磅。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.19 表"},"thuthesis":{"status":"automatic"},"verification":["抽查单元格对齐和间距"]},
+    {"id":"tables.caption","category":"tables","severity":"required","appliesTo":{},"requirement":"表序和表题置于表上方，11pt 居中，中文宋体、西文数字 Times New Roman，段前 12 磅段后 6 磅、单倍，序题间空一汉字符。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.19 表"},"thuthesis":{"status":"automatic","commands":["caption"]},"verification":["渲染表页测量题注"]},
+    {"id":"tables.continuation","category":"tables","severity":"required","appliesTo":{},"requirement":"跨页接排时每页表序前加“续表”，重复表头；资料来源只放在最后一段续表下。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.19 表"},"thuthesis":{"status":"author"},"verification":["检查 longtable 跨页和表头"]},
+    {"id":"tables.source-note","category":"tables","severity":"conditional","appliesTo":{},"requirement":"表下资料来源用五号，中文宋体、西文 Times New Roman，单倍，段前 6 磅段后 12 磅。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.19 表"},"thuthesis":{"status":"author"},"verification":["检查资料来源格式"]},
+    {"id":"tables.bilingual","category":"tables","severity":"conditional","appliesTo":{},"requirement":"需要英文表名时，中英文对照，英文表序与表名另起一行置于中文下方并与中文内容一致。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.19 表"},"thuthesis":{"status":"author"},"verification":["逐项核对双语表题"]},
+
+    {"id":"equations.numbering","category":"equations","severity":"required","appliesTo":{},"requirement":"表达式按章编号，编号加括号置于行末右侧且不加连线；正文引用写“式（3-1）”或“式（3.1）”。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.19 表达式"},"thuthesis":{"status":"configure","keys":["equation-number-separator","eqn-paren-style"]},"verification":["抽查公式编号和引用"]},
+    {"id":"equations.layout","category":"equations","severity":"required","appliesTo":{},"requirement":"独立表达式选择居中或另段缩进两汉字符之一并全文统一；较长表达式在运算符或闭括号后换行并尽量按等号对齐。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.19 表达式"},"thuthesis":{"status":"author"},"verification":["检查多行公式对齐和一致性"]},
+    {"id":"equations.font-spacing","category":"equations","severity":"required","appliesTo":{},"requirement":"表达式 12pt，采用 Cambria Math 或 Times New Roman 体系，单倍行距，段前后各 6 磅。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.19 表达式"},"thuthesis":{"status":"automatic","keys":["math-font"]},"verification":["检查数学字体和上下间距"]},
+    {"id":"equations.inline","category":"equations","severity":"recommended","appliesTo":{},"requirement":"行内表达式尽量降低到单行高度，例如用斜线分数或负指数，避免撑大正文行距。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.19 表达式"},"thuthesis":{"status":"author"},"verification":["检查行内公式造成的行距突变"]},
+    {"id":"equations.gb-style","category":"equations","severity":"required","appliesTo":{"language":["chinese"]},"requirement":"中文论文默认 math-style=GB：数学常数、特殊函数和微分号用正体，向量/矩阵/张量用粗斜体；不要沿用不一致的 AMS 默认。","source":{"id":"thuthesis-7.7.1","locator":"§4.6.2 数学符号"},"thuthesis":{"status":"configure","keys":["math-style","math-font"]},"verification":["抽查常数、微分、向量和希腊字母"]},
+
+    {"id":"page.content-margins","category":"page-layout","severity":"required","appliesTo":{},"requirement":"除封面外从中文摘要起使用 A4；页边距上、下、左、右均 3.0cm，装订线 0。","source":{"id":"graduate-guide-2025-03","locator":"§2.4.1"},"thuthesis":{"status":"automatic"},"verification":["用 PDF 坐标或渲染测量页边距"]},
+    {"id":"page.header-footer-distance","category":"page-layout","severity":"required","appliesTo":{},"requirement":"页眉距页面边界 2.2cm，页脚距页面边界 2.2cm。","source":{"id":"graduate-guide-2025-03","locator":"§2.4.1"},"thuthesis":{"status":"automatic"},"verification":["测量篇眉页码基线位置"]},
+    {"id":"page.cover-separate","category":"page-layout","severity":"required","appliesTo":{},"requirement":"中文封面和英文封面使用各自专门页边距，不得套用正文四边 3cm。","source":{"id":"graduate-guide-2025-03","locator":"§2.3.1；§2.3.2；§2.4.1"},"thuthesis":{"status":"automatic"},"verification":["分别测量两种封面"]},
+    {"id":"page.electronic-blanks","category":"page-layout","severity":"required","appliesTo":{"output":["electronic"]},"requirement":"电子版按 output=electronic 去除为单面打印插入的空白页；若院系要求保留，以院系当前规定覆盖。","source":{"id":"thuthesis-7.7.1","locator":"§4.3.1 输出格式"},"thuthesis":{"status":"automatic","keys":["output"]},"verification":["检查连续页和院系提交要求"]},
+
+    {"id":"header.start-content","category":"headers-pagination","severity":"required","appliesTo":{},"requirement":"篇眉从中文摘要开始，内容与当前部分章标题相同；奇偶页相同，各部分首页也有篇眉。","source":{"id":"graduate-guide-2025-03","locator":"§2.4.2"},"thuthesis":{"status":"automatic"},"verification":["抽查摘要、目录、章节和后置部分首页"]},
+    {"id":"header.style","category":"headers-pagination","severity":"required","appliesTo":{},"requirement":"篇眉五号居中，中文宋体，英文和数字 Times New Roman。","source":{"id":"graduate-guide-2025-03","locator":"§2.4.2"},"thuthesis":{"status":"automatic"},"verification":["放大检查篇眉字体与居中"]},
+    {"id":"pagination.front-roman","category":"headers-pagination","severity":"required","appliesTo":{},"requirement":"中文摘要至符号和缩略语说明结束使用大写罗马数字，从 I 开始连续编排。","source":{"id":"graduate-guide-2025-03","locator":"§2.4.2"},"thuthesis":{"status":"automatic"},"verification":["检查罗马页码起点、连续性和终点"]},
+    {"id":"pagination.body-arabic","category":"headers-pagination","severity":"required","appliesTo":{},"requirement":"正文第 1 章或引言/绪论起至论文末尾使用阿拉伯数字，从 1 重新开始并连续编排。","source":{"id":"graduate-guide-2025-03","locator":"§2.4.2"},"thuthesis":{"status":"automatic"},"verification":["检查正文页码重置和末页连续性"]},
+    {"id":"pagination.footer-style","category":"headers-pagination","severity":"required","appliesTo":{},"requirement":"页码位于页脚居中，Times New Roman 五号，数字两侧不加横线等修饰；前四部分无页码。","source":{"id":"graduate-guide-2025-03","locator":"§2.2；§2.4.2"},"thuthesis":{"status":"automatic"},"verification":["抽查前置、正文和末页页脚"]},
+
+    {"id":"language.default","category":"language-and-content","severity":"required","appliesTo":{"language":["chinese"]},"requirement":"除国际研究生或院系批准情形外一般用汉语和规范简体汉字书写；古文字研究和外文文献引用除外。","source":{"id":"graduate-guide-2025-03","locator":"§4.1"},"thuthesis":{"status":"author"},"verification":["检查繁简和语言一致性"]},
+    {"id":"language.english-thesis","category":"language-and-content","severity":"conditional","appliesTo":{"language":["english"]},"requirement":"国际研究生用英文撰写时仍须有中文封面，并提前确认导师和院系同意。","source":{"id":"graduate-guide-2025-03","locator":"§4.1；ThuThesis §4.3.2"},"thuthesis":{"status":"department","keys":["language"]},"verification":["保存院系确认","检查中文封面"]},
+    {"id":"language.academic-style","category":"language-and-content","severity":"required","appliesTo":{},"requirement":"表述严谨简明、重点突出、数据可靠、推理严谨、层次分明，避免文学化或感情色彩语言；非通用新名词首次出现即解释。","source":{"id":"graduate-guide-2025-03","locator":"§4.1"},"thuthesis":{"status":"author"},"verification":["语言与术语审查"]},
+    {"id":"language.title-conclusion","category":"language-and-content","severity":"required","appliesTo":{},"requirement":"题目精炼准确并反映研究对象和主要结论；结论不是章节小结重复，要区分本人、导师和他人成果并避免无证据的“首次”“领先”等表述。","source":{"id":"graduate-guide-2025-03","locator":"§4.2；§4.6"},"thuthesis":{"status":"author"},"verification":["审查题目与结论对应","核对贡献归属"]},
+
+    {"id":"build.release","category":"thuthesis-build","severity":"required","appliesTo":{},"requirement":"使用明确正式发布版 ThuThesis；本基线为 v7.7.1，不使用开发分支或来源不明的衍生类。","source":{"id":"thuthesis-7.7.1","locator":"README 下载与注意事项"},"thuthesis":{"status":"manual-review"},"verification":["核对 tag、版本和 SHA-256"]},
+    {"id":"build.full-package","category":"thuthesis-build","severity":"required","appliesTo":{},"requirement":"保留完整发布包的类、参考文献样式和所需资源；新项目从示例主文件与 data 结构开始。","source":{"id":"thuthesis-7.7.1","locator":"§4.1 示例文件"},"thuthesis":{"status":"author"},"verification":["检查关键发布文件和目录"]},
+    {"id":"build.no-class-patch","category":"thuthesis-build","severity":"required","appliesTo":{},"requirement":"格式调整优先通过 documentclass、thusetup 和内容命令完成；没有明确模板维护任务时不修改 thuthesis.cls 或参考文献样式。","source":{"id":"thuthesis-7.7.1","locator":"§4.2-4.7 公共配置接口"},"thuthesis":{"status":"configure"},"verification":["检查模板核心文件差异"]},
+    {"id":"build.fontset","category":"thuthesis-build","severity":"required","appliesTo":{},"requirement":"终版优先使用 fontset=windows 以匹配中易中文字体、Times New Roman 与 Arial；替代字库结果必须标为条件性验证。","source":{"id":"thuthesis-7.7.1","locator":"§4.2.4 字体配置"},"thuthesis":{"status":"configure","keys":["fontset","font","cjk-font"]},"verification":["检查字体日志和 pdffonts 输出"]},
+    {"id":"build.safe-execution","category":"thuthesis-build","severity":"required","appliesTo":{},"requirement":"执行前审计 latexmkrc、Makefile 和 TeX 源；未审计项目默认禁用 shell escape，并在隔离目录构建。","source":{"id":"department-current","locator":"安全执行边界"},"thuthesis":{"status":"manual-review"},"verification":["记录审计结果和实际命令"]},
+    {"id":"build.stable-runs","category":"thuthesis-build","severity":"required","appliesTo":{},"requirement":"编译到目录、交叉引用、文献和附录引用稳定；不得交付含 undefined reference/citation 或重复标签的结果。","source":{"id":"thuthesis-7.7.1","locator":"§3.2 编译论文"},"thuthesis":{"status":"manual-review"},"verification":["检查最终日志","连续构建结果稳定"]},
+    {"id":"build.one-bibliography-backend","category":"thuthesis-build","severity":"required","appliesTo":{},"requirement":"BibTeX/natbib 与 BibLaTeX/biber 二选一；不得同时保留两套有效入口或混用不兼容宏包。","source":{"id":"thuthesis-7.7.1","locator":"§4.7.1"},"thuthesis":{"status":"configure"},"verification":["检查导言区和构建工具调用"]},
+    {"id":"build.single-use-pages","category":"thuthesis-build","severity":"required","appliesTo":{},"requirement":"copyrightpage 和 statement 等单次页面命令各只出现一次；扫描替换在同一调用的参数中完成。","source":{"id":"thuthesis-7.7.1","locator":"§4.5.2；§4.7.3"},"thuthesis":{"status":"configure"},"verification":["静态搜索命令次数"]},
+
+    {"id":"pdf.a4-consistency","category":"pdf-submission","severity":"required","appliesTo":{},"requirement":"最终 PDF 除获批准的特殊页外均为 A4，页面方向、裁切框和尺寸一致。","source":{"id":"graduate-guide-2025-03","locator":"§2.2；§2.4.1"},"thuthesis":{"status":"manual-review"},"verification":["用 pdfinfo 或逐页对象检查页面尺寸"]},
+    {"id":"pdf.fonts","category":"pdf-submission","severity":"required","appliesTo":{},"requirement":"最终 PDF 嵌入所需中文、西文和数学字体，无意外字体替代、缺字、乱码或不可读字形。","source":{"id":"thuthesis-7.7.1","locator":"§4.2.4 字体配置"},"thuthesis":{"status":"manual-review"},"verification":["运行 pdffonts","渲染检查代表页"]},
+    {"id":"pdf.bookmarks-metadata","category":"pdf-submission","severity":"required","appliesTo":{},"requirement":"书签顺序与论文结构一致，标题、作者、主题、语言等 PDF 元数据正确且不泄露无关个人信息。","source":{"id":"thuthesis-7.7.1","locator":"模板 PDF 元数据与书签实现"},"thuthesis":{"status":"automatic"},"verification":["检查书签树和 pdfinfo"]},
+    {"id":"pdf.reproducible","category":"pdf-submission","severity":"required","appliesTo":{},"requirement":"最终 PDF 必须可由交付的完整源、记录的模板/字体/文献环境和精确构建命令重新生成。","source":{"id":"department-current","locator":"可复核交付要求"},"thuthesis":{"status":"manual-review"},"verification":["在干净环境重建","记录构建摘要"]},
+    {"id":"pdf.no-source-defects","category":"pdf-submission","severity":"required","appliesTo":{},"requirement":"不得直接编辑 PDF 掩盖源问题；关键 overfull box、低分辨率图片、失效链接、意外空页或扫描页错位必须回到源修复。","source":{"id":"thuthesis-7.7.1","locator":"§3.2 编译与示例工作流"},"thuthesis":{"status":"manual-review"},"verification":["检查日志、链接和视觉缺陷"]},
+
+    {"id":"visual.render","category":"visual-qa","severity":"required","appliesTo":{},"requirement":"最终编译后以至少 150dpi 将代表页渲染为 PNG 并实际查看，文本抽取或日志通过不能替代视觉检查。","source":{"id":"department-current","locator":"最终视觉验收"},"thuthesis":{"status":"manual-review"},"verification":["保存渲染命令和已查看页码"]},
+    {"id":"visual.high-risk-pages","category":"visual-qa","severity":"required","appliesTo":{},"requirement":"至少查看中文/英文封面、授权、中文摘要、目录、正文首章、复杂图表公式页、参考文献、声明和最后材料。","source":{"id":"graduate-guide-2025-03","locator":"§2.1-2.4 高风险结构"},"thuthesis":{"status":"manual-review"},"verification":["逐项标记 visualReview.pageRoles"]},
+    {"id":"visual.typography-layout","category":"visual-qa","severity":"required","appliesTo":{},"requirement":"逐页检查字体、字号层级、行距、字距、边距、居中、长标题换行、悬挂缩进、篇眉页码和左右页位置。","source":{"id":"graduate-guide-2025-03","locator":"§2.3-2.4"},"thuthesis":{"status":"manual-review"},"verification":["记录缺陷及修复前后页图"]},
+    {"id":"visual.rendering-defects","category":"visual-qa","severity":"required","appliesTo":{},"requirement":"不得存在裁切、重叠、黑块、乱码、缺字、溢出、孤行、意外空页或不可读图像。","source":{"id":"department-current","locator":"最终视觉验收"},"thuthesis":{"status":"manual-review"},"verification":["放大查看代表页和高风险区域"]},
+    {"id":"visual.rebuild-after-fix","category":"visual-qa","severity":"required","appliesTo":{},"requirement":"任何视觉缺陷都回到 LaTeX 源或配置修复，完整重编译并复查受影响页及相邻页；最后一轮零可见缺陷才标为已验证。","source":{"id":"department-current","locator":"修复闭环"},"thuthesis":{"status":"manual-review"},"verification":["保存最终轮检查记录"]}
+  ]
+}
