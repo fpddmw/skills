@@ -6,9 +6,13 @@
   workspace runtime lock and the setup-pinned `skills@1.5.22` package. A clean
   directory needs one user-reviewed exact bootstrap CLI version before that
   lock exists; never infer `latest` for an existing workspace.
-- A current interactive Codex or Claude Code producer host plus an authenticated
-  executable for the other-family independent reviewer route.
-- macOS `/usr/bin/sandbox-exec` or Linux Bubblewrap (`bwrap`).
+- A current interactive Codex, Claude Code, WorkBuddy, or CodeBuddy producer
+  host plus an authenticated Codex or Claude executable for the independent
+  reviewer route.
+- macOS `/usr/bin/sandbox-exec` or Linux Bubblewrap (`bwrap`) on the process
+  that actually runs the reviewer capsule. For an outer-sandboxed IDE this is
+  the owner-started sidecar, not the IDE process; see
+  [sandboxed-ide.md](sandboxed-ide.md).
 - Python 3.10+ only for selected Python-based companions. Setup reports missing
   Python dependencies but never installs them.
 

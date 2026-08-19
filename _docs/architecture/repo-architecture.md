@@ -13,8 +13,8 @@ checkPaths:
   - README.zh-CN.md
   - .claude-plugin/**
   - "*/SKILL.md"
-lastReviewedAt: 2026-08-18
-lastReviewedCommit: f95d0f8ecf6649e6f7512beb5c209936bdf24c28
+lastReviewedAt: 2026-08-19
+lastReviewedCommit: 1a8f768d3b489d8cf7583a2b4e9bea5913a03903
 ---
 
 # Skills Repository Architecture
@@ -69,8 +69,14 @@ source-derived uncertainty states, authoritative recovery generations, and
 portable audit handoff. The Skill supplies instructions and conservative
 defaults only. The CLI owns schemas, hashing, stage admission, mechanical
 evaluation, lifecycle reservations, other-family reviewer isolation, and
-semantic audit verification; native Codex or Claude remains the scientific
-producer.
+semantic audit verification; the configured native Codex, Claude, WorkBuddy,
+or CodeBuddy host remains the scientific producer.
+
+`tiangong-auto-research-workbuddy` is a thin sandboxed-IDE adapter. It routes
+WorkBuddy/CodeBuddy native producer tasks back to the canonical orchestrator and
+its `sandboxed-ide.md` reference. It owns no duplicate research schema or
+control-plane behavior. Independent review remains a CLI-owned Codex/Claude
+route through either the native platform capsule or the signed sidecar bridge.
 
 ## Integration Points
 

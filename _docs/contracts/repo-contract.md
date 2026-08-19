@@ -17,8 +17,8 @@ checkPaths:
   - Dockerfile.clean-test
   - scripts/**
   - "*/SKILL.md"
-lastReviewedAt: 2026-08-18
-lastReviewedCommit: f95d0f8ecf6649e6f7512beb5c209936bdf24c28
+lastReviewedAt: 2026-08-19
+lastReviewedCommit: 1a8f768d3b489d8cf7583a2b4e9bea5913a03903
 ---
 
 # Skills Repository Contract
@@ -53,6 +53,11 @@ marketplace grouping metadata.
   mechanical gates, reviewer-family/session enforcement, lifecycle budgets,
   authoritative generations, and semantic portable-audit verification to the
   CLI.
+- Sandboxed-IDE adapters must remain thin routers to the canonical
+  `tiangong-auto-research` Skill. They must preserve Default Permission, record
+  WorkBuddy/CodeBuddy honestly as the native producer, require an explicit
+  reviewer transport, and forbid Full Access, nested-sandbox bypass, arbitrary
+  sidecar commands, or silent transport fallback.
 
 ## Skill Surface
 

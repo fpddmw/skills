@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 const skillsRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const skillNames = [
   "tiangong-auto-research",
+  "tiangong-auto-research-workbuddy",
   "tiangong-kb-sci-search",
   "tiangong-kb-report-search",
   "tiangong-kb-patent-search",
@@ -44,6 +45,10 @@ const publicationReference = await readFile(
   join(skillsRoot, "tiangong-auto-research", "references", "publication-policy.md"),
   "utf8",
 );
+const sandboxedIdeReference = await readFile(
+  join(skillsRoot, "tiangong-auto-research", "references", "sandboxed-ide.md"),
+  "utf8",
+);
 
 for (const marker of [
   ".tiangong-research/setup.yaml",
@@ -52,6 +57,30 @@ for (const marker of [
   "overallReadiness",
 ]) {
   assert.ok(autoResearchSkill.includes(marker), `Auto Research entry must explain ${marker}`);
+}
+
+for (const marker of [
+  "native-direct",
+  "sandbox-bridge",
+  "Default Permission",
+  "research reviewer serve",
+  "research reviewer status",
+  "research reviewer doctor",
+  "--host-agent workbuddy",
+  "no arbitrary-command action",
+  "Never switch",
+  "RESEARCH_REVIEW_BRIDGE_UNAVAILABLE",
+  "RESEARCH_REVIEW_BRIDGE_VERSION_MISMATCH",
+  "RESEARCH_REVIEW_BRIDGE_ATTESTATION_INVALID",
+  "RESEARCH_REVIEW_BRIDGE_SANDBOX_POLICY_INVALID",
+  "RESEARCH_REVIEW_BRIDGE_MODEL_MISMATCH",
+  "RESEARCH_REVIEW_BRIDGE_NONCE_REPLAY",
+  "RESEARCH_REVIEW_BRIDGE_RESULT_BINDING_INVALID",
+]) {
+  assert.ok(
+    sandboxedIdeReference.includes(marker),
+    `Sandboxed IDE reference must explain ${marker}`,
+  );
 }
 
 for (const marker of [
@@ -67,6 +96,20 @@ for (const marker of [
   "overallReadiness=READY",
 ]) {
   assert.ok(setupReference.includes(marker), `Setup reference must explain ${marker}`);
+}
+
+
+for (const marker of [
+  "workbuddy",
+  "codebuddy",
+  "default permission",
+  "sandbox-bridge",
+  "thin router",
+]) {
+  assert.ok(
+    descriptions["tiangong-auto-research-workbuddy"].includes(marker),
+    `WorkBuddy adapter routing description must include ${marker}`,
+  );
 }
 
 for (const marker of [

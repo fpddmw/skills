@@ -1,0 +1,4 @@
+interface:
+  display_name: "Tiangong Auto Research for WorkBuddy"
+  short_description: "Run native research through the secure reviewer bridge"
+  default_prompt: "Use $tiangong-auto-research-workbuddy to continue this managed research in WorkBuddy Default Permission mode with an explicit, verified reviewer transport."

@@ -1,6 +1,6 @@
 ---
 name: tiangong-auto-research
-description: Orchestrate open-ended, multi-source, evidence-backed research in the current native Codex or Claude Code host, especially when an ancestor directory contains `.tiangong-research` or the user asks to research, investigate, build on prior outputs, compare evidence, form a conclusion, or produce a reviewed research artifact. Also use for setup, preflight, native producer execution, recovery, independent review, and closure. In an Auto Research workspace this Skill takes precedence over individual web, news, SCI, report, patent, download, or document Skills unless the user explicitly requests one isolated standalone operation outside the research workflow. Covers Chinese requests such as “研究一下”, “朝这个方向做一做”, “结合已有成果继续研究”, “查资料并形成结论”, and “系统梳理证据”.
+description: Orchestrate open-ended, multi-source, evidence-backed research in the current native Codex, Claude Code, WorkBuddy, or CodeBuddy host, especially when an ancestor directory contains `.tiangong-research` or the user asks to research, investigate, build on prior outputs, compare evidence, form a conclusion, or produce a reviewed research artifact. Also use for setup, preflight, native producer execution, recovery, independent review, and closure. In an Auto Research workspace this Skill takes precedence over individual web, news, SCI, report, patent, download, or document Skills unless the user explicitly requests one isolated standalone operation outside the research workflow. Covers Chinese requests such as “研究一下”, “朝这个方向做一做”, “结合已有成果继续研究”, “查资料并形成结论”, and “系统梳理证据”.
 ---
 
 # Tiangong Auto Research
@@ -37,8 +37,9 @@ authoritative declaration schema.
 
 The CLI is the deterministic control plane: it owns setup, locks, brokered
 evidence, schemas, coverage, budgets, admission, the independent review process,
-the journal, and closure. The current interactive Codex or Claude Code session
-owns producer reasoning. The CLI must never launch a nested producer process.
+the journal, and closure. The current interactive Codex, Claude Code,
+WorkBuddy, or CodeBuddy session owns producer reasoning. The CLI must never
+launch a nested producer process.
 Do not reproduce control-plane contracts or edit control files by hand.
 
 During an accepted apply, the CLI may temporarily create the project Skill
@@ -66,6 +67,9 @@ detailed stop and recovery rules.
   authorized access, waiting for an external response, or narrowing scope.
 - Read [references/native-execution.md](references/native-execution.md) before
   preparing or submitting discover, acquire, analyze, or synthesize stages.
+- Read [references/sandboxed-ide.md](references/sandboxed-ide.md) when the
+  producer runs inside WorkBuddy, CodeBuddy, or another outer sandbox, or when
+  native reviewer isolation returns a nested-sandbox error.
 - Read [references/publication-policy.md](references/publication-policy.md)
   before a top-journal project, Policy approval, final manuscript freeze,
   four-role publication review, or readiness closure.

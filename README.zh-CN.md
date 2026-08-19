@@ -13,8 +13,8 @@ checkPaths:
   - README.md
   - .claude-plugin/**
   - "*/SKILL.md"
-lastReviewedAt: 2026-08-18
-lastReviewedCommit: f95d0f8ecf6649e6f7512beb5c209936bdf24c28
+lastReviewedAt: 2026-08-19
+lastReviewedCommit: 1a8f768d3b489d8cf7583a2b4e9bea5913a03903
 ---
 
 # 天工 AI Skills
@@ -42,6 +42,10 @@ npm i skills -g
 - 安装指定技能:
   ```bash
   npx skills add https://github.com/tiangong-ai/skills --skill tiangong-auto-research --skill tiangong-kb-sci-search
+  ```
+- WorkBuddy/CodeBuddy 作为 producer 时，在 canonical orchestrator 旁安装薄适配 Skill:
+  ```bash
+  npx skills add https://github.com/tiangong-ai/skills --skill tiangong-auto-research --skill tiangong-auto-research-workbuddy
   ```
 
 ## 目标 agent 与作用域
@@ -132,6 +136,8 @@ Anthropic 或 PPT Master 闭环后创作 Skills。workspace 可以是用户指�
 所有条目都是外生、独立授权、精确锁定且经用户明确确认或选择；研究 package
 不会捆绑或安装它们。完整流程见
 `tiangong-auto-research/references/setup.md` 和 `external-skills.md`。
+`tiangong-auto-research-workbuddy` 只负责沙箱 IDE 路由，会回到 canonical
+orchestrator 及其签名 reviewer bridge 流程，不维护第二套研究协议。
 创建 PPT 时首选 PPT Master；Anthropic PPTX 仍是兼容的按场景选项，需要时可在
 同一显式计划中一起选择。
 
@@ -143,7 +149,7 @@ Policy Wizard 会把所选 Markdown 复制到研究 workspace 供人类审阅；
 上限。这套门禁只能产出可复核的投稿候选稿，不能承诺编辑接受。详见
 `tiangong-auto-research/references/publication-policy.md`。
 
-在 discovery 之前，当前原生 Codex 或 Claude host 还必须给出封闭、目标特定的科学
+在 discovery 之前，当前原生 Codex、Claude、WorkBuddy 或 CodeBuddy host 还必须给出封闭、目标特定的科学
 设计。CLI 只负责验证和冻结设计，并依次在 discovery、acquisition、analysis 前强制
 独立的 `research-design`、真实记录 `evidence-construct`、`pilot-methods` 审查。
 acquisition 后还必须完成逐文件拆解、精确 evidence atom、typed-content snapshot、
