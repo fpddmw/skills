@@ -23,6 +23,7 @@ const workBuddyLauncherSource = await readFile(workBuddyLauncher, "utf8");
 for (const marker of [
   "/usr/local/bin/node",
   "/opt/homebrew/bin/node",
+  ".nvm/versions/node/v24",
   "AUTO_RESEARCH_NODE",
   "process.versions.node",
   "research_cli.mjs",

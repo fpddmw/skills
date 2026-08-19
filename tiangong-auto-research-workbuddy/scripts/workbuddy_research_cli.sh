@@ -12,8 +12,16 @@ fi
 
 ambient_node=$(command -v node 2>/dev/null || true)
 configured_node=${AUTO_RESEARCH_NODE:-}
+owner_home=${HOME:-}
 
-for candidate in "$configured_node" /usr/local/bin/node /opt/homebrew/bin/node "$ambient_node"; do
+for candidate in \
+    "$configured_node" \
+    "$owner_home"/.nvm/versions/node/v24*/bin/node \
+    "$owner_home"/.local/share/fnm/node-versions/v24*/installation/bin/node \
+    "$owner_home"/.volta/bin/node \
+    /usr/local/bin/node \
+    /opt/homebrew/bin/node \
+    "$ambient_node"; do
     [ -n "$candidate" ] || continue
     case "$candidate" in
         /*) ;;

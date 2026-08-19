@@ -96,7 +96,9 @@ WORKBUDDY_AUTO_RESEARCH=/absolute/path/to/workspace/.agents/skills/tiangong-auto
 
 The adapter rejects WorkBuddy's ambient Node 22 instead of continuing after
 `EBADENGINE`. It selects an explicit Node.js 24 executable and the adjacent
-`npx`, then the canonical resolver enforces the workspace's exact CLI version.
+`npx`, including a fixed NVM/FNM/Volta Node 24 location when the IDE hides
+system `/usr/local` paths, then the canonical resolver enforces the workspace's
+exact CLI version. `AUTO_RESEARCH_NODE` remains the explicit absolute override.
 
 Status is zero-model-cost and verifies the signed workspace/version/key binding
 plus negative probes. Doctor runs the real tool-free reviewer smoke and may use
