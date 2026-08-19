@@ -81,6 +81,10 @@ assets, generated `agents/**` files, or marketplace metadata require review of:
 - For skill changes, run the applicable `skill-creator` validation workflow,
   including `scripts/quick_validate.py <skill-path>` from the `skill-creator`
   skill when available.
+- For `tsinghua-graduate-thesis` PDF renderer changes, preserve the privacy-safe
+  embedded Adobe-GB1 binary fixture, observe the behavior regression in its
+  targeted clean container, and turn it green in a separate container. The
+  fixture must contain no user thesis data or restricted font binary.
 - Regenerate or update agent config files when the skill workflow requires it.
 - Run Auto Research red/green cycles in separate clean runtime containers;
   valid Docker build layers may be reused iteratively, while PR and release

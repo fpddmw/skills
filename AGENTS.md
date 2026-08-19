@@ -57,6 +57,7 @@ skill 内容、skill 规范、marketplace 元数据和本仓文档治理属于�
 - route 命中的文档已 reviewed 或 updated。
 - 治理变更后 `docpact validate-config --root . --strict` 通过。
 - skill 变更按 `skill-creator` 流程运行对应校验。
+- `tsinghua-graduate-thesis` 的 PDF renderer 或视觉 QA 变更必须用仓库内隐私安全的真实二进制 PDF fixture，在其 targeted clean-container 中先观察 RED、再在新容器中转 GREEN；PR 前还要运行全仓 cold gate。
 - Auto Research 及其直接 evidence wrapper 的变更必须先在
   `scripts/test-clean-container.sh` 创建的独立、无宿主 HOME/全局
   Skill/CLI/runtime cache 的容器中观察回归测试失败，再在另一个新容器中转绿；

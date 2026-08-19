@@ -214,6 +214,16 @@ test("the visual review plan covers every high-risk page role", () => {
   }
 });
 
+test("visual QA fails closed when the PDF renderer is unhealthy", () => {
+  const skill = readFileSync(join(skillRoot, "SKILL.md"), "utf8");
+  const visualQa = readFileSync(join(skillRoot, "references", "visual-qa.md"), "utf8");
+  assert.ok(existsSync(join(skillRoot, "scripts", "render-pdf.mjs")));
+  assert.match(skill, /scripts\/render-pdf\.mjs/);
+  assert.match(visualQa, /renderer_environment_error/);
+  assert.match(visualQa, /退出码仍为 0/);
+  assert.doesNotMatch(visualQa, /^pdftoppm\s/m);
+});
+
 test("the requirement query filters a concrete thesis profile", () => {
   assert.ok(existsSync(queryScript), "scripts/requirements.mjs must exist");
   const args = [

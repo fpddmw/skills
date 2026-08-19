@@ -43,7 +43,7 @@ node "$SKILL_DIR/scripts/requirements.mjs" \
 2. 将画像映射到 `\documentclass` 与 `\thusetup`；只修改内容/配置层，除非用户明确要求维护模板类。
 3. 编译前审计 `latexmkrc`、Makefile 和 TeX 源。未审计项目默认禁用 shell escape，并在独立目录构建。
 4. 编译到目录、交叉引用、文献和附录引用稳定；处理缺失字体、未定义引用、重复标签及实质性盒子溢出。
-5. 按 [最终审查清单](references/final-review.md) 做结构与机器检查，再按 [视觉 QA](references/visual-qa.md) 渲染并查看代表页。
+5. 按 [最终审查清单](references/final-review.md) 做结构与机器检查，再按 [视觉 QA](references/visual-qa.md) 通过 `scripts/render-pdf.mjs` 验证 renderer、渲染并查看代表页。不要把 renderer 数据缺失造成的空白页当作论文缺字。
 
 规则冲突依次采用：当前院系/项目要求、当前研究生院指南文字、当前正式附件、对应发布版 ThuThesis、最后才是历史样例或视觉推断。执行高优先级规则并记录差异；用户锁定旧版本时标明版本风险。
 
