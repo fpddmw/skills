@@ -13,8 +13,8 @@ checkPaths:
   - README.md
   - .claude-plugin/**
   - "*/SKILL.md"
-lastReviewedAt: 2026-08-19
-lastReviewedCommit: d7978275855c67158e08cc21e49dc6e2b43878d5
+lastReviewedAt: 2026-08-20
+lastReviewedCommit: eddfc711e8c86270412e161cc489fde6d2015fb4
 ---
 
 # 天工 AI Skills
@@ -46,6 +46,10 @@ npm i skills -g
 - 安装清华研究生学位论文 LaTeX 工作流:
   ```bash
   npx skills add https://github.com/tiangong-ai/skills --skill tsinghua-graduate-thesis
+  ```
+- 安装天工 KB 导入工作流:
+  ```bash
+  npx skills add https://github.com/tiangong-ai/skills --skill tiangong-kb-ingest
   ```
 - WorkBuddy/CodeBuddy 作为 producer 时，在 canonical orchestrator 旁安装薄适配 Skill:
   ```bash
@@ -98,6 +102,19 @@ skill 的 `references/env.md`（如存在）。
 `npx skills add` 只安装或链接 Skill 文件，不会配置语言运行时或执行安装后 hook。
 如果 Skill 提供锁定运行时的 bootstrap 与 smoke 命令，应按该 Skill 的说明显式
 执行这些步骤。
+
+## 天工 KB 导入兼容性
+
+`tiangong-kb-ingest` 使用经过验证的精确 CLI 0.0.48 发行版。安装或更新 Skill
+后，运行不需要凭据的兼容性冒烟：
+
+```bash
+npx --yes --package "@tiangong-ai/cli@0.0.48" -- tiangong-ai --version
+npx --yes --package "@tiangong-ai/cli@0.0.48" -- tiangong-ai kb --help
+```
+
+版本命令必须输出 `0.0.48`；KB 帮助必须列出 bulk scan、metadata dry-run、
+collection list/schema、ingest 和 status 命令。上述检查不会调用或修改 KB 后端。
 
 ## Auto Research 外部 Skill 配置
 

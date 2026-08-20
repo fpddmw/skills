@@ -13,8 +13,8 @@ checkPaths:
   - README.zh-CN.md
   - .claude-plugin/**
   - "*/SKILL.md"
-lastReviewedAt: 2026-08-19
-lastReviewedCommit: d7978275855c67158e08cc21e49dc6e2b43878d5
+lastReviewedAt: 2026-08-20
+lastReviewedCommit: eddfc711e8c86270412e161cc489fde6d2015fb4
 ---
 
 # Tiangong AI Skills
@@ -46,6 +46,10 @@ npm i skills -g
 - Install the Tsinghua graduate thesis LaTeX workflow:
   ```bash
   npx skills add https://github.com/tiangong-ai/skills --skill tsinghua-graduate-thesis
+  ```
+- Install the Tiangong KB ingest workflow:
+  ```bash
+  npx skills add https://github.com/tiangong-ai/skills --skill tiangong-kb-ingest
   ```
 - For a WorkBuddy/CodeBuddy producer, install the thin adapter beside the
   canonical orchestrator:
@@ -100,6 +104,20 @@ an external service, read that skill's `references/env.md` when present.
 `npx skills add` installs or links skill files; it does not provision language
 runtimes or execute post-install hooks. When a skill provides a locked runtime
 bootstrap and smoke command, run those explicit steps from its own instructions.
+
+## Tiangong KB Ingest Compatibility
+
+`tiangong-kb-ingest` uses the exact reviewed CLI 0.0.48 distribution. After
+installing or updating the Skill, run the credential-free compatibility smoke:
+
+```bash
+npx --yes --package "@tiangong-ai/cli@0.0.48" -- tiangong-ai --version
+npx --yes --package "@tiangong-ai/cli@0.0.48" -- tiangong-ai kb --help
+```
+
+The version command must print `0.0.48`; KB help must list the bulk scan,
+metadata dry-run, collection list/schema, ingest, and status surfaces. These
+checks do not call or mutate the KB backend.
 
 ## Auto Research External Skill Setup
 

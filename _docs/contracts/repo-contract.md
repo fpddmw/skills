@@ -17,8 +17,8 @@ checkPaths:
   - Dockerfile.clean-test
   - scripts/**
   - "*/SKILL.md"
-lastReviewedAt: 2026-08-19
-lastReviewedCommit: b6654fa5fd942c48f2aa1ed99a92373a7304a3d2
+lastReviewedAt: 2026-08-20
+lastReviewedCommit: eddfc711e8c86270412e161cc489fde6d2015fb4
 ---
 
 # Skills Repository Contract
@@ -81,6 +81,8 @@ assets, generated `agents/**` files, or marketplace metadata require review of:
 - For skill changes, run the applicable `skill-creator` validation workflow,
   including `scripts/quick_validate.py <skill-path>` from the `skill-creator`
   skill when available.
+- When a Skill changes an exact external CLI pin, add or update an offline
+  stale-pin contract and run its clean temporary install/command-surface smoke.
 - For `tsinghua-graduate-thesis` PDF renderer changes, preserve the privacy-safe
   embedded Adobe-GB1 binary fixture, observe the behavior regression in its
   targeted clean container, and turn it green in a separate container. The

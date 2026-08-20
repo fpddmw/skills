@@ -17,8 +17,8 @@ checkPaths:
   - scripts/**
   - .claude-plugin/**
   - "*/SKILL.md"
-lastReviewedAt: 2026-08-19
-lastReviewedCommit: 8f04a2559a51fad8f7061ecc1d0ad853e01ddea0
+lastReviewedAt: 2026-08-20
+lastReviewedCommit: eddfc711e8c86270412e161cc489fde6d2015fb4
 ---
 
 # Skills Development Runbook
@@ -50,6 +50,20 @@ For skill changes, run the validator required by `AGENTS.md` from the
 ```bash
 scripts/quick_validate.py <skill-path>
 ```
+
+For a `tiangong-kb-ingest` exact CLI pin change, run the offline stale-pin
+contract and then the explicit networked copy/symlink install smoke:
+
+```bash
+python3 -m unittest discover -s tiangong-kb-ingest/scripts/tests -v
+TIANGONG_KB_INGEST_RUN_INSTALL_SMOKE=1 \
+  python3 -m unittest discover -s tiangong-kb-ingest/scripts/tests -v
+```
+
+The install smoke uses a temporary project and HOME, runs the repository-
+standard exact `skills` installer, verifies the installed Skill files, and
+invokes only CLI version/help plus a local bulk scan. It must not receive KB
+credentials or contact the backend.
 
 For `tsinghua-graduate-thesis` PDF renderer or visual-QA behavior, write the
 real-PDF regression first and run each phase through the targeted entrypoint:
