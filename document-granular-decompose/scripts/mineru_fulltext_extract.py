@@ -197,6 +197,11 @@ def parse_api_error(error: HTTPError) -> str:
     return f"HTTP {error.code}: {payload}"
 
 
+def normalize_plain_fulltext(value: str) -> str:
+    """Normalize the confirmed Markdown underscore escape in plain-text output."""
+    return value.replace("\\_", "_")
+
+
 def request_fulltext(
     api_url: str,
     file_path: Path,
@@ -243,7 +248,7 @@ def request_fulltext(
 
     txt = payload.get("txt")
     if isinstance(txt, str) and txt.strip():
-        return txt.strip()
+        return normalize_plain_fulltext(txt.strip())
 
     result = payload.get("result")
     if isinstance(result, list):
@@ -252,7 +257,7 @@ def request_fulltext(
             if isinstance(item, dict):
                 text = item.get("text")
                 if isinstance(text, str) and text.strip():
-                    chunks.append(text.strip())
+                    chunks.append(normalize_plain_fulltext(text.strip()))
         if chunks:
             return "\n\n".join(chunks)
 
