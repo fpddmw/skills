@@ -1,6 +1,6 @@
 # Environment
 
-The skill invokes the Tiangong AI CLI with `npx @tiangong-ai/cli@0.0.19` by default. The CLI calls the Tiangong KB ingest API and authenticates with an API key sent as `Authorization: Bearer <token>`.
+The skill invokes the Tiangong AI CLI with the exact reviewed entrypoint `npx --yes --package "@tiangong-ai/cli@0.0.48" -- tiangong-ai` by default. The CLI calls the Tiangong KB ingest API and authenticates with an API key sent as `Authorization: Bearer <token>`.
 
 For local file or folder uploads, load dotenv defaults from the target path
 directory before invoking the CLI: use the parent directory for a file and the
@@ -43,8 +43,25 @@ TIANGONG_AI_CLI_BIN=/absolute/path/to/tiangong-ai
 `TIANGONG_KB_API_KEY` is accepted as a fallback alias for `TIANGONG_AI_API_KEY`.
 
 `TIANGONG_AI_CLI_BIN` is optional. Set it only when intentionally overriding the
-default `npx @tiangong-ai/cli@0.0.19` entrypoint with a local or pinned
-`tiangong-ai` executable.
+default `npx --yes --package "@tiangong-ai/cli@0.0.48" -- tiangong-ai`
+entrypoint with a local or pinned `tiangong-ai` executable.
+
+## Install And Compatibility Smoke
+
+`npx skills add` installs or links the Skill files; it does not install the
+Tiangong CLI globally. After installing this Skill, verify the reviewed package
+and credential-free KB command surface explicitly:
+
+```bash
+npx --yes --package "@tiangong-ai/cli@0.0.48" -- tiangong-ai --version
+npx --yes --package "@tiangong-ai/cli@0.0.48" -- tiangong-ai kb --help
+```
+
+The first command must print `0.0.48`. The help command must list bulk scan,
+metadata dry-run, collection list/schema, ingest, and status commands. These
+checks do not require an API key and do not contact or mutate the KB backend.
+The exact version is intentionally fixed to the tested distribution; update it
+only with the corresponding install and command-surface smoke.
 
 Bulk ingest stores local checkpoint state in SQLite under the CLI app-data job
 directory unless `--state` is provided. It has no client-side polling limit by

@@ -13,8 +13,8 @@ checkPaths:
   - README.zh-CN.md
   - .claude-plugin/**
   - "*/SKILL.md"
-lastReviewedAt: 2026-08-19
-lastReviewedCommit: b6654fa5fd942c48f2aa1ed99a92373a7304a3d2
+lastReviewedAt: 2026-08-20
+lastReviewedCommit: eddfc711e8c86270412e161cc489fde6d2015fb4
 ---
 
 # Skills Repository Architecture
@@ -44,6 +44,12 @@ Skills are consumed by external agent runtimes through the `skills` CLI or by
 copy/symlink installation. Some skills require environment variables for
 external APIs; those requirements belong in the relevant skill docs and the
 repository README when broadly useful.
+
+`tiangong-kb-ingest` is a thin orchestration Skill over an exact published
+Tiangong CLI. Its offline contract rejects stale or inconsistent CLI literals;
+its explicit networked install smoke exercises both copy and symlink installs,
+then verifies the exact CLI version, KB help surface, and a credential-free
+local bulk scan without contacting the backend.
 
 `tiangong-auto-research` documents both the interactive setup Wizard and the
 CLI-owned declarative path. Its references explain fixed workspace-local YAML
