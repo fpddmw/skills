@@ -70,6 +70,8 @@ python3 scripts/mineru_fulltext_extract.py \
 
 ## Output Rules
 - Success output must be plain text fulltext only.
+- Normalize the confirmed upstream Markdown underscore escape (`\_` to `_`)
+  in both supported response paths; preserve other backslashes and escapes.
 - Fulltext source priority:
   1. `response.txt`
   2. join non-empty `response.result[].text` by blank lines
