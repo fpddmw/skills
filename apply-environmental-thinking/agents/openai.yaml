@@ -1,0 +1,7 @@
+interface:
+  display_name: "环境学科思维迁移"
+  short_description: "用环境学科的认识、分析、价值与实践逻辑审视复杂问题"
+  default_prompt: "Use $apply-environmental-thinking to let environmental foundations, analytical models, normative principles, and intervention logics organize the response. Build a connected account through the problem's actors, institutions, technologies, pathways, scales, histories, situated effects, and uncertainties. Let environmental concepts provide causal or normative precision, and express the result in a coherent environmental disciplinary voice suited to the user's requested form."
+
+policy:
+  allow_implicit_invocation: true
