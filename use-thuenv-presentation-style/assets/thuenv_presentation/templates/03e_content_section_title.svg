@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" data-pptx-master="thuenv-master" data-pptx-master-name="THU ENV Master" data-pptx-layout="thuenv-content-section-title" data-pptx-layout-name="THU ENV Content — Section &amp; Title">
+  <rect id="master-bg" x="0" y="0" width="1280" height="720" fill="#FFFFFF" data-pptx-layer="master" data-pptx-editable="false"/>
+  <image id="content-section-banner-photo" href="../images/image9.png" x="0" y="0" width="1280" height="95" preserveAspectRatio="none" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <image id="content-section-banner-overlay" href="../images/image10.png" x="0" y="0" width="1280" height="95" preserveAspectRatio="none" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <image id="content-section-logo" href="../images/image11.png" x="22" y="22" width="339" height="53" preserveAspectRatio="none" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <rect id="content-section-footer-rule" x="0" y="697" width="1280" height="23" fill="#92278F" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <rect id="content-section-title-rule" x="60" y="126" width="7" height="40" fill="#92278F" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <g id="content-section-name-slot" data-pptx-placeholder="subtitle" data-pptx-idx="1" data-pptx-bounds="720 14 500 70">
+    <text data-pptx-carrier="true" x="1218" y="62" text-anchor="end" font-family="Microsoft YaHei" font-size="25" font-weight="bold" fill="#FFFFFF">{{SECTION_NAME}}</text>
+  </g>
+  <g id="content-section-number-slot" data-pptx-placeholder="body" data-pptx-idx="2" data-pptx-bounds="82 120 70 52">
+    <text data-pptx-carrier="true" x="82" y="154" font-family="Arial" font-size="29" font-weight="bold" fill="#92278F">{{PAGE_NUM}}</text>
+  </g>
+  <g id="content-section-page-title-slot" data-pptx-placeholder="title" data-pptx-bounds="140 120 1080 52">
+    <text data-pptx-carrier="true" x="140" y="154" font-family="Microsoft YaHei" font-size="29" font-weight="bold" fill="#4E1768">{{PAGE_TITLE}}</text>
+  </g>
+  <g id="content-section-object-slot" data-pptx-placeholder="object" data-pptx-binding="proxy" data-pptx-idx="3" data-pptx-bounds="60 185 1160 475">
+    <rect x="60" y="185" width="1160" height="475" fill="#FFFFFF" stroke="#D8D8D8" stroke-width="1"/>
+    <text x="80" y="219" font-family="Microsoft YaHei" font-size="18" fill="#92278F">{{CONTENT_AREA}}</text>
+  </g>
+</svg>

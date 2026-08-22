@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" data-pptx-master="thuenv-master" data-pptx-master-name="THU ENV Master" data-pptx-layout="thuenv-chapter-bottom" data-pptx-layout-name="THU ENV Chapter — Bottom Photo">
+  <rect id="master-bg" x="0" y="0" width="1280" height="720" fill="#FFFFFF" data-pptx-layer="master" data-pptx-editable="false"/>
+  <rect id="chapter-bottom-top-field" x="0" y="0" width="1280" height="102" fill="#FFFFFF" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <rect id="chapter-bottom-rule" x="0" y="534" width="1280" height="23" fill="#92278F" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <image id="chapter-bottom-campus" href="../images/image15.png" x="0" y="552" width="1280" height="168" preserveAspectRatio="none" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <g id="chapter-bottom-title-slot" data-pptx-placeholder="title" data-pptx-bounds="160 190 960 100">
+    <text data-pptx-carrier="true" x="640" y="256" text-anchor="middle" font-family="Microsoft YaHei" font-size="56" font-weight="bold" fill="#1F1F1F">{{CHAPTER_TITLE}}</text>
+  </g>
+  <g id="chapter-bottom-desc-slot" data-pptx-placeholder="body" data-pptx-idx="1" data-pptx-bounds="220 305 840 100">
+    <text data-pptx-carrier="true" x="640" y="350" text-anchor="middle" font-family="Microsoft YaHei" font-size="26" fill="#595959">{{CHAPTER_DESC}}</text>
+  </g>
+</svg>
