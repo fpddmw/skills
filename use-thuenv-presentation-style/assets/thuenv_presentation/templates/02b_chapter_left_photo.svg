@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" data-pptx-master="thuenv-master" data-pptx-master-name="THU ENV Master" data-pptx-layout="thuenv-chapter-left" data-pptx-layout-name="THU ENV Chapter — Left Photo">
+  <rect id="master-bg" x="0" y="0" width="1280" height="720" fill="#FFFFFF" data-pptx-layer="master" data-pptx-editable="false"/>
+  <image id="chapter-left-campus" href="../images/image16.jpeg" x="0" y="0" width="334" height="720" preserveAspectRatio="none" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <rect id="chapter-left-rule" x="334" y="0" width="18" height="720" fill="#92278F" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <g id="chapter-left-title-slot" data-pptx-placeholder="title" data-pptx-bounds="420 240 720 120">
+    <text data-pptx-carrier="true" x="780" y="315" text-anchor="middle" font-family="Microsoft YaHei" font-size="56" font-weight="bold" fill="#1F1F1F">{{CHAPTER_TITLE}}</text>
+  </g>
+  <g id="chapter-left-desc-slot" data-pptx-placeholder="body" data-pptx-idx="1" data-pptx-bounds="440 375 680 100">
+    <text data-pptx-carrier="true" x="780" y="420" text-anchor="middle" font-family="Microsoft YaHei" font-size="26" fill="#595959">{{CHAPTER_DESC}}</text>
+  </g>
+</svg>

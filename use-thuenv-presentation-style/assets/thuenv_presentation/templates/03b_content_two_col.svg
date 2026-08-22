@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" data-pptx-master="thuenv-master" data-pptx-master-name="THU ENV Master" data-pptx-layout="thuenv-content-two-col" data-pptx-layout-name="THU ENV Content — Two Column">
+  <rect id="master-bg" x="0" y="0" width="1280" height="720" fill="#FFFFFF" data-pptx-layer="master" data-pptx-editable="false"/>
+  <image id="content-two-banner-photo" href="../images/image9.png" x="0" y="0" width="1280" height="95" preserveAspectRatio="none" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <image id="content-two-banner-overlay" href="../images/image10.png" x="0" y="0" width="1280" height="95" preserveAspectRatio="none" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <image id="content-two-logo" href="../images/image11.png" x="22" y="22" width="339" height="53" preserveAspectRatio="none" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <rect id="content-two-footer-rule" x="0" y="697" width="1280" height="23" fill="#92278F" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <g id="content-two-title-slot" data-pptx-placeholder="title" data-pptx-bounds="380 14 850 70">
+    <text data-pptx-carrier="true" x="390" y="58" font-family="Microsoft YaHei" font-size="30" font-weight="bold" fill="#FFFFFF">{{PAGE_TITLE}}</text>
+  </g>
+  <g id="content-two-left-slot" data-pptx-placeholder="object" data-pptx-binding="proxy" data-pptx-idx="1" data-pptx-bounds="60 135 550 520">
+    <rect x="60" y="135" width="550" height="520" fill="#FFFFFF" stroke="#D8D8D8" stroke-width="1"/>
+    <text x="80" y="169" font-family="Microsoft YaHei" font-size="18" fill="#92278F">{{CONTENT_AREA}}</text>
+  </g>
+  <g id="content-two-right-slot" data-pptx-placeholder="object" data-pptx-binding="proxy" data-pptx-idx="2" data-pptx-bounds="670 135 550 520">
+    <rect x="670" y="135" width="550" height="520" fill="#FFFFFF" stroke="#D8D8D8" stroke-width="1"/>
+    <text x="690" y="169" font-family="Microsoft YaHei" font-size="18" fill="#92278F">{{CONTENT_AREA}}</text>
+  </g>
+</svg>

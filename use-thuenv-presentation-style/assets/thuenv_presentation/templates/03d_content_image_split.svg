@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" data-pptx-master="thuenv-master" data-pptx-master-name="THU ENV Master" data-pptx-layout="thuenv-content-image-split" data-pptx-layout-name="THU ENV Content — Image Split">
+  <rect id="master-bg" x="0" y="0" width="1280" height="720" fill="#FFFFFF" data-pptx-layer="master" data-pptx-editable="false"/>
+  <image id="content-image-banner-photo" href="../images/image9.png" x="0" y="0" width="1280" height="95" preserveAspectRatio="none" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <image id="content-image-banner-overlay" href="../images/image10.png" x="0" y="0" width="1280" height="95" preserveAspectRatio="none" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <image id="content-image-logo" href="../images/image11.png" x="22" y="22" width="339" height="53" preserveAspectRatio="none" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <rect id="content-image-footer-rule" x="0" y="697" width="1280" height="23" fill="#92278F" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <g id="content-image-title-slot" data-pptx-placeholder="title" data-pptx-bounds="380 14 850 70">
+    <text data-pptx-carrier="true" x="390" y="58" font-family="Microsoft YaHei" font-size="30" font-weight="bold" fill="#FFFFFF">{{PAGE_TITLE}}</text>
+  </g>
+  <g id="content-image-picture-slot" data-pptx-placeholder="picture" data-pptx-idx="1" data-pptx-bounds="60 145 320 500">
+    <image data-pptx-carrier="true" href="../images/image16.jpeg" x="60" y="145" width="320" height="500" preserveAspectRatio="none"/>
+  </g>
+  <g id="content-image-object-slot" data-pptx-placeholder="object" data-pptx-binding="proxy" data-pptx-idx="2" data-pptx-bounds="430 145 790 500">
+    <rect x="430" y="145" width="790" height="500" fill="#FFFFFF" stroke="#D8D8D8" stroke-width="1"/>
+    <text x="450" y="179" font-family="Microsoft YaHei" font-size="18" fill="#92278F">{{CONTENT_AREA}}</text>
+  </g>
+</svg>

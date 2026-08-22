@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" data-pptx-master="thuenv-master" data-pptx-master-name="THU ENV Master" data-pptx-layout="thuenv-ending" data-pptx-layout-name="THU ENV Ending">
+  <rect id="master-bg" x="0" y="0" width="1280" height="720" fill="#FFFFFF" data-pptx-layer="master" data-pptx-editable="false"/>
+  <rect id="ending-rule" x="0" y="534" width="1280" height="23" fill="#92278F" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <image id="ending-campus" href="../images/image15.png" x="0" y="552" width="1280" height="168" preserveAspectRatio="none" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <image id="ending-logo" href="../images/image11.png" x="32" y="28" width="339" height="53" preserveAspectRatio="none" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <g id="ending-title-slot" data-pptx-placeholder="title" data-pptx-bounds="140 190 1000 120">
+    <text data-pptx-carrier="true" x="640" y="270" text-anchor="middle" font-family="Microsoft YaHei" font-size="52" font-weight="bold" fill="#1F1F1F">{{CLOSING_MESSAGE}}</text>
+  </g>
+  <g id="ending-subtitle-slot" data-pptx-placeholder="body" data-pptx-idx="1" data-pptx-bounds="200 330 880 100">
+    <text data-pptx-carrier="true" x="640" y="375" text-anchor="middle" font-family="Microsoft YaHei" font-size="26" fill="#595959">{{ENDING_SUBTITLE}}</text>
+  </g>
+</svg>
