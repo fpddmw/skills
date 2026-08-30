@@ -1,7 +1,7 @@
 ---
 docType: architecture
 scope: repo
-status: proposed
+status: current
 authoritative: true
 owner: skills
 language: zh-CN
@@ -18,7 +18,7 @@ checkPaths:
   - "*-download/**"
   - tiangong-auto-research/**
 lastReviewedAt: 2026-08-30
-lastReviewedCommit: f45607fcf63924c915d6a9a28f81686a694754b0
+lastReviewedCommit: 34ee21593ec90bf7c1c96445d3a97b453bcb2531
 ---
 
 # 原子数据 Skill 目标架构
@@ -107,7 +107,7 @@ manifest 或输入输出 Schema 变化仍必须显式更新 binding。
 
 ## 调用边界
 
-薄 Skill 通过 proposed 公共命令族调用一次原子 operation：
+薄 Skill 通过公共命令族调用一次原子 operation：
 
 ```text
 tiangong-ai data catalog
@@ -116,8 +116,8 @@ tiangong-ai data doctor <capability-id> [--live]
 tiangong-ai data run <capability-id> <operation-id> --input <path|->
 ```
 
-这些命令已进入 CLI 主分支，但生产 Skill 仍须等待包含该命令面的正式 npm 包后才能
-绑定和移除旧实现。Skill 不自行发现其他来源、不跨来源 fan-out、不解释研究结论。
+这些命令已进入 CLI 主分支。生产 Skill 只绑定包含该命令面的正式 npm 包；Skill 不
+自行发现其他来源、不跨来源 fan-out、不解释研究结论。
 一个来源内部有界的分页或多文件窗口仍可以是一个 operation；跨来源组合必须由 Auto
 Research 或显式上层调用者完成。
 
@@ -168,5 +168,5 @@ journal、handoff 和 review；这些状态不得回流到薄 Skill。
 - 离线 stale-binding、skill-creator、安装 smoke 和 docpact 门禁通过；
 - Research 如需该来源，通过 CLI adapter 复用核心结果，而不是继续执行 Skill 脚本。
 
-本次计划持久化不授权立即删除任何现有脚本或修改 Skill。删除只发生在对应 CLI 能力
-已验收并有明确迁移/回退路径的实现 PR 中。
+AirNow 与 Federal Register 是首批落地实例。其他候选仍须逐个通过对应 CLI 能力验收、
+正式版本绑定、隔离安装 smoke 和明确回退路径后，才能删除原有执行实现。

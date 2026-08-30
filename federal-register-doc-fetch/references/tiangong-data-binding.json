@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "tiangong.data.skill-binding.v1",
+  "skillName": "federal-register-doc-fetch",
+  "generatedWithCliVersion": "0.0.51",
+  "capabilityId": "federal-register.documents",
+  "capabilityVersion": "1.0.0",
+  "minimumCliVersion": "0.0.51",
+  "manifestDigest": "96eed6af28f893c277443abcefdee146d8656a6d915ec7badff406e09f57669a",
+  "operations": [
+    {
+      "operationId": "search",
+      "operationVersion": "1.0.0",
+      "inputSchemaId": "https://schemas.tiangong.ai/data/federal-register/documents-input.v1.json",
+      "inputSchemaDigest": "3bf78166143a282544ffdaa22b7208fc395266133d0bfcbceb1337b9b946674b",
+      "outputSchemaId": "https://schemas.tiangong.ai/data/federal-register/documents-output.v1.json",
+      "outputSchemaDigest": "a406ff22827a60a2b8a784544096f01632d8f411aa61fdd20dbc4e67436fe1b9"
+    }
+  ]
+}

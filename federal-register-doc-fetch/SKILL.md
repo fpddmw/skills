@@ -1,114 +1,91 @@
 ---
 name: federal-register-doc-fetch
-description: Fetch Federal Register document search results with explicit term, publication-window, agency, document-type, topic, docket, and RIN filters, then return structured official-policy records with retries, throttling, pagination, and validation. Use when tasks need authoritative U.S. Federal Register notices, proposed rules, final rules, or presidential documents for policy verification and regulatory context.
+description: Search official FederalRegister.gov document metadata through the Tiangong CLI for a bounded publication date and explicit regulatory filters. Use to identify notices, proposed rules, final rules, or presidential documents; do not use for document bodies, docket comments, legal interpretation, current-force determinations, or compliance advice.
 ---
 
-# Federal Register Doc Fetch
+# Federal Register Document Metadata
 
-## Core Goal
+Use the CLI-owned `federal-register.documents` capability. This Skill supplies
+intent routing and result-use boundaries only; the CLI owns source discovery,
+input/output schemas, HTTP behavior, pagination, limits, validation, and
+receipts.
 
-- Search the Federal Register `documents` API with one bounded request plan.
-- Retrieve official notices, proposed rules, final rules, or presidential documents relevant to one mission topic.
-- Return machine-readable JSON records with publication dates, agencies, URLs, excerpts, docket IDs, and RIN metadata.
-- Keep execution deterministic with retries, throttling, pagination caps, and payload validation.
+## Before running
 
-## Repository Policy
-
-- This is the only Federal Register source skill in this repository.
-- Do not create or invoke parallel Federal Register wrappers for the same `documents` endpoint.
-- When eco-council or OpenClaw assigns a raw artifact path, write this skill's full JSON payload to that exact path with `--output`.
-
-## Required Environment
-
-- Configure runtime by environment variables in `references/env.md`.
-- Start from `assets/config.example.env`.
-- Load env values before running commands:
+1. Read `references/tiangong-data-binding.json`.
+2. Use its exact `generatedWithCliVersion` in the package spec below. Never use
+   `latest`, a tag, or a version range.
+3. Run `data describe` and compare the returned capability version, execution
+   manifest digest, operation version, and input/output schema digests with the
+   binding. Stop on any mismatch.
 
 ```bash
-set -a
-source assets/config.example.env
-set +a
+npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
+  tiangong-ai data describe federal-register.documents --json
 ```
 
-## Workflow
+Use the returned Discovery Metadata to confirm current source coverage,
+restrictions, `provides`, and `doesNotProvide`. Prefer another source when the
+task needs full text, docket attachments, public comments, or legal analysis.
 
-1. Validate effective configuration.
+## Prepare the request
+
+Build a `tiangong.data.run-request.v1` envelope and replace the two version
+placeholders with the exact values in the binding. Under `input`, provide at
+least one publication-date bound and at least one narrowing filter:
+
+```json
+{
+  "schemaVersion": "tiangong.data.run-request.v1",
+  "capabilityId": "federal-register.documents",
+  "capabilityVersion": "<binding.capabilityVersion>",
+  "operationId": "search",
+  "operationVersion": "<binding.operations[0].operationVersion>",
+  "input": {
+    "term": "clean air",
+    "publicationDate": {
+      "from": "2026-01-01",
+      "to": "2026-03-31"
+    },
+    "agencies": ["environmental-protection-agency"],
+    "documentTypes": ["RULE", "PRORULE"],
+    "order": "newest",
+    "pageSize": 100
+  }
+}
+```
+
+Use the operation input schema returned by `data describe` for current agency,
+document type, topic, docket, RIN, ordering, and page-size semantics under
+`input`. Do not invent provider slugs or broaden the publication window without
+the user's intent.
+
+## Run
 
 ```bash
-python3 scripts/federal_register_doc_fetch.py check-config --pretty
+npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
+  tiangong-ai data run federal-register.documents search \
+  --input /absolute/path/to/request.json --json
 ```
 
-2. Dry-run the search plan before making remote calls.
+The command emits a `tiangong.data.run-result.v1` envelope. Preserve its
+`contract`, `warnings`, `errors`, and `receipt` with `data` when handing the
+result to another workflow.
 
-```bash
-python3 scripts/federal_register_doc_fetch.py fetch \
-  --term "wildfire smoke EPA" \
-  --start-date 2023-06-01 \
-  --end-date 2023-06-10 \
-  --agency environmental-protection-agency \
-  --document-type NOTICE \
-  --max-pages 2 \
-  --max-records 20 \
-  --dry-run \
-  --pretty
-```
+## Result boundaries
 
-3. Fetch one bounded search window and write the payload.
+- Treat `partial` and truncation stop reasons as incomplete coverage; report
+  the page or record limit instead of implying an exhaustive search.
+- Treat `blocked` as no usable business result and surface the structured
+  errors instead of weakening the required bounds.
+- Returned URLs are metadata links, not proof that document bodies were
+  retrieved or reviewed.
+- Verify legally consequential claims against an official edition and qualified
+  legal guidance. This Skill does not determine current legal force.
+- Cross-source comparison and research evidence admission belong to the caller
+  or Auto Research, not this atomic Skill.
 
-```bash
-python3 scripts/federal_register_doc_fetch.py fetch \
-  --term "wildfire smoke EPA" \
-  --start-date 2023-06-01 \
-  --end-date 2023-06-10 \
-  --agency environmental-protection-agency \
-  --document-type NOTICE \
-  --output ./data/federal-register-docs.json \
-  --pretty
-```
+## Reference
 
-4. Use task-specific structured filters when the mission already knows them.
-
-```bash
-python3 scripts/federal_register_doc_fetch.py fetch \
-  --term "greenhouse gas" \
-  --start-date 2024-03-01 \
-  --end-date 2024-03-31 \
-  --regulation-id-number 3235-AM87 \
-  --document-type RULE \
-  --document-type PRORULE \
-  --max-records 50 \
-  --pretty
-```
-
-## Output Record Shape
-
-Each item in `records` is one Federal Register document record, typically including:
-
-- `document_number`, `title`, `type`
-- `publication_date`, `effective_on`
-- `agencies`, `topics`
-- `abstract`, `excerpts`
-- `html_url`, `pdf_url`, `raw_text_url`, `comment_url`
-- `docket_ids`, `regulation_id_numbers`
-- `source_query_url`, `source_page_number`
-
-The full raw payload also keeps request metadata, page summaries, and validation output for downstream auditing.
-
-## Scope Boundaries
-
-- This skill targets the Federal Register `documents` search endpoint only.
-- This skill does not crawl linked HTML, PDF, or raw-text bodies.
-- This skill does not infer legal meaning or summarize regulations.
-- This skill does not need an API key.
-- This skill is the canonical Federal Register fetch interface for this repository.
-
-## References
-
-- `references/env.md`
-- `references/federal-register-api-notes.md`
-- `references/federal-register-limitations.md`
-- `references/openclaw-chaining-templates.md`
-
-## Script
-
-- `scripts/federal_register_doc_fetch.py`
+- `references/tiangong-data-binding.json`: exact execution compatibility
+  binding for the reviewed CLI release.

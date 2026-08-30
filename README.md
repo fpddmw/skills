@@ -14,7 +14,7 @@ checkPaths:
   - .claude-plugin/**
   - "*/SKILL.md"
 lastReviewedAt: 2026-08-30
-lastReviewedCommit: f45607fcf63924c915d6a9a28f81686a694754b0
+lastReviewedCommit: 34ee21593ec90bf7c1c96445d3a97b453bcb2531
 ---
 
 # Tiangong AI Skills
@@ -23,14 +23,19 @@ Repository: https://github.com/tiangong-ai/skills
 
 Use the `skills` CLI from https://github.com/vercel-labs/skills to install, update, and manage these skills.
 
-## Proposed atomic data migration
+## Atomic data skills
 
-The repository is planning to replace selected fetch/search/download Skill
-runtime scripts with thin semantic Skills over a CLI-owned TypeScript 7 data
-runtime. This is a development plan, not a currently available command surface.
+`airnow-hourly-obs-fetch` and `federal-register-doc-fetch` are thin semantic
+Skills over the Tiangong CLI TypeScript 7 data runtime. Each Skill records one
+exact reviewed CLI release in `references/tiangong-data-binding.json`; the
+agent uses CLI `data describe` for current source facts and `data run` for the
+bound operation. The Skills contain no second provider connector runtime.
+
 See `_docs/architecture/atomic-data-capabilities.md` and
 `_docs/runbooks/atomic-data-skill-migration.md` for the ownership boundary,
-inventory, staged PR order, and acceptance gates.
+candidate inventory, staged migration order, and release gates. Other listed
+data Skills remain unchanged until their own CLI capability is reviewed and
+published.
 
 ## Install the CLI
 

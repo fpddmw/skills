@@ -1,12 +1,32 @@
 import assert from "node:assert/strict";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 
 import {
   buildDataSkillBinding,
+  validateDataSkillBinding,
   verifyDataSkillBinding,
 } from "../data-skill-binding.mjs";
 
 const CLI_VERSION = "0.0.54";
+const REPOSITORY_ROOT = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  "../..",
+);
+const PILOT_SKILLS = [
+  {
+    name: "airnow-hourly-obs-fetch",
+    capabilityId: "airnow.hourly-observations",
+    operationId: "fetch-hourly",
+  },
+  {
+    name: "federal-register-doc-fetch",
+    capabilityId: "federal-register.documents",
+    operationId: "search",
+  },
+];
 
 function describeFixture() {
   return {
@@ -167,4 +187,72 @@ test("rejects undeclared binding fields", () => {
     () => verifyDataSkillBinding({ binding, cliVersion: CLI_VERSION, describe }),
     /Unexpected binding field/,
   );
+});
+
+test("rejects internally inconsistent or duplicate binding entries", () => {
+  const binding = buildDataSkillBinding({
+    skillName: "example-record-search",
+    cliVersion: CLI_VERSION,
+    describe: describeFixture(),
+    operationIds: ["search"],
+  });
+
+  assert.throws(
+    () =>
+      validateDataSkillBinding({
+        ...binding,
+        generatedWithCliVersion: "0.0.53",
+      }),
+    /older than minimumCliVersion/,
+  );
+  assert.throws(
+    () =>
+      validateDataSkillBinding({
+        ...binding,
+        operations: [...binding.operations, binding.operations[0]],
+      }),
+    /Duplicate binding operationId/,
+  );
+});
+
+test("pilot data skills are thin CLI semantic entrypoints", () => {
+  for (const pilot of PILOT_SKILLS) {
+    const root = resolve(REPOSITORY_ROOT, pilot.name);
+    const bindingPath = resolve(
+      root,
+      "references/tiangong-data-binding.json",
+    );
+    assert.equal(existsSync(resolve(root, "scripts")), false, pilot.name);
+    assert.equal(existsSync(resolve(root, "assets")), false, pilot.name);
+    assert.deepEqual(
+      readdirSync(resolve(root, "references")).sort(),
+      ["tiangong-data-binding.json"],
+      pilot.name,
+    );
+
+    const binding = JSON.parse(readFileSync(bindingPath, "utf8"));
+    validateDataSkillBinding(binding);
+    assert.equal(binding.skillName, pilot.name);
+    assert.equal(binding.capabilityId, pilot.capabilityId);
+    assert.deepEqual(
+      binding.operations.map((operation) => operation.operationId),
+      [pilot.operationId],
+    );
+
+    const skill = readFileSync(resolve(root, "SKILL.md"), "utf8");
+    assert.match(skill, /references\/tiangong-data-binding\.json/);
+    assert.match(skill, new RegExp(`data describe ${pilot.capabilityId}`));
+    assert.match(
+      skill,
+      new RegExp(`data run ${pilot.capabilityId} ${pilot.operationId}`),
+    );
+    assert.match(skill, /tiangong\.data\.run-request\.v1/);
+    assert.match(skill, /"input": \{/);
+    assert.doesNotMatch(skill, /python3|OpenClaw|eco-council/);
+    assert.doesNotMatch(skill, /@tiangong-ai\/cli@\d+\.\d+\.\d+/);
+
+    const agent = readFileSync(resolve(root, "agents/openai.yaml"), "utf8");
+    assert.match(agent, new RegExp(`\\$${pilot.name}`));
+    assert.doesNotMatch(agent, /raw artifact|OpenClaw|eco-council/);
+  }
 });

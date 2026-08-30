@@ -14,7 +14,7 @@ checkPaths:
   - _docs/**
   - "*/SKILL.md"
 lastReviewedAt: 2026-08-30
-lastReviewedCommit: f45607fcf63924c915d6a9a28f81686a694754b0
+lastReviewedCommit: 34ee21593ec90bf7c1c96445d3a97b453bcb2531
 ---
 
 # Skills Documentation Standards
@@ -43,8 +43,8 @@ lastReviewedCommit: f45607fcf63924c915d6a9a28f81686a694754b0
   in this repository.
 - Do not include real credentials, user-private data, or large generated
   artifacts in skill docs or assets.
-- Proposed architecture/runbook documents must label unavailable commands and
-  future behavior as proposed. For atomic data, CLI documents are authoritative
+- Architecture/runbook documents must label unavailable commands and future
+  behavior as proposed. For atomic data, CLI documents are authoritative
   for machine contracts; Skills documents cover semantic entrypoints,
   compatibility bindings, inventory, and migration workflow without copying
   closed schemas.

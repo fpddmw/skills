@@ -14,7 +14,7 @@ checkPaths:
   - .claude-plugin/**
   - "*/SKILL.md"
 lastReviewedAt: 2026-08-30
-lastReviewedCommit: f45607fcf63924c915d6a9a28f81686a694754b0
+lastReviewedCommit: 34ee21593ec90bf7c1c96445d3a97b453bcb2531
 ---
 
 # 天工 AI Skills
@@ -23,13 +23,18 @@ lastReviewedCommit: f45607fcf63924c915d6a9a28f81686a694754b0
 
 请使用 https://github.com/vercel-labs/skills 提供的 `skills` CLI 来安装、更新和管理这些 skills。
 
-## 原子数据迁移计划（proposed）
+## 原子数据 Skills
 
-本仓正在规划把经过评审的 fetch/search/download Skill 执行业务重写到 CLI 所有的
-TypeScript 7 数据运行时，并把 Skill 收敛为薄语义入口。这是开发计划，不是当前已
-可用的命令面。仓库边界、候选清单、分阶段 PR 顺序和验收门槛见
+`airnow-hourly-obs-fetch` 与 `federal-register-doc-fetch` 已收敛为 Tiangong CLI
+TypeScript 7 数据运行时之上的薄语义 Skill。每个 Skill 都在
+`references/tiangong-data-binding.json` 中记录一个经过评审的精确 CLI 版本；Agent
+通过 CLI `data describe` 获取当前数据源事实，通过 `data run` 执行已绑定 operation。
+Skills 不再保留第二份 provider connector 运行时。
+
+所有权边界、候选清单、分批迁移顺序和发布门槛见
 `_docs/architecture/atomic-data-capabilities.md` 与
-`_docs/runbooks/atomic-data-skill-migration.md`。
+`_docs/runbooks/atomic-data-skill-migration.md`。其余候选数据 Skill 在各自 CLI
+capability 通过评审并正式发布前保持不变。
 
 ## 安装 CLI
 

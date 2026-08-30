@@ -1,7 +1,7 @@
 ---
 docType: runbook
 scope: repo
-status: proposed
+status: current
 authoritative: true
 owner: skills
 language: zh-CN
@@ -18,19 +18,19 @@ checkPaths:
   - "*-download/**"
   - tiangong-auto-research/**
 lastReviewedAt: 2026-08-30
-lastReviewedCommit: f45607fcf63924c915d6a9a28f81686a694754b0
+lastReviewedCommit: 34ee21593ec90bf7c1c96445d3a97b453bcb2531
 ---
 
 # 原子数据 Skill 迁移实施计划
 
-## 当前基线和停止点
+## 当前基线
 
 - 计划基线：`origin/main` at
   `4104e527facd09ecc242dad7a1e9645adf9d21f0`。
 - 计划分支：`codex/atomic-data-plan`，使用独立干净 worktree。
 - 原 Skills checkout、现有 `codex/atomic-environment-data-skills` worktree 及 CLI 的
   未提交变更都保持不动，不 stash/reset/rebase/clean。
-- 本 runbook、架构和治理路由通过验证后停止；下一步需重新确认后才修改 Skill。
+- 首批实现继续使用该独立 worktree；正式 CLI 包、binding 和全部门禁通过后才提交 PR。
 
 ## 2026-08-30 实现状态
 
@@ -40,8 +40,11 @@ lastReviewedCommit: f45607fcf63924c915d6a9a28f81686a694754b0
 - 当前可安装的 `@tiangong-ai/cli@0.0.53` 尚不包含 `data` 命令，因此仍未达到删除
   Skill 旧执行脚本和提交正式 binding 的门槛。
 - Skills 仓库已增加 execution-only binding 生成/校验器及离线 stale-binding 测试。
-  本地从合并源码打出的候选包可生成并验证两个试点 binding，但候选包版本不得冒充
-  正式发布版本写入 Skill。
+  两个试点 Skill 已薄化，本地从合并源码打出的候选包已通过 binding、copy/symlink
+  安装和无 provider 网络的命令面 smoke；旧 Python connector 与重复 provider
+  references 已移出生产 Skill。
+- 候选包版本不得冒充正式发布版本。PR 前必须用实际包含 `data` 命令的正式版本重新
+  生成两个 binding，并用该 npm 包重跑全部门禁。
 
 ## 与 CLI 的同步顺序
 
@@ -222,6 +225,18 @@ binding 工具的离线契约测试：
 ```bash
 node --test scripts/tests/data-skill-binding.test.mjs
 ```
+
+隔离 copy/symlink 安装 smoke：
+
+```bash
+TIANGONG_DATA_SKILLS_RUN_INSTALL_SMOKE=1 \
+TIANGONG_DATA_CLI_VERSION=X.Y.Z \
+TIANGONG_DATA_CLI_PACKAGE=@tiangong-ai/cli@X.Y.Z \
+node --test scripts/tests/data-skill-install-smoke.test.mjs
+```
+
+它会清除 provider 凭证，只运行 version、catalog、describe、static doctor 和本地
+结构化阻断请求，不访问 AirNow 或 FederalRegister.gov。
 
 正式 CLI 版本发布后，先生成再用同一精确包复验；`X.Y.Z` 必须替换为实际可安装且
 包含 `data` 命令的版本：

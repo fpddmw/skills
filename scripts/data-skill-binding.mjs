@@ -127,7 +127,7 @@ function operationBinding(operation) {
   };
 }
 
-function validateBindingShape(binding) {
+export function validateDataSkillBinding(binding) {
   const value = assertClosedObject(binding, BINDING_FIELDS, "binding");
   if (value.schemaVersion !== BINDING_SCHEMA_VERSION) {
     fail(
@@ -139,17 +139,28 @@ function validateBindingShape(binding) {
   requireString(value.capabilityId, "capabilityId");
   requireString(value.capabilityVersion, "capabilityVersion");
   parseSemver(value.minimumCliVersion, "minimumCliVersion");
+  if (
+    compareSemver(
+      value.generatedWithCliVersion,
+      value.minimumCliVersion,
+    ) < 0
+  ) {
+    fail(
+      `generatedWithCliVersion ${value.generatedWithCliVersion} is older than minimumCliVersion ${value.minimumCliVersion}.`,
+    );
+  }
   requireDigest(value.manifestDigest, "manifestDigest");
   if (!Array.isArray(value.operations) || value.operations.length === 0) {
     fail("binding operations must be a non-empty array.");
   }
+  const operationIds = new Set();
   for (const operation of value.operations) {
     const item = assertClosedObject(
       operation,
       OPERATION_FIELDS,
       "binding operation",
     );
-    operationBinding({
+    const normalized = operationBinding({
       operationId: item.operationId,
       operationVersion: item.operationVersion,
       inputSchema: {
@@ -161,6 +172,10 @@ function validateBindingShape(binding) {
         digest: item.outputSchemaDigest,
       },
     });
+    if (operationIds.has(normalized.operationId)) {
+      fail(`Duplicate binding operationId: ${normalized.operationId}.`);
+    }
+    operationIds.add(normalized.operationId);
   }
   return value;
 }
@@ -226,7 +241,7 @@ function compareField(actual, expected, label) {
 }
 
 export function verifyDataSkillBinding({ binding, cliVersion, describe }) {
-  const expected = validateBindingShape(binding);
+  const expected = validateDataSkillBinding(binding);
   parseSemver(cliVersion, "CLI version");
   if (cliVersion !== expected.generatedWithCliVersion) {
     fail(

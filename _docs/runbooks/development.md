@@ -18,7 +18,7 @@ checkPaths:
   - .claude-plugin/**
   - "*/SKILL.md"
 lastReviewedAt: 2026-08-30
-lastReviewedCommit: f45607fcf63924c915d6a9a28f81686a694754b0
+lastReviewedCommit: 34ee21593ec90bf7c1c96445d3a97b453bcb2531
 ---
 
 # Skills Development Runbook
@@ -38,7 +38,7 @@ new skills, then fill in `SKILL.md`, optional `scripts/`, `references/`,
 
 ## Atomic Data Skill Migration
 
-Before changing a fetch/search/download Skill as part of the proposed atomic
+Before changing a fetch/search/download Skill as part of the atomic
 data refactor, read `_docs/architecture/atomic-data-capabilities.md` and follow
 `_docs/runbooks/atomic-data-skill-migration.md`. Do not remove a provider
 runtime until the CLI's TypeScript 7 connector is accepted, an exact package is
@@ -51,6 +51,20 @@ Run the execution-only binding contract with:
 ```bash
 node --test scripts/tests/data-skill-binding.test.mjs
 ```
+
+For a migrated pair, run the explicit copy/symlink install smoke against the
+same exact published CLI package recorded in both bindings:
+
+```bash
+TIANGONG_DATA_SKILLS_RUN_INSTALL_SMOKE=1 \
+TIANGONG_DATA_CLI_VERSION=X.Y.Z \
+TIANGONG_DATA_CLI_PACKAGE=@tiangong-ai/cli@X.Y.Z \
+node --test scripts/tests/data-skill-install-smoke.test.mjs
+```
+
+The smoke runs version, catalog, describe, static doctor, and an intentionally
+blocked local request with provider credentials removed. It must not contact a
+provider.
 
 After an exact CLI release containing the capability is installable, use
 `scripts/data-skill-binding.mjs generate` and `verify` as documented in the

@@ -13,7 +13,7 @@ checkPaths:
   - .github/workflows/docpact.yml
   - _docs/**
 lastReviewedAt: 2026-08-30
-lastReviewedCommit: f45607fcf63924c915d6a9a28f81686a694754b0
+lastReviewedCommit: 34ee21593ec90bf7c1c96445d3a97b453bcb2531
 ---
 
 # Skills Documentation
@@ -35,10 +35,10 @@ This directory contains the repo-local source documents governed by docpact.
 - `_docs/contracts/repo-contract.md`: repository ownership, boundaries, and
   skill completion rules.
 - `_docs/architecture/repo-architecture.md`: skill repository topology.
-- `_docs/architecture/atomic-data-capabilities.md`: proposed thin-Skill
+- `_docs/architecture/atomic-data-capabilities.md`: thin-Skill
   architecture and CLI/Research ownership boundary for atomic data sources.
 - `_docs/runbooks/development.md`: creation, validation, and marketplace update
   workflow.
-- `_docs/runbooks/atomic-data-skill-migration.md`: proposed inventory, staged
+- `_docs/runbooks/atomic-data-skill-migration.md`: candidate inventory, staged
   migration, cross-repo PR order, and acceptance gates for data Skills.
 - `_docs/standards/documentation-standards.md`: repo-local documentation rules.

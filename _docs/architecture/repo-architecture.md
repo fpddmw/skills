@@ -14,7 +14,7 @@ checkPaths:
   - .claude-plugin/**
   - "*/SKILL.md"
 lastReviewedAt: 2026-08-30
-lastReviewedCommit: f45607fcf63924c915d6a9a28f81686a694754b0
+lastReviewedCommit: 34ee21593ec90bf7c1c96445d3a97b453bcb2531
 ---
 
 # Skills Repository Architecture
@@ -93,24 +93,25 @@ may fall through to another explicit or discovered `pdftoppm` candidate. Its
 clean-container suite uses a privacy-safe embedded CID Type 0C Adobe-GB1 PDF and
 a real fault-injected Poppler library; it does not mock renderer stderr.
 
-## Proposed Atomic Data Skills
+## Atomic Data Skills
 
-The target architecture and staged inventory are documented in
+The architecture and staged inventory are documented in
 `_docs/architecture/atomic-data-capabilities.md` and
-`_docs/runbooks/atomic-data-skill-migration.md`. They remain proposed until the
-corresponding CLI machine contract is implemented.
+`_docs/runbooks/atomic-data-skill-migration.md`.
 
-After migration, an atomic data Skill is a thin semantic entrypoint over an
+An atomic data Skill is a thin semantic entrypoint over an
 exact published Tiangong CLI capability. It keeps source guidance, limitations,
 agent instructions, and a machine-checkable binding, while connector logic,
 schemas, credentials, retries, and core receipts live only in the CLI's
 TypeScript 7 runtime. Auto Research reuses that same runtime and adds its own
 evidence admission and persistence instead of executing a second Skill script.
 
-AirNow Hourly Obs and Federal Register Documents are the proposed first pair.
-No existing data script is removed by the planning change; removal requires an
-accepted CLI connector, an installable release, binding checks, and an explicit
-Skill migration PR.
+AirNow Hourly Observations and Federal Register Documents are the first pair.
+Each has only `SKILL.md`, generated agent metadata, and an execution-only CLI
+binding; their former Python connectors and duplicate provider references are
+not part of the production Skill. Later candidates retain their current runtime
+until the same accepted-connector, exact-release, binding, and install-smoke
+gates pass independently.
 
 ## Integration Points
 
