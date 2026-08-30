@@ -25,20 +25,20 @@ Use the `skills` CLI from https://github.com/vercel-labs/skills to install, upda
 
 ## Atomic data skills
 
-Ten Skills—AirNow Hourly Observations, Federal Register Documents, NASA FIRMS
-Active Fire, OpenAQ Air Quality, Regulations.gov Comments, Regulations.gov
-Comment Details, USGS Water IV, Open-Meteo Air Quality, Open-Meteo Flood, and
-Open-Meteo Historical Weather—are thin semantic Skills over the Tiangong CLI
-TypeScript 7 data runtime. Each Skill records one exact reviewed CLI release in
-`references/tiangong-data-binding.json`; the agent uses CLI `data describe` for
-current source facts and `data run` for the bound operation. These Skills
+Fourteen Skills—AirNow Hourly Observations, Federal Register Documents, NASA
+FIRMS Active Fire, OpenAQ Air Quality, Regulations.gov Comments,
+Regulations.gov Comment Details, USGS Water IV, three Open-Meteo sources, and
+GDELT DOC, Events, GKG, and Mentions—are thin semantic Skills over the Tiangong
+CLI TypeScript 7 data runtime. Each Skill records one exact reviewed CLI release
+in `references/tiangong-data-binding.json`; the agent uses CLI `data describe`
+for current source facts and `data run` for the bound operation. These Skills
 contain no second provider connector runtime.
 
 See `_docs/architecture/atomic-data-capabilities.md` and
 `_docs/runbooks/atomic-data-skill-migration.md` for the ownership boundary,
-candidate inventory, staged migration order, and release gates. Other listed
-data Skills remain unchanged until their own CLI capability is reviewed and
-published.
+candidate inventory, staged migration order, and release gates. Content,
+media, download, and authenticated social-source candidates remain unchanged
+until their semantics and CLI ownership are separately reviewed.
 
 ## Install the CLI
 

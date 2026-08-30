@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "tiangong.data.skill-binding.v1",
+  "skillName": "gdelt-mentions-fetch",
+  "generatedWithCliVersion": "0.0.51",
+  "capabilityId": "gdelt.mentions",
+  "capabilityVersion": "1.0.0",
+  "minimumCliVersion": "0.0.51",
+  "manifestDigest": "1b21d646ccf35f6b6f1c6040e8546378148f9a475328c0c976df9a2420ecdccf",
+  "operations": [
+    {
+      "operationId": "fetch",
+      "operationVersion": "1.0.0",
+      "inputSchemaId": "https://schemas.tiangong.ai/data/gdelt/file-feed-input.v1.json",
+      "inputSchemaDigest": "c27d7255e8b999f406bdf36357e0702ee12a433dffba0a596d8f05c0a5a68f58",
+      "outputSchemaId": "https://schemas.tiangong.ai/data/gdelt/mentions-output.v1.json",
+      "outputSchemaDigest": "11c8a87ada8fe42d05acf5a6c4aed3f77cfa1c1e5f8af5c7eb4aa91c2cf14e62"
+    }
+  ]
+}

@@ -26,6 +26,26 @@ const PILOTS = [
     operations: ["search"],
   },
   {
+    skill: "gdelt-doc-search",
+    capability: "gdelt.doc-search",
+    operations: ["search"],
+  },
+  {
+    skill: "gdelt-events-fetch",
+    capability: "gdelt.events",
+    operations: ["fetch"],
+  },
+  {
+    skill: "gdelt-gkg-fetch",
+    capability: "gdelt.gkg",
+    operations: ["fetch"],
+  },
+  {
+    skill: "gdelt-mentions-fetch",
+    capability: "gdelt.mentions",
+    operations: ["fetch"],
+  },
+  {
     skill: "nasa-firms-fire-fetch",
     capability: "nasa-firms.active-fire",
     operations: ["fetch-area"],
@@ -124,7 +144,7 @@ test(
         };
         for (const name of Object.keys(environment)) {
           if (
-            /AIRNOW|FEDERAL_REGISTER|NASA|FIRMS|OPENAQ|OPEN_METEO|REGGOV|USGS|TIANGONG.*KEY/i.test(
+            /AIRNOW|FEDERAL_REGISTER|GDELT|NASA|FIRMS|OPENAQ|OPEN_METEO|REGGOV|USGS|TIANGONG.*KEY/i.test(
               name,
             )
           ) {
@@ -186,7 +206,7 @@ test(
           env: environment,
         });
         assert.equal(catalog.status, 0, catalog.stderr);
-        assert.equal(JSON.parse(catalog.stdout).capabilities.length >= 9, true);
+        assert.equal(JSON.parse(catalog.stdout).capabilities.length >= 13, true);
 
         for (const pilot of PILOTS) {
           const describe = run(

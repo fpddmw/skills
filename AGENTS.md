@@ -16,7 +16,7 @@ checkPaths:
   - scripts/**
   - _docs/**
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: 4a488d52e538213bc253b8ab0fb08ce49f8765f9
+lastReviewedCommit: 0b8d0da156d873ed8aad4d91b7441b56c376ddea
 ---
 
 # Tiangong AI Skills Agent Contract

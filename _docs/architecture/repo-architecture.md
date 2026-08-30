@@ -106,16 +106,20 @@ schemas, credentials, retries, and core receipts live only in the CLI's
 TypeScript 7 runtime. Auto Research reuses that same runtime and adds its own
 evidence admission and persistence instead of executing a second Skill script.
 
-Ten local candidate Skills now use this shape: AirNow, Federal Register, USGS
-Water IV, three Open-Meteo sources, NASA FIRMS, OpenAQ, and the separate
-Regulations.gov search and detail semantic entrypoints. The two Regulations.gov
-Skills bind different operations of one CLI capability. Each directory has only
+Fourteen local candidate Skills now use this shape: AirNow, Federal Register,
+USGS Water IV, three Open-Meteo sources, NASA FIRMS, OpenAQ, the separate
+Regulations.gov search and detail semantic entrypoints, and separate GDELT DOC,
+Events, GKG, and Mentions entrypoints. The two Regulations.gov Skills bind
+different operations of one CLI capability; the GDELT Skills bind four
+independent capabilities with one operation each. Each directory has only
 `SKILL.md`, generated agent metadata, and an execution-only CLI binding; its
 former Python connector and duplicate provider references are absent. These
 become production migrations only after the exact CLI package is published and
 the bindings/install smoke are regenerated against that package. Later
-candidates retain their current runtime until the same accepted-connector,
-exact-release, binding, and install-smoke gates pass independently.
+content/media/download candidates retain their current runtime until their
+semantics and CLI ownership pass an explicit audit and the same
+accepted-connector, exact-release, binding, and install-smoke gates pass
+independently.
 
 ## Integration Points
 

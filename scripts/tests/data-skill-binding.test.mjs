@@ -50,6 +50,46 @@ const PILOT_SKILLS = [
     ],
   },
   {
+    name: "gdelt-doc-search",
+    capabilityId: "gdelt.doc-search",
+    operations: [
+      {
+        operationId: "search",
+        inputKeys: ["absoluteWindow", "maxRecords", "mode", "query", "sort"],
+      },
+    ],
+  },
+  {
+    name: "gdelt-events-fetch",
+    capabilityId: "gdelt.events",
+    operations: [
+      {
+        operationId: "fetch",
+        inputKeys: ["endDateTime", "maxFiles", "mode", "startDateTime"],
+      },
+    ],
+  },
+  {
+    name: "gdelt-gkg-fetch",
+    capabilityId: "gdelt.gkg",
+    operations: [
+      {
+        operationId: "fetch",
+        inputKeys: ["endDateTime", "maxFiles", "mode", "startDateTime"],
+      },
+    ],
+  },
+  {
+    name: "gdelt-mentions-fetch",
+    capabilityId: "gdelt.mentions",
+    operations: [
+      {
+        operationId: "fetch",
+        inputKeys: ["endDateTime", "maxFiles", "mode", "startDateTime"],
+      },
+    ],
+  },
+  {
     name: "nasa-firms-fire-fetch",
     capabilityId: "nasa-firms.active-fire",
     operations: [

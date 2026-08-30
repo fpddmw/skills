@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "tiangong.data.skill-binding.v1",
+  "skillName": "gdelt-doc-search",
+  "generatedWithCliVersion": "0.0.51",
+  "capabilityId": "gdelt.doc-search",
+  "capabilityVersion": "1.0.0",
+  "minimumCliVersion": "0.0.51",
+  "manifestDigest": "13f042c02762a0625a1662d7f285ae3b8265eddc083fe504ffc6efaa40929ccf",
+  "operations": [
+    {
+      "operationId": "search",
+      "operationVersion": "1.0.0",
+      "inputSchemaId": "https://schemas.tiangong.ai/data/gdelt/doc-search-input.v1.json",
+      "inputSchemaDigest": "a380e0577cca78073073eb2974e6ddaf94e68b54aea0123fa2a6762d4281ee22",
+      "outputSchemaId": "https://schemas.tiangong.ai/data/gdelt/doc-search-output.v1.json",
+      "outputSchemaDigest": "b94ddeb22d1a34e9742b36d0471407d7a23af8b1f5ad15938f51a6767314e1dd"
+    }
+  ]
+}

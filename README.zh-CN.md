@@ -27,8 +27,8 @@ lastReviewedCommit: ed9a6cc
 
 AirNow Hourly Observations、Federal Register Documents、NASA FIRMS Active Fire、
 OpenAQ Air Quality、Regulations.gov Comments、Regulations.gov Comment Details、
-USGS Water IV、Open-Meteo Air Quality、Open-Meteo Flood 与 Open-Meteo Historical
-Weather 十个 Skill 已收敛为 Tiangong CLI TypeScript 7 数据运行时之上的薄语义 Skill。每个
+USGS Water IV、三个 Open-Meteo 来源，以及 GDELT DOC、Events、GKG、Mentions
+共十四个 Skill 已收敛为 Tiangong CLI TypeScript 7 数据运行时之上的薄语义 Skill。每个
 Skill 都在
 `references/tiangong-data-binding.json` 中记录一个经过评审的精确 CLI 版本；Agent
 通过 CLI `data describe` 获取当前数据源事实，通过 `data run` 执行已绑定 operation。
@@ -36,8 +36,8 @@ Skill 都在
 
 所有权边界、候选清单、分批迁移顺序和发布门槛见
 `_docs/architecture/atomic-data-capabilities.md` 与
-`_docs/runbooks/atomic-data-skill-migration.md`。其余候选数据 Skill 在各自 CLI
-capability 通过评审并正式发布前保持不变。
+`_docs/runbooks/atomic-data-skill-migration.md`。内容、媒体、下载与需认证社交来源的候选
+Skill 在其语义和 CLI 所有权分别通过评审前保持不变。
 
 ## 安装 CLI
 

@@ -41,13 +41,15 @@ lastReviewedCommit: ed9a6cc
   Skill 旧执行脚本和提交正式 binding 的门槛。
 - Skills 仓库已增加 execution-only binding 生成/校验器及离线 stale-binding 测试。
   AirNow、Federal Register、USGS Water IV、Open-Meteo Air Quality、Open-Meteo Flood、
-  Open-Meteo Historical Weather、NASA FIRMS、OpenAQ、Regulations.gov Comments 与
-  Regulations.gov Comment Details 已在本地候选分支薄化；后两个 Skill 分别绑定同一
-  `regulations-gov.comments` capability 的 search 与 fetch-details operation。十项旧
-  Python connector 与重复 provider references 已移出候选 Skill，并共同纳入
-  copy/symlink 安装 smoke。
-- 候选包版本不得冒充正式发布版本。PR 前必须用实际包含全部九个 capability 的正式
-  版本重新生成十个 binding，并用该 npm 包重跑全部门禁。
+  Open-Meteo Historical Weather、NASA FIRMS、OpenAQ、Regulations.gov Comments、
+  Regulations.gov Comment Details，以及 GDELT DOC、Events、GKG、Mentions 已在本地
+  候选分支薄化。两个 Regulations.gov Skill 分别绑定同一
+  `regulations-gov.comments` capability 的 search 与 fetch-details operation；四个
+  GDELT Skill 分别绑定独立 capability。十四项旧 Python connector 与重复 provider
+  references 已移出候选 Skill，并共同纳入 copy/symlink 安装 smoke。
+- 当前本地候选包 `0.0.51` 只用于分支内兼容验证，不代表 npm 正式发布。PR 前必须用
+  实际包含全部十三个 capability 的正式版本重新生成十四个 binding，并用该 npm 包
+  重跑全部门禁。
 
 ## 与 CLI 的同步顺序
 
@@ -175,6 +177,10 @@ Skill。以下差异必须明确，不能被误写成无损命令替换：
 | OpenAQ Air Quality             | 有界 location discovery、provider/owner/sensor/parameter/license/coverage metadata，以及单 sensor、最长 366 天的 raw/hourly/daily measurements、稳定分页和 later-page partial          | 任意 v3 path/query、API/S3 自动路由、S3 prefix/list/download、Skill-local region/bucket/endpoint 配置和 Python client/router 被移除；`OPENAQ_API_KEY` 只由 CLI header 注入。批量 archive 文件转入单独 content/download 审计；输出不提供 AQI、健康/监管判断、跨 sensor 聚合、单位转换或来源归因                                                             |
 | Regulations.gov Comments       | posted 或 last-modified 二选一的最长 366 天窗口、agency/comment-on/search-term 收窄、稳定 JSON:API 分页、comment ID/日期/标题/withdrawal metadata 和 later-page partial                | `REGGOV_API_KEY` 只由 CLI header 注入；移除任意 endpoint、重试/节流/log/dry-run、JSONL 写入和 quarantine。结果明确不是代表性公众意见、投票或统计 sentiment，不提供 comment post/modify、detail body 或 attachment download                                                                                                                                 |
 | Regulations.gov Comment Detail | 最多 100 个显式 comment ID、caller 顺序、comment/docket/document linkage、日期、withdrawal/restriction、组织上下文、duplicate count、可选 attachment metadata 和 per-ID partial        | 删除本地文件 ID 解析、任意 endpoint、重试/节流/log/dry-run、raw/JSONL/quarantine 写入；CLI 以 allowlist 排除姓名、邮箱、电话、地址与 locality 等个人 profile 字段，只返回 attachment metadata/link，不下载 bytes，也不提供法律判断或代表性 sentiment                                                                                                       |
+| GDELT DOC                      | 有界 relative/absolute window、受控 article-list/timeline modes、GDELT query syntax、模式化 JSON 结果和 provider truncation/空结果语义                                               | 删除任意 DOC mode/format/额外 query 参数、endpoint/retry/throttle/log 配置和 raw artifact 写入；只返回文章 metadata/link 或聚合时间线，不下载正文，也不把自动 tone/count/ranking 解释为代表性、事实或因果证据                                                                                                                                                |
+| GDELT Events                   | latest 或精确 15 分钟 UTC range、最多 20 个 source files、ZIP/MD5/CRC/UTF-8/61-column 校验、机器编码 event rows 与来源 lineage                                                        | 删除 masterfilelist 下载、dry-run、任意 expected-columns、output/quarantine/log 路径和持久 ZIP；CLI 返回有界内存归一化 rows 与统一 receipt，不把 coded event 当作验证事实、唯一事件或正文                                                                                                                                                                      |
+| GDELT GKG                      | latest 或精确 15 分钟 UTC range、最多 20 个 source files、ZIP/MD5/CRC/UTF-8/27-column 校验、GKG annotations 与 document lineage                                                       | 删除 masterfilelist 下载、dry-run、任意 expected-columns、output/quarantine/log 路径和持久 ZIP；CLI 返回有界内存归一化 rows，不把 machine-extracted themes/entities/locations/tone 当作已验证知识、正文或 sentiment ground truth                                                                                                                              |
+| GDELT Mentions                 | latest 或精确 15 分钟 UTC range、最多 20 个 source files、ZIP/MD5/CRC/UTF-8/16-column 校验、mention-level provenance/confidence/source linkage                                       | 删除 masterfilelist 下载、dry-run、任意 expected-columns、output/quarantine/log 路径和持久 ZIP；CLI 返回有界内存归一化 rows，不把 mention 当作独立 endorsement、唯一文章、验证事件或正文                                                                                                                                                                    |
 
 新结果是 `tiangong.data.run-result.v1`，字段命名和审计结构以 operation output Schema
 及 core receipt 为准，不承诺旧 Python payload 的 snake_case/raw-artifact 兼容。需要旧版
@@ -215,10 +221,15 @@ attachment metadata 与 per-ID partial。每个 connector 单独批准，不因�
 
 ### 批次 3：GDELT 与内容/社交来源
 
-先评估 GDELT 的 doc/events/GKG/mentions 是否应为一个 capability 的多个独立 operation，
-还是保持多个能力。随后分别评审 RSS/fulltext、Bluesky、YouTube 和 Figshare 的内容许可、
-下载产物与浏览器边界。`academic-paper-download` 继续保持 Research acquisition companion，
-除非另一个明确设计取代它。
+GDELT 已决定保持四个独立 capability：DOC 搜索的 API/模式化聚合语义与三个文件 feed
+不同；Events、GKG、Mentions 共享 CLI 内部有界 ZIP/TSV 核心，但分别拥有闭合输出 Schema
+和独立发现语义。四个 Skill 已在本地候选分支完成薄化、execution-only binding 和统一
+安装 smoke 接入。
+
+下一阶段分别评审 RSS/fulltext、Bluesky、YouTube 和 Figshare 的内容许可、下载产物、
+凭证与浏览器边界，不因名称含 `fetch` 就自动纳入原子 provider connector。
+`academic-paper-download` 继续保持 Research acquisition companion，除非另一个明确设计
+取代它。
 
 ### 不迁移/退役
 
@@ -273,8 +284,8 @@ node --test scripts/tests/data-skill-install-smoke.test.mjs
 ```
 
 它会清除 provider 凭证，只运行 version、catalog、describe、static doctor 和本地
-结构化阻断请求，不访问 AirNow、FederalRegister.gov、NASA FIRMS、OpenAQ、Open-Meteo
-、Regulations.gov 或 USGS WaterServices。
+结构化阻断请求，不访问 AirNow、FederalRegister.gov、GDELT、NASA FIRMS、OpenAQ、
+Open-Meteo、Regulations.gov 或 USGS WaterServices。
 
 正式 CLI 版本发布后，先生成再用同一精确包复验；`X.Y.Z` 必须替换为实际可安装且
 包含 `data` 命令的版本：
@@ -330,6 +341,26 @@ node scripts/data-skill-binding.mjs generate \
   --capability regulations-gov.comments \
   --operations fetch-details \
   --cli-version X.Y.Z
+node scripts/data-skill-binding.mjs generate \
+  --skill gdelt-doc-search \
+  --capability gdelt.doc-search \
+  --operations search \
+  --cli-version X.Y.Z
+node scripts/data-skill-binding.mjs generate \
+  --skill gdelt-events-fetch \
+  --capability gdelt.events \
+  --operations fetch \
+  --cli-version X.Y.Z
+node scripts/data-skill-binding.mjs generate \
+  --skill gdelt-gkg-fetch \
+  --capability gdelt.gkg \
+  --operations fetch \
+  --cli-version X.Y.Z
+node scripts/data-skill-binding.mjs generate \
+  --skill gdelt-mentions-fetch \
+  --capability gdelt.mentions \
+  --operations fetch \
+  --cli-version X.Y.Z
 node scripts/data-skill-binding.mjs verify \
   --binding airnow-hourly-obs-fetch/references/tiangong-data-binding.json \
   --cli-version X.Y.Z
@@ -359,6 +390,18 @@ node scripts/data-skill-binding.mjs verify \
   --cli-version X.Y.Z
 node scripts/data-skill-binding.mjs verify \
   --binding regulationsgov-comment-detail-fetch/references/tiangong-data-binding.json \
+  --cli-version X.Y.Z
+node scripts/data-skill-binding.mjs verify \
+  --binding gdelt-doc-search/references/tiangong-data-binding.json \
+  --cli-version X.Y.Z
+node scripts/data-skill-binding.mjs verify \
+  --binding gdelt-events-fetch/references/tiangong-data-binding.json \
+  --cli-version X.Y.Z
+node scripts/data-skill-binding.mjs verify \
+  --binding gdelt-gkg-fetch/references/tiangong-data-binding.json \
+  --cli-version X.Y.Z
+node scripts/data-skill-binding.mjs verify \
+  --binding gdelt-mentions-fetch/references/tiangong-data-binding.json \
   --cli-version X.Y.Z
 ```
 

@@ -169,8 +169,9 @@ journal、handoff 和 review；这些状态不得回流到薄 Skill。
 - Research 如需该来源，通过 CLI adapter 复用核心结果，而不是继续执行 Skill 脚本。
 
 AirNow 与 Federal Register 是首批落地实例，USGS Water IV、Open-Meteo Air Quality、
-Open-Meteo Flood、Open-Meteo Historical Weather、NASA FIRMS、OpenAQ 与两个
-Regulations.gov 语义入口是八个逐项后续迁移实例；后两个入口共享一个 CLI capability，
-分别只绑定 search 与 fetch-details operation。本地候选分支可先完成薄化和测试，但只有
-在对应 CLI 正式版本发布、binding 重生成、隔离安装 smoke 和回退路径验证后才达到生产
-完成。其他候选继续逐个执行同一门槛。
+Open-Meteo Flood、Open-Meteo Historical Weather、NASA FIRMS、OpenAQ、两个
+Regulations.gov 语义入口以及 GDELT DOC、Events、GKG、Mentions 是十二个逐项后续迁移
+实例；两个 Regulations.gov 入口共享一个 CLI capability 并分别只绑定 search 与
+fetch-details operation，四个 GDELT 入口分别绑定独立 capability。本地候选分支可先
+完成薄化和测试，但只有在对应 CLI 正式版本发布、binding 重生成、隔离安装 smoke 和
+回退路径验证后才达到生产完成。其他候选继续逐个执行同一门槛。
