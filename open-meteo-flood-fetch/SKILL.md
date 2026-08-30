@@ -1,162 +1,108 @@
 ---
 name: open-meteo-flood-fetch
-description: Fetch Open-Meteo Flood API daily river-discharge data for specified date windows and coordinates with retries, throttling, detailed logs, and transport/structure validation. Use when tasks need deterministic flood or runoff verification for ecology and environmental monitoring, such as checking river discharge background, flood risk windows, or ensemble-style discharge signals for one or more coordinates.
+description: Retrieve daily Open-Meteo GloFAS simulated river-discharge fields through the Tiangong CLI for up to ten known coordinates and one bounded date window, optionally including forecast ensemble members. Use for broad modeled river-flow context or separately governed uncertainty analysis; do not use for gauge observations, named-river lookup, flood alerts or severity, emergency advice, geocoding, commercial public-endpoint use, or causal interpretation.
 ---
 
-# Open-Meteo Flood Fetch
+# Open-Meteo Flood
 
-## Core Goal
-- Fetch Open-Meteo flood data for one or more coordinates in one invocation.
-- Support inclusive `start_date` and `end_date` windows.
-- Return machine-readable JSON with request metadata, transport info, validation summary, and normalized records.
-- Keep runtime observable with structured logs and optional log file output.
+Use the CLI-owned `open-meteo.flood` capability. This Skill supplies intent
+routing and result-use boundaries only; the CLI owns source discovery,
+input/output schemas, HTTP behavior, limits, validation, and receipts.
 
-## Required Environment
-- Configure runtime by environment variables (see `references/env.md`).
-- Start from `assets/config.example.env`.
-- Load env values before running commands:
+## Before running
 
-```bash
-set -a
-source assets/config.example.env
-set +a
-```
-
-## Workflow
-1. Validate effective configuration.
+1. Read `references/tiangong-data-binding.json`.
+2. Use its exact `generatedWithCliVersion` in the package spec below. Never use
+   `latest`, a tag, or a version range.
+3. Run `data describe` and compare the returned capability version, execution
+   manifest digest, operation version, and input/output schema digests with the
+   binding. Stop on any mismatch.
+4. Run the default static doctor. Do not add `--live` unless the user explicitly
+   asks for a provider probe.
 
 ```bash
-python3 scripts/open_meteo_flood_fetch.py check-config --pretty
+npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
+  tiangong-ai data describe open-meteo.flood --json
+npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
+  tiangong-ai data doctor open-meteo.flood --json
 ```
 
-2. Dry-run the request plan first.
+Use the returned Discovery Metadata to confirm current GloFAS coverage,
+forecast and historical availability, model limitations, public-endpoint terms,
+attribution, `provides`, and `doesNotProvide`. Do not substitute facts remembered
+from an older Skill revision.
+
+## Prepare the request
+
+Build a `tiangong.data.run-request.v1` envelope and replace the two version
+placeholders with the exact values in the binding. Coordinates are WGS84
+decimal degrees. The CLI fixes dates to GMT, preserves coordinate order, and
+normalizes the variable order:
+
+```json
+{
+  "schemaVersion": "tiangong.data.run-request.v1",
+  "capabilityId": "open-meteo.flood",
+  "capabilityVersion": "<binding.capabilityVersion>",
+  "operationId": "fetch-daily",
+  "operationVersion": "<binding.operations[0].operationVersion>",
+  "input": {
+    "locations": [
+      { "latitude": 52.52, "longitude": 13.41 },
+      { "latitude": 48.85, "longitude": 2.35 }
+    ],
+    "startDate": "2026-03-01",
+    "endDate": "2026-03-05",
+    "dailyVariables": ["river_discharge", "river_discharge_p75"],
+    "includeEnsembleMembers": true,
+    "cellSelection": "nearest"
+  }
+}
+```
+
+Use the operation input schema returned by `data describe` for current variable
+codes, enum meanings, and limits. Ensemble members require `river_discharge`
+and can materially increase response size. Forecast statistics may be absent
+for consolidated historical dates. Do not add an API key: this capability uses
+the public non-commercial endpoint only. Commercial customer-endpoint access
+requires a separately reviewed capability. Do not silently geocode names,
+adjust coordinates, widen the date range, or change variables beyond the
+user's intent.
+
+## Run
 
 ```bash
-python3 scripts/open_meteo_flood_fetch.py fetch \
-  --location 52.52,13.41 \
-  --start-date 2026-03-01 \
-  --end-date 2026-03-05 \
-  --daily-var river_discharge \
-  --timezone GMT \
-  --dry-run \
-  --pretty
+npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
+  tiangong-ai data run open-meteo.flood fetch-daily \
+  --input /absolute/path/to/request.json --json
 ```
 
-3. Run the fetch with validation and operational logs.
+The command emits a `tiangong.data.run-result.v1` envelope. Preserve its
+`contract`, `warnings`, `errors`, and `receipt` with `data` when handing the
+result to another workflow.
 
-```bash
-python3 scripts/open_meteo_flood_fetch.py fetch \
-  --location 52.52,13.41 \
-  --location 48.85,2.35 \
-  --start-date 2026-03-01 \
-  --end-date 2026-03-05 \
-  --daily-var river_discharge \
-  --daily-var river_discharge_p75 \
-  --ensemble \
-  --cell-selection nearest \
-  --timezone GMT \
-  --output ./data/open-meteo/open-meteo-flood-fetch.json \
-  --log-level INFO \
-  --log-file ./logs/open-meteo-flood-fetch.log \
-  --pretty
-```
+## Result boundaries
 
-## Built-in Robustness
-- Retry transient HTTP and network failures with exponential backoff.
-- Respect `Retry-After` when present and fail fast when it exceeds configured cap.
-- Throttle request rate with minimum request interval.
-- Enforce safety caps before remote calls:
-  - maximum locations
-  - maximum day range
-  - maximum daily variables
-- Validate transport:
-  - HTTP status handling
-  - JSON content-type
-  - UTF-8 strict decode
-  - JSON parse
-- Validate structure:
-  - response object/list shape
-  - `daily` and `daily_units` presence
-  - time axis parseability and range checks
-  - requested variable presence and aligned array lengths
-  - optional ensemble member field alignment when `--ensemble` is enabled
+- Treat every value as simulated GloFAS river-grid discharge, not an in-situ
+  gauge observation. Preserve requested and returned river-grid coordinates.
+- The provider selects the largest represented river near each coordinate.
+  Verify that selection independently before associating results with a named
+  river or local channel.
+- Retain nulls as unavailable model values. Never convert them to zero.
+- Treat `partial` as incomplete coordinate, date, variable, or ensemble-member
+  coverage and report the affected paths with the usable columns.
+- Treat `blocked` as no usable business result and surface the structured
+  errors instead of bypassing limits or switching endpoints.
+- Report record-limit truncation; all variables and ensemble arrays remain
+  aligned to the returned GMT dates, but a truncated result is not exhaustive.
+- Ensemble members are model realizations. Do not translate them directly into
+  flood probability, severity, alerts, return periods, or emergency guidance.
+- Attribute Open-Meteo and GloFAS. The public endpoint is non-commercial; do
+  not imply commercial-use permission.
+- Cross-source comparison and research evidence admission belong to the caller
+  or Auto Research, not this atomic Skill.
 
-## Scope Decision
-- Keep one atomic fetch implementation for the Open-Meteo flood endpoint only.
-- Do not embed alert thresholds, geocoding, polling loops, or flood interpretation logic.
-- If recurring execution is needed, let OpenClaw orchestrate repeated calls externally.
+## Reference
 
-## References
-- `references/env.md`
-- `references/open-meteo-flood-api-notes.md`
-- `references/open-meteo-flood-limitations.md`
-- `references/openclaw-chaining-templates.md`
-
-## Script
-- `scripts/open_meteo_flood_fetch.py`
-
-## OpenClaw Invocation Compatibility
-- Keep trigger metadata in `name`, `description`, and `agents/openai.yaml`.
-- Invoke with `$open-meteo-flood-fetch`.
-- Keep calls atomic and parameterized by:
-  - `--location`
-  - `--start-date`
-  - `--end-date`
-  - `--daily-var`
-  - `--ensemble`
-  - `--cell-selection`
-- Use OpenClaw orchestration, not this script, for recurring jobs.
-
-## OpenClaw Prompt Templates
-
-Use these templates directly in OpenClaw and only replace bracketed placeholders.
-
-1. Recon (dry-run)
-
-```text
-Use $open-meteo-flood-fetch.
-Run:
-python3 scripts/open_meteo_flood_fetch.py fetch \
-  --location [LATITUDE,LONGITUDE] \
-  --start-date [YYYY-MM-DD] \
-  --end-date [YYYY-MM-DD] \
-  --daily-var river_discharge \
-  --timezone GMT \
-  --dry-run \
-  --pretty
-Return only the JSON result.
-```
-
-2. Fetch (flood verification window)
-
-```text
-Use $open-meteo-flood-fetch.
-Run:
-python3 scripts/open_meteo_flood_fetch.py fetch \
-  --location [LATITUDE,LONGITUDE] \
-  --start-date [YYYY-MM-DD] \
-  --end-date [YYYY-MM-DD] \
-  --daily-var river_discharge \
-  --daily-var river_discharge_p75 \
-  --ensemble \
-  --cell-selection nearest \
-  --timezone GMT \
-  --pretty
-Return only the JSON result.
-```
-
-3. Validate (quality gate)
-
-```text
-Use $open-meteo-flood-fetch.
-Run:
-python3 scripts/open_meteo_flood_fetch.py fetch \
-  --location [LATITUDE,LONGITUDE] \
-  --start-date [YYYY-MM-DD] \
-  --end-date [YYYY-MM-DD] \
-  --daily-var river_discharge \
-  --timezone GMT \
-  --pretty
-Check validation_summary.total_issue_count and validation_summary.ok.
-Return JSON plus one-line pass/fail verdict.
-```
+- `references/tiangong-data-binding.json`: exact execution compatibility
+  binding for the reviewed CLI release.

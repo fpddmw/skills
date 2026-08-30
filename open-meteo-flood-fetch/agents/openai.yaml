@@ -1,4 +1,4 @@
 interface:
-  display_name: "Open-Meteo Flood Fetch"
-  short_description: "Fetch historical and forecast flood signals"
-  default_prompt: "Use $open-meteo-flood-fetch to fetch Open-Meteo river discharge data for a specified date window and coordinates."
+  display_name: "Open-Meteo Flood"
+  short_description: "Retrieve bounded modeled river discharge"
+  default_prompt: "Use $open-meteo-flood-fetch to retrieve a bounded GMT window of modeled GloFAS river discharge for known coordinates."

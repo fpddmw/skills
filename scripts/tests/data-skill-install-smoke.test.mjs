@@ -36,6 +36,11 @@ const PILOTS = [
     operation: "fetch-hourly",
   },
   {
+    skill: "open-meteo-flood-fetch",
+    capability: "open-meteo.flood",
+    operation: "fetch-daily",
+  },
+  {
     skill: "usgs-water-iv-fetch",
     capability: "usgs.water-instantaneous-values",
     operation: "fetch",
@@ -159,7 +164,7 @@ test(
           env: environment,
         });
         assert.equal(catalog.status, 0, catalog.stderr);
-        assert.equal(JSON.parse(catalog.stdout).capabilities.length >= 4, true);
+        assert.equal(JSON.parse(catalog.stdout).capabilities.length >= 5, true);
 
         for (const pilot of PILOTS) {
           const describe = run(

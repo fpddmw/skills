@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "tiangong.data.skill-binding.v1",
+  "skillName": "open-meteo-flood-fetch",
+  "generatedWithCliVersion": "0.0.51",
+  "capabilityId": "open-meteo.flood",
+  "capabilityVersion": "1.0.0",
+  "minimumCliVersion": "0.0.51",
+  "manifestDigest": "3287d5dcf754bb1657f783a1ab69eb246c933a6ba38242494eb65dfc257487b6",
+  "operations": [
+    {
+      "operationId": "fetch-daily",
+      "operationVersion": "1.0.0",
+      "inputSchemaId": "https://schemas.tiangong.ai/data/open-meteo/flood-input.v1.json",
+      "inputSchemaDigest": "2aa16a8dd843307993dc5193bdb0a131beb53649bffc54ed461ab4b972e6936e",
+      "outputSchemaId": "https://schemas.tiangong.ai/data/open-meteo/flood-output.v1.json",
+      "outputSchemaDigest": "26c7a16cc04a505ee7d618ce1b8073c375790333f25155b0752f0701e429f144"
+    }
+  ]
+}
