@@ -14,7 +14,7 @@ checkPaths:
   - .claude-plugin/**
   - "*/SKILL.md"
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: ed9a6cc
+lastReviewedCommit: c4326ba08eaede8e64ba0d042c35da0a3884da73
 ---
 
 # Tiangong AI Skills
@@ -25,20 +25,22 @@ Use the `skills` CLI from https://github.com/vercel-labs/skills to install, upda
 
 ## Atomic data skills
 
-Fourteen Skills—AirNow Hourly Observations, Federal Register Documents, NASA
+Seventeen Skills—AirNow Hourly Observations, Federal Register Documents, NASA
 FIRMS Active Fire, OpenAQ Air Quality, Regulations.gov Comments,
 Regulations.gov Comment Details, USGS Water IV, three Open-Meteo sources, and
-GDELT DOC, Events, GKG, and Mentions—are thin semantic Skills over the Tiangong
-CLI TypeScript 7 data runtime. Each Skill records one exact reviewed CLI release
+GDELT DOC, Events, GKG, and Mentions, plus Bluesky Cascades, YouTube Video
+Search, and YouTube Comments—are thin semantic Skills over the Tiangong CLI
+TypeScript 7 data runtime. Each Skill records one exact reviewed CLI release
 in `references/tiangong-data-binding.json`; the agent uses CLI `data describe`
 for current source facts and `data run` for the bound operation. These Skills
 contain no second provider connector runtime.
 
 See `_docs/architecture/atomic-data-capabilities.md` and
 `_docs/runbooks/atomic-data-skill-migration.md` for the ownership boundary,
-candidate inventory, staged migration order, and release gates. Content,
-media, download, and authenticated social-source candidates remain unchanged
-until their semantics and CLI ownership are separately reviewed.
+candidate inventory, staged migration order, and release gates. The audited
+RSS/full-text, Figshare-download, academic-paper, Tiangong/KB, and private-email
+candidates retain their existing content, artifact, product, research, or
+security boundaries instead of being narrowed into stateless data connectors.
 
 ## Install the CLI
 

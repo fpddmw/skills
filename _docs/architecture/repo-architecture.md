@@ -14,7 +14,7 @@ checkPaths:
   - .claude-plugin/**
   - "*/SKILL.md"
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: 09fcf54713e9f28e9e8ba6fe0ff47b1f8cc0091b
+lastReviewedCommit: c4326ba08eaede8e64ba0d042c35da0a3884da73
 ---
 
 # Skills Repository Architecture
@@ -106,20 +106,22 @@ schemas, credentials, retries, and core receipts live only in the CLI's
 TypeScript 7 runtime. Auto Research reuses that same runtime and adds its own
 evidence admission and persistence instead of executing a second Skill script.
 
-Fourteen local candidate Skills now use this shape: AirNow, Federal Register,
+Seventeen local candidate Skills now use this shape: AirNow, Federal Register,
 USGS Water IV, three Open-Meteo sources, NASA FIRMS, OpenAQ, the separate
 Regulations.gov search and detail semantic entrypoints, and separate GDELT DOC,
-Events, GKG, and Mentions entrypoints. The two Regulations.gov Skills bind
-different operations of one CLI capability; the GDELT Skills bind four
+Events, GKG, and Mentions entrypoints, plus Bluesky Cascades and separate
+YouTube video-search/comment entrypoints. The two Regulations.gov Skills bind
+different operations of one CLI capability; the two YouTube Skills likewise
+bind different operations of one capability; the GDELT Skills bind four
 independent capabilities with one operation each. Each directory has only
 `SKILL.md`, generated agent metadata, and an execution-only CLI binding; its
 former Python connector and duplicate provider references are absent. These
 become production migrations only after the exact CLI package is published and
-the bindings/install smoke are regenerated against that package. Later
-content/media/download candidates retain their current runtime until their
-semantics and CLI ownership pass an explicit audit and the same
-accepted-connector, exact-release, binding, and install-smoke gates pass
-independently.
+the bindings/install smoke are regenerated against that package. RSS/full-text,
+Figshare, academic-paper, Tiangong/KB, and private-email
+candidates have completed their boundary audit and retain their specialized
+runtimes rather than losing core content, artifact, product, research, or
+account-security semantics.
 
 ## Integration Points
 

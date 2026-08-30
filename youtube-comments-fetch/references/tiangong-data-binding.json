@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "tiangong.data.skill-binding.v1",
+  "skillName": "youtube-comments-fetch",
+  "generatedWithCliVersion": "0.0.51",
+  "capabilityId": "youtube.public-content",
+  "capabilityVersion": "1.0.0",
+  "minimumCliVersion": "0.0.51",
+  "manifestDigest": "12dc22702c74bccebc2bf2abcbdd9a77ec707b488feaea55bbfd7f9ea5cc0cdc",
+  "operations": [
+    {
+      "operationId": "fetch-comments",
+      "operationVersion": "1.0.0",
+      "inputSchemaId": "https://schemas.tiangong.ai/data/youtube/comments-input.v1.json",
+      "inputSchemaDigest": "950c6ff3e5f81fb590ec568ce5f0e9719957fdfeaf6dbeee807aa78c44a57de7",
+      "outputSchemaId": "https://schemas.tiangong.ai/data/youtube/comments-output.v1.json",
+      "outputSchemaDigest": "c4edfc860f381c68e92aeedeee02de686c7b6d8ec8f42054fc12aef712eaf899"
+    }
+  ]
+}

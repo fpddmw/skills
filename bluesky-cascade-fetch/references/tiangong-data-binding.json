@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "tiangong.data.skill-binding.v1",
+  "skillName": "bluesky-cascade-fetch",
+  "generatedWithCliVersion": "0.0.51",
+  "capabilityId": "bluesky.public-posts",
+  "capabilityVersion": "1.0.0",
+  "minimumCliVersion": "0.0.51",
+  "manifestDigest": "980fe026669d912478334e540934ea8f254751537337a56b97e299b16a10b5e7",
+  "operations": [
+    {
+      "operationId": "fetch-cascades",
+      "operationVersion": "1.0.0",
+      "inputSchemaId": "https://schemas.tiangong.ai/data/bluesky/public-post-cascades-input.v1.json",
+      "inputSchemaDigest": "f38f63fe2282e8a71d11e6d51c06f0613aabc5d801a78584b0ec55592e46e40d",
+      "outputSchemaId": "https://schemas.tiangong.ai/data/bluesky/public-post-cascades-output.v1.json",
+      "outputSchemaDigest": "a9c66bb9675e5f51094d35d9ad56c89b6192d343fadf6b87a9370138d281e03e"
+    }
+  ]
+}

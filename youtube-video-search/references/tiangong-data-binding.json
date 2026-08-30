@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "tiangong.data.skill-binding.v1",
+  "skillName": "youtube-video-search",
+  "generatedWithCliVersion": "0.0.51",
+  "capabilityId": "youtube.public-content",
+  "capabilityVersion": "1.0.0",
+  "minimumCliVersion": "0.0.51",
+  "manifestDigest": "12dc22702c74bccebc2bf2abcbdd9a77ec707b488feaea55bbfd7f9ea5cc0cdc",
+  "operations": [
+    {
+      "operationId": "search-videos",
+      "operationVersion": "1.0.0",
+      "inputSchemaId": "https://schemas.tiangong.ai/data/youtube/video-search-input.v1.json",
+      "inputSchemaDigest": "81e30d2ad455d1a56c8112c65febc6f49def2ac3653d9c5d083a1ce3f4ad5227",
+      "outputSchemaId": "https://schemas.tiangong.ai/data/youtube/video-search-output.v1.json",
+      "outputSchemaDigest": "2b96ba3961f550d6cf91818cf5133e6670c1605ec526b9ca62156b03b0551d42"
+    }
+  ]
+}

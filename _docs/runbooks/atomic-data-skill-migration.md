@@ -18,7 +18,7 @@ checkPaths:
   - "*-download/**"
   - tiangong-auto-research/**
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: ed9a6cc
+lastReviewedCommit: c4326ba08eaede8e64ba0d042c35da0a3884da73
 ---
 
 # 原子数据 Skill 迁移实施计划
@@ -43,12 +43,15 @@ lastReviewedCommit: ed9a6cc
   AirNow、Federal Register、USGS Water IV、Open-Meteo Air Quality、Open-Meteo Flood、
   Open-Meteo Historical Weather、NASA FIRMS、OpenAQ、Regulations.gov Comments、
   Regulations.gov Comment Details，以及 GDELT DOC、Events、GKG、Mentions 已在本地
-  候选分支薄化。两个 Regulations.gov Skill 分别绑定同一
+  候选分支薄化；Bluesky Cascades、YouTube Video Search 与 YouTube Comments 也已在
+  完成逐项语义/许可/安全审计后薄化。两个 Regulations.gov Skill 分别绑定同一
   `regulations-gov.comments` capability 的 search 与 fetch-details operation；四个
-  GDELT Skill 分别绑定独立 capability。十四项旧 Python connector 与重复 provider
-  references 已移出候选 Skill，并共同纳入 copy/symlink 安装 smoke。
+  GDELT Skill 分别绑定独立 capability；两个 YouTube Skill 分别绑定同一
+  `youtube.public-content` capability 的 search-videos 与 fetch-comments operation。
+  十七项旧 Python connector 与重复 provider references 已移出候选 Skill，并共同纳入
+  copy/symlink 安装 smoke。
 - 当前本地候选包 `0.0.51` 只用于分支内兼容验证，不代表 npm 正式发布。PR 前必须用
-  实际包含全部十三个 capability 的正式版本重新生成十四个 binding，并用该 npm 包
+  实际包含全部十五个 capability 的正式版本重新生成十七个 binding，并用该 npm 包
   重跑全部门禁。
 
 ## 与 CLI 的同步顺序
@@ -84,22 +87,26 @@ lastReviewedCommit: ed9a6cc
 - `gdelt-events-fetch`
 - `gdelt-gkg-fetch`
 - `gdelt-mentions-fetch`
+- `bluesky-cascade-fetch`
+- `youtube-video-search`
+- `youtube-comments-fetch`
 
-### B. 需要内容/媒体/下载语义评审
+### B. 审计后保留专用内容/媒体/下载边界
 
 - `ai-tech-rss-fetch`
 - `ai-tech-fulltext-fetch`
 - `eceee-news-fulltext-fetch`
 - `sustainability-rss-fetch`
 - `sustainability-fulltext-fetch`
-- `bluesky-cascade-fetch`
-- `youtube-video-search`
-- `youtube-comments-fetch`
 - `figshare-data-download`
 - `academic-paper-download`
 
-这组可能涉及正文提取、浏览器/下载产物、平台内容许可或既有 Research companion，不能
-只因当前有脚本就自动转成普通 JSON connector。
+RSS Skill 的核心包括任意 feed/OPML intake、SQLite subscription state、dedupe 与
+incremental sync；fulltext Skill 的核心包括 HTML/body acquisition、正文解析、retry queue
+与持久化。Figshare 的交付物是浏览器获取的本地文件 artifact；论文下载是带合法开放获取
+路径、浏览器 handoff、PDF/hash/manifest/provenance 的 Research companion。把这些行为
+替换成无状态 JSON connector 会实质丢失功能并引入不同的动态 URL、内容安全、文件与状态
+合同，因此它们不是待办迁移，而是经审计后继续保持现有专用边界。
 
 ### C. 保持现有产品边界，默认不迁入 data runtime
 
@@ -181,6 +188,9 @@ Skill。以下差异必须明确，不能被误写成无损命令替换：
 | GDELT Events                   | latest 或精确 15 分钟 UTC range、最多 20 个 source files、ZIP/MD5/CRC/UTF-8/61-column 校验、机器编码 event rows 与来源 lineage                                                        | 删除 masterfilelist 下载、dry-run、任意 expected-columns、output/quarantine/log 路径和持久 ZIP；CLI 返回有界内存归一化 rows 与统一 receipt，不把 coded event 当作验证事实、唯一事件或正文                                                                                                                                                                      |
 | GDELT GKG                      | latest 或精确 15 分钟 UTC range、最多 20 个 source files、ZIP/MD5/CRC/UTF-8/27-column 校验、GKG annotations 与 document lineage                                                       | 删除 masterfilelist 下载、dry-run、任意 expected-columns、output/quarantine/log 路径和持久 ZIP；CLI 返回有界内存归一化 rows，不把 machine-extracted themes/entities/locations/tone 当作已验证知识、正文或 sentiment ground truth                                                                                                                              |
 | GDELT Mentions                 | latest 或精确 15 分钟 UTC range、最多 20 个 source files、ZIP/MD5/CRC/UTF-8/16-column 校验、mention-level provenance/confidence/source linkage                                       | 删除 masterfilelist 下载、dry-run、任意 expected-columns、output/quarantine/log 路径和持久 ZIP；CLI 返回有界内存归一化 rows，不把 mention 当作独立 endorsement、唯一文章、验证事件或正文                                                                                                                                                                    |
+| Bluesky Cascades               | public search/author/custom/list seed source、optional UTC window、seed post normalization、visible `getPostThread` reply topology、blocked/not-found node 与 per-thread partial                               | 删除 optional auth/base URL fallback、Skill-local env、retry/throttle/log/dry-run、JSON/JSONL artifact 和 OpenClaw 配置；CLI 统一 bounded HTTP/receipt，只开放 public AppView，把 ranking/feed/indexing/moderation/counters 明确为可变快照，不宣称 archive completeness、代表性、事实、身份、sentiment 或 causal diffusion evidence                              |
+| YouTube Video Search           | query/channel/published/order/region/language/safe-search、十种 video filter、search pagination、`videos.list` detail enrichment、public comment/view threshold                                  | `YOUTUBE_API_KEY` 只经 CLI `X-Goog-Api-Key` header 注入；删除 query-string key、endpoint/retry/throttle/log/dry-run、JSONL/quarantine/artifact 输出。CLI 始终执行 detail enrichment，不下载 media/caption/transcript/thumbnail，不把 search ranking 或统计当作代表性、endorsement、truth 或 sentiment                                                                  |
+| YouTube Comments               | 显式 video IDs、optional UTC window 与 published/updated 选择、thread order/search terms、top-level comments、`comments.list` 完整可见 replies 分页、per-video partial                         | 删除本地 txt/json/jsonl ID 文件解析、HTML text mode、endpoint/retry/throttle/log/dry-run、JSONL/quarantine/artifact 输出；plainText 固定，API key 只由 CLI header 注入。operation-wide 与 per-video/per-thread limits 取代多套脚本 cap；评论不被解释为代表性 opinion、身份、事实、人口属性或 sentiment ground truth                                                        |
 
 新结果是 `tiangong.data.run-result.v1`，字段命名和审计结构以 operation output Schema
 及 core receipt 为准，不承诺旧 Python payload 的 snake_case/raw-artifact 兼容。需要旧版
@@ -226,10 +236,15 @@ GDELT 已决定保持四个独立 capability：DOC 搜索的 API/模式化聚合
 和独立发现语义。四个 Skill 已在本地候选分支完成薄化、execution-only binding 和统一
 安装 smoke 接入。
 
-下一阶段分别评审 RSS/fulltext、Bluesky、YouTube 和 Figshare 的内容许可、下载产物、
-凭证与浏览器边界，不因名称含 `fetch` 就自动纳入原子 provider connector。
-`academic-paper-download` 继续保持 Research acquisition companion，除非另一个明确设计
-取代它。
+Bluesky 与 YouTube 的审计结论是：它们的公开、闭合、只读 API operation 适合 data
+runtime。CLI 已完成 `bluesky.public-posts/fetch-cascades` 以及
+`youtube.public-content/search-videos|fetch-comments`；三个 Skill 已薄化、绑定同一精确本地
+候选包并进入统一安装 smoke。YouTube key 仅经 `X-Goog-Api-Key` header 注入；comments
+operation 使用 `comments.list` 展开 replies，不信任 embedded reply sample。
+
+RSS/fulltext、Figshare 与 academic paper 的审计结论相反：它们分别拥有持久订阅/正文队列、
+浏览器文件 artifact 或 Research acquisition/provenance 核心，因此继续保持现有专用实现，
+不是未完成的原子迁移。
 
 ### 不迁移/退役
 
@@ -284,8 +299,8 @@ node --test scripts/tests/data-skill-install-smoke.test.mjs
 ```
 
 它会清除 provider 凭证，只运行 version、catalog、describe、static doctor 和本地
-结构化阻断请求，不访问 AirNow、FederalRegister.gov、GDELT、NASA FIRMS、OpenAQ、
-Open-Meteo、Regulations.gov 或 USGS WaterServices。
+结构化阻断请求，不访问 AirNow、Bluesky、FederalRegister.gov、GDELT、NASA FIRMS、
+OpenAQ、Open-Meteo、Regulations.gov、USGS WaterServices 或 YouTube。
 
 正式 CLI 版本发布后，先生成再用同一精确包复验；`X.Y.Z` 必须替换为实际可安装且
 包含 `data` 命令的版本：
@@ -361,6 +376,21 @@ node scripts/data-skill-binding.mjs generate \
   --capability gdelt.mentions \
   --operations fetch \
   --cli-version X.Y.Z
+node scripts/data-skill-binding.mjs generate \
+  --skill bluesky-cascade-fetch \
+  --capability bluesky.public-posts \
+  --operations fetch-cascades \
+  --cli-version X.Y.Z
+node scripts/data-skill-binding.mjs generate \
+  --skill youtube-video-search \
+  --capability youtube.public-content \
+  --operations search-videos \
+  --cli-version X.Y.Z
+node scripts/data-skill-binding.mjs generate \
+  --skill youtube-comments-fetch \
+  --capability youtube.public-content \
+  --operations fetch-comments \
+  --cli-version X.Y.Z
 node scripts/data-skill-binding.mjs verify \
   --binding airnow-hourly-obs-fetch/references/tiangong-data-binding.json \
   --cli-version X.Y.Z
@@ -402,6 +432,15 @@ node scripts/data-skill-binding.mjs verify \
   --cli-version X.Y.Z
 node scripts/data-skill-binding.mjs verify \
   --binding gdelt-mentions-fetch/references/tiangong-data-binding.json \
+  --cli-version X.Y.Z
+node scripts/data-skill-binding.mjs verify \
+  --binding bluesky-cascade-fetch/references/tiangong-data-binding.json \
+  --cli-version X.Y.Z
+node scripts/data-skill-binding.mjs verify \
+  --binding youtube-video-search/references/tiangong-data-binding.json \
+  --cli-version X.Y.Z
+node scripts/data-skill-binding.mjs verify \
+  --binding youtube-comments-fetch/references/tiangong-data-binding.json \
   --cli-version X.Y.Z
 ```
 

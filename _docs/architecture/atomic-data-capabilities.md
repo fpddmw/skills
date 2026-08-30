@@ -18,7 +18,7 @@ checkPaths:
   - "*-download/**"
   - tiangong-auto-research/**
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: ed9a6cc
+lastReviewedCommit: c4326ba08eaede8e64ba0d042c35da0a3884da73
 ---
 
 # 原子数据 Skill 目标架构
@@ -171,7 +171,11 @@ journal、handoff 和 review；这些状态不得回流到薄 Skill。
 AirNow 与 Federal Register 是首批落地实例，USGS Water IV、Open-Meteo Air Quality、
 Open-Meteo Flood、Open-Meteo Historical Weather、NASA FIRMS、OpenAQ、两个
 Regulations.gov 语义入口以及 GDELT DOC、Events、GKG、Mentions 是十二个逐项后续迁移
-实例；两个 Regulations.gov 入口共享一个 CLI capability 并分别只绑定 search 与
-fetch-details operation，四个 GDELT 入口分别绑定独立 capability。本地候选分支可先
+实例；Bluesky Cascades、YouTube Video Search 与 YouTube Comments 是三个审计后批准的
+社交/视频逐项迁移实例。两个 Regulations.gov 入口共享一个 CLI capability 并分别只绑定
+search 与 fetch-details operation，两个 YouTube 入口共享一个 capability 并分别绑定
+search-videos 与 fetch-comments，四个 GDELT 入口分别绑定独立 capability。本地候选分支可先
 完成薄化和测试，但只有在对应 CLI 正式版本发布、binding 重生成、隔离安装 smoke 和
-回退路径验证后才达到生产完成。其他候选继续逐个执行同一门槛。
+回退路径验证后才达到生产完成。RSS/fulltext、Figshare、论文下载、Tiangong/KB 与邮箱
+候选的边界审计也已完成：它们保留专用内容、artifact、Research、产品或私有账户实现，
+不作为尚未完成的 data runtime 迁移项。

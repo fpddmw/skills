@@ -21,6 +21,11 @@ const PILOTS = [
     operations: ["fetch-hourly"],
   },
   {
+    skill: "bluesky-cascade-fetch",
+    capability: "bluesky.public-posts",
+    operations: ["fetch-cascades"],
+  },
+  {
     skill: "federal-register-doc-fetch",
     capability: "federal-register.documents",
     operations: ["search"],
@@ -89,6 +94,18 @@ const PILOTS = [
     capability: "usgs.water-instantaneous-values",
     operations: ["fetch"],
   },
+  {
+    skill: "youtube-comments-fetch",
+    capability: "youtube.public-content",
+    operations: ["fetch-comments"],
+    requiredCredential: true,
+  },
+  {
+    skill: "youtube-video-search",
+    capability: "youtube.public-content",
+    operations: ["search-videos"],
+    requiredCredential: true,
+  },
 ];
 
 function run(command, args, options = {}) {
@@ -144,7 +161,7 @@ test(
         };
         for (const name of Object.keys(environment)) {
           if (
-            /AIRNOW|FEDERAL_REGISTER|GDELT|NASA|FIRMS|OPENAQ|OPEN_METEO|REGGOV|USGS|TIANGONG.*KEY/i.test(
+            /AIRNOW|BLUESKY|FEDERAL_REGISTER|GDELT|NASA|FIRMS|OPENAQ|OPEN_METEO|REGGOV|USGS|YOUTUBE|TIANGONG.*KEY/i.test(
               name,
             )
           ) {
@@ -206,7 +223,7 @@ test(
           env: environment,
         });
         assert.equal(catalog.status, 0, catalog.stderr);
-        assert.equal(JSON.parse(catalog.stdout).capabilities.length >= 13, true);
+        assert.equal(JSON.parse(catalog.stdout).capabilities.length >= 15, true);
 
         for (const pilot of PILOTS) {
           const describe = run(

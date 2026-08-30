@@ -32,6 +32,25 @@ const PILOT_SKILLS = [
     ],
   },
   {
+    name: "bluesky-cascade-fetch",
+    capabilityId: "bluesky.public-posts",
+    operations: [
+      {
+        operationId: "fetch-cascades",
+        inputKeys: [
+          "endDateTime",
+          "expandThreads",
+          "maxThreads",
+          "pageSize",
+          "source",
+          "startDateTime",
+          "threadDepth",
+          "threadParentHeight",
+        ],
+      },
+    ],
+  },
+  {
     name: "federal-register-doc-fetch",
     capabilityId: "federal-register.documents",
     operations: [
@@ -215,6 +234,49 @@ const PILOT_SKILLS = [
           "period",
           "siteStatus",
           "siteType",
+        ],
+      },
+    ],
+  },
+  {
+    name: "youtube-comments-fetch",
+    capabilityId: "youtube.public-content",
+    operations: [
+      {
+        operationId: "fetch-comments",
+        inputKeys: [
+          "endDateTime",
+          "includeReplies",
+          "maxReplyPagesPerThread",
+          "maxThreadPagesPerVideo",
+          "order",
+          "pageSize",
+          "startDateTime",
+          "timeField",
+          "videoIds",
+        ],
+      },
+    ],
+  },
+  {
+    name: "youtube-video-search",
+    capabilityId: "youtube.public-content",
+    operations: [
+      {
+        operationId: "search-videos",
+        inputKeys: [
+          "minimumCommentCount",
+          "minimumViewCount",
+          "order",
+          "pageSize",
+          "publishedAfter",
+          "publishedBefore",
+          "query",
+          "regionCode",
+          "relevanceLanguage",
+          "requirePublicComments",
+          "safeSearch",
+          "videoDuration",
         ],
       },
     ],
