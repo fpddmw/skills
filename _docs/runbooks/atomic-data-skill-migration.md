@@ -18,7 +18,7 @@ checkPaths:
   - "*-download/**"
   - tiangong-auto-research/**
 lastReviewedAt: 2026-08-30
-lastReviewedCommit: 4104e527facd09ecc242dad7a1e9645adf9d21f0
+lastReviewedCommit: f45607fcf63924c915d6a9a28f81686a694754b0
 ---
 
 # 原子数据 Skill 迁移实施计划
@@ -31,6 +31,17 @@ lastReviewedCommit: 4104e527facd09ecc242dad7a1e9645adf9d21f0
 - 原 Skills checkout、现有 `codex/atomic-environment-data-skills` worktree 及 CLI 的
   未提交变更都保持不动，不 stash/reset/rebase/clean。
 - 本 runbook、架构和治理路由通过验证后停止；下一步需重新确认后才修改 Skill。
+
+## 2026-08-30 实现状态
+
+- CLI PR #71 已合并到 `tiangong-ai/cli` 主分支，merge commit 为 `832e302`；
+  TypeScript 7、data runtime、AirNow、Federal Register 以及 Execution Manifest /
+  Discovery Metadata 分层均已进入源码主线。
+- 当前可安装的 `@tiangong-ai/cli@0.0.53` 尚不包含 `data` 命令，因此仍未达到删除
+  Skill 旧执行脚本和提交正式 binding 的门槛。
+- Skills 仓库已增加 execution-only binding 生成/校验器及离线 stale-binding 测试。
+  本地从合并源码打出的候选包可生成并验证两个试点 binding，但候选包版本不得冒充
+  正式发布版本写入 Skill。
 
 ## 与 CLI 的同步顺序
 
@@ -135,7 +146,8 @@ lastReviewedCommit: 4104e527facd09ecc242dad7a1e9645adf9d21f0
 
 1. 用 `skill-creator` 工作流更新 `SKILL.md` 和生成的 `agents/openai.yaml`。
 2. 新增 CLI 生成的 `references/tiangong-data-binding.json`。
-3. 合并/精炼 API notes、limitations 和 env 说明；凭证解析转由 CLI 时删除重复配置。
+3. 删除已由 CLI Discovery Metadata 发布的数据源/API/覆盖/许可/限制副本；只在确有
+   任务型选择语义时保留非重复 reference。凭证解析转由 CLI 时删除重复配置。
 4. 将 Python fetch 脚本、OpenClaw chaining 模板和旧 raw artifact 约定从生产路径移除。
 5. 示例只使用精确 capability/operation 和文件/stdin 输入，不放 secret 到 argv/JSON。
 6. README/marketplace 只有在可用性、安装或发现面实际变化时才同步更新。
@@ -143,6 +155,8 @@ lastReviewedCommit: 4104e527facd09ecc242dad7a1e9645adf9d21f0
 ### 首批验收
 
 - binding 中的 capability、operation、minimum CLI version 和 digests 与候选/正式包一致。
+- binding 只锁 Execution Manifest 和 operation Schema digest；Discovery Metadata
+  文案或 `discoveryDigest` 变化不得触发 execution binding 漂移。
 - `quick_validate.py <skill-path>` 和生成 agent metadata 校验通过。
 - 离线 stale-binding 测试分别覆盖缺失 capability、过低 CLI 版本和 digest 漂移。
 - copy/symlink 安装 smoke 使用临时 project/HOME，只运行 version、catalog、describe、
@@ -202,6 +216,34 @@ docpact lint --root . --worktree --mode enforce
 - 运行受影响脚本/引用/agent metadata 测试；
 - Auto Research 或直接 evidence wrapper 变更必须在相互独立的 clean container 中先
   观察 RED、再转 GREEN，PR 前运行 cold gate。
+
+binding 工具的离线契约测试：
+
+```bash
+node --test scripts/tests/data-skill-binding.test.mjs
+```
+
+正式 CLI 版本发布后，先生成再用同一精确包复验；`X.Y.Z` 必须替换为实际可安装且
+包含 `data` 命令的版本：
+
+```bash
+node scripts/data-skill-binding.mjs generate \
+  --skill airnow-hourly-obs-fetch \
+  --capability airnow.hourly-observations \
+  --operations fetch-hourly \
+  --cli-version X.Y.Z
+node scripts/data-skill-binding.mjs generate \
+  --skill federal-register-doc-fetch \
+  --capability federal-register.documents \
+  --operations search \
+  --cli-version X.Y.Z
+node scripts/data-skill-binding.mjs verify \
+  --binding airnow-hourly-obs-fetch/references/tiangong-data-binding.json \
+  --cli-version X.Y.Z
+node scripts/data-skill-binding.mjs verify \
+  --binding federal-register-doc-fetch/references/tiangong-data-binding.json \
+  --cli-version X.Y.Z
+```
 
 ## 回退和删除纪律
 

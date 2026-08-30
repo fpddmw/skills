@@ -18,7 +18,7 @@ checkPaths:
   - .claude-plugin/**
   - "*/SKILL.md"
 lastReviewedAt: 2026-08-30
-lastReviewedCommit: 4104e527facd09ecc242dad7a1e9645adf9d21f0
+lastReviewedCommit: f45607fcf63924c915d6a9a28f81686a694754b0
 ---
 
 # Skills Development Runbook
@@ -45,6 +45,17 @@ runtime until the CLI's TypeScript 7 connector is accepted, an exact package is
 installable, and the Skill's capability/operation/schema binding passes the
 offline and isolated install contracts. Planning changes alone do not authorize
 Skill rewrites or file deletion.
+
+Run the execution-only binding contract with:
+
+```bash
+node --test scripts/tests/data-skill-binding.test.mjs
+```
+
+After an exact CLI release containing the capability is installable, use
+`scripts/data-skill-binding.mjs generate` and `verify` as documented in the
+atomic-data migration runbook. The binding pins the execution manifest and
+operation schemas, not the separate discovery digest.
 
 ## Validation
 

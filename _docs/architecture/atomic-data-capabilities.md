@@ -18,7 +18,7 @@ checkPaths:
   - "*-download/**"
   - tiangong-auto-research/**
 lastReviewedAt: 2026-08-30
-lastReviewedCommit: 4104e527facd09ecc242dad7a1e9645adf9d21f0
+lastReviewedCommit: f45607fcf63924c915d6a9a28f81686a694754b0
 ---
 
 # 原子数据 Skill 目标架构
@@ -42,8 +42,9 @@ CLI 仓库中的 `docs/agents/data-runtime-architecture.md` 是命令、manifest
 
 | 内容 | 所有者 | Skills 侧规则 |
 | --- | --- | --- |
-| 触发条件、使用场景、参数解释 | Skills | 写入 `SKILL.md`，为 agent 提供语义入口 |
-| 来源说明、许可、限制、引用建议 | Skills | 保留精炼 references，不复制 provider 实现 |
+| 用户意图、任务选择、结果使用边界 | Skills | 写入 `SKILL.md`，为 agent 提供语义入口 |
+| 数据源客观说明、覆盖范围、许可、限制 | CLI | 由 Discovery Metadata 统一发布，Skill 不复制 |
+| capability/operation 的客观说明 | CLI | 由 catalog/describe 发布三层发现语义 |
 | capability/operation/CLI 兼容绑定 | Skills | 保存最小机器可检验 binding |
 | connector、Schema、错误码、回执 | CLI | Skills 只验证 digest，不复制定义 |
 | HTTP、认证、分页、限流、缓存 | CLI | Skill 不再直接执行网络业务代码 |
@@ -62,21 +63,27 @@ CLI 是先确认、先实现、先发布的基座。Skills 计划可以与 CLI �
 ├── SKILL.md
 ├── agents/openai.yaml
 └── references/
-    ├── tiangong-data-binding.json
-    ├── source-notes.md
-    └── limitations.md
+    └── tiangong-data-binding.json
 ```
 
-具体 Skill 可在确有需要时保留其他非执行型 reference/asset，但默认移除：
+具体 Skill 可在确有需要时保留不属于 CLI Discovery Metadata 的任务型 reference/asset，
+但默认移除：
 
 - provider fetch Python/JavaScript 脚本和依赖；
 - `config.example.env` 中由 CLI 负责的运行时配置；
 - OpenClaw/eco-council chaining 模板和 raw artifact 路径约定；
+- 重复的数据源说明、覆盖范围、许可、限制和 provider 文档列表；
 - 重复的输入/输出字段表、重试算法、HTTP 参数构造和 provider 响应校验代码。
 
-`SKILL.md` 应说明何时调用、需要哪些非敏感参数、来源和限制、如何用文件/stdin 调用
-精确 CLI operation，以及结果不能支持哪些推断。凭证只以逻辑需求呈现，真实值由 CLI
+`SKILL.md` 应说明用户表达什么意图时选择该能力、何时改选其他工作流、如何通过
+`catalog`/`describe` 获取当前客观来源事实、如何用文件/stdin 调用精确 CLI
+operation，以及结果可以进入哪些上层任务。凭证只以逻辑需求呈现，真实值由 CLI
 解析；示例不得把 secret 放进命令行或 JSON。
+
+发现语义分为三层：数据源说明外部数据集由谁维护及覆盖什么；capability 说明 CLI
+开放了其中哪一部分能力；operation 说明一次调用执行什么动作。三层客观事实均由
+CLI Discovery Metadata 发布。Skill 只增加自然语言意图路由和上层工作流语义，不
+维护另一份可能漂移的来源目录。
 
 ## 最小兼容绑定
 
@@ -93,6 +100,11 @@ CLI 是先确认、先实现、先发布的基座。Skills 计划可以与 CLI �
 拒绝 capability 缺失、版本过低、operation 漂移或 digest 不一致。`SKILL.md` 和生成的
 agent metadata 不再散落多份 CLI 版本常量。
 
+binding 只锁定 Execution Manifest 和 operation Schema digest，不锁定
+`discoveryDigest`。数据源说明、选择提示或典型用例的文字调整应通过 `catalog`/
+`describe` 即时发现，而不应造成执行 binding 漂移。capability/operation 版本、执行
+manifest 或输入输出 Schema 变化仍必须显式更新 binding。
+
 ## 调用边界
 
 薄 Skill 通过 proposed 公共命令族调用一次原子 operation：
@@ -104,10 +116,10 @@ tiangong-ai data doctor <capability-id> [--live]
 tiangong-ai data run <capability-id> <operation-id> --input <path|->
 ```
 
-这些命令在 CLI 基础契约合并前仍为 proposed，不能提前写成用户可用事实。Skill 不
-自行发现其他来源、不跨来源 fan-out、不解释研究结论。一个来源内部有界的分页或多
-文件窗口仍可以是一个 operation；跨来源组合必须由 Auto Research 或显式上层调用者
-完成。
+这些命令已进入 CLI 主分支，但生产 Skill 仍须等待包含该命令面的正式 npm 包后才能
+绑定和移除旧实现。Skill 不自行发现其他来源、不跨来源 fan-out、不解释研究结论。
+一个来源内部有界的分页或多文件窗口仍可以是一个 operation；跨来源组合必须由 Auto
+Research 或显式上层调用者完成。
 
 Auto Research 接入同一 CLI 内部数据服务后，原子 Skill 与 Research 应共享相同核心
 结果/回执。Research 另外负责 capability lock、预算、来源/证据准入、永久 evidence、
@@ -150,7 +162,8 @@ journal、handoff 和 review；这些状态不得回流到薄 Skill。
 一次原子 Skill 迁移完成必须同时满足：
 
 - CLI 中已有已发布、TypeScript 7 实现的 capability/operation 及闭合测试；
-- Skill 只保留语义入口、来源/限制和可检验 binding；
+- Skill 只保留意图入口、上层使用边界和可检验 execution binding；
+- 客观来源/覆盖/限制通过 CLI Discovery Metadata 获取，不在 Skill 重复维护；
 - 无 Python/旧 harness/OpenClaw 执行依赖，无重复机器 Schema；
 - 离线 stale-binding、skill-creator、安装 smoke 和 docpact 门禁通过；
 - Research 如需该来源，通过 CLI adapter 复用核心结果，而不是继续执行 Skill 脚本。
