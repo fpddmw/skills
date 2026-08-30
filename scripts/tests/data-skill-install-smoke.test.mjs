@@ -31,6 +31,11 @@ const PILOTS = [
     operation: "search",
   },
   {
+    skill: "open-meteo-air-quality-fetch",
+    capability: "open-meteo.air-quality",
+    operation: "fetch-hourly",
+  },
+  {
     skill: "usgs-water-iv-fetch",
     capability: "usgs.water-instantaneous-values",
     operation: "fetch",
@@ -89,7 +94,7 @@ test(
           npm_config_cache: npmCache,
         };
         for (const name of Object.keys(environment)) {
-          if (/AIRNOW|FEDERAL_REGISTER|USGS|TIANGONG.*KEY/i.test(name)) {
+          if (/AIRNOW|FEDERAL_REGISTER|OPEN_METEO|USGS|TIANGONG.*KEY/i.test(name)) {
             delete environment[name];
           }
         }
@@ -154,7 +159,7 @@ test(
           env: environment,
         });
         assert.equal(catalog.status, 0, catalog.stderr);
-        assert.equal(JSON.parse(catalog.stdout).capabilities.length >= 3, true);
+        assert.equal(JSON.parse(catalog.stdout).capabilities.length >= 4, true);
 
         for (const pilot of PILOTS) {
           const describe = run(

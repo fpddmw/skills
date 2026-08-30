@@ -42,6 +42,19 @@ const PILOT_SKILLS = [
     usesExecutionLimits: true,
   },
   {
+    name: "open-meteo-air-quality-fetch",
+    capabilityId: "open-meteo.air-quality",
+    operationId: "fetch-hourly",
+    inputKeys: [
+      "cellSelection",
+      "domain",
+      "endDate",
+      "hourlyVariables",
+      "locations",
+      "startDate",
+    ],
+  },
+  {
     name: "usgs-water-iv-fetch",
     capabilityId: "usgs.water-instantaneous-values",
     operationId: "fetch",

@@ -18,7 +18,7 @@ checkPaths:
   - "*-download/**"
   - tiangong-auto-research/**
 lastReviewedAt: 2026-08-30
-lastReviewedCommit: 1c96d78
+lastReviewedCommit: ff35b50
 ---
 
 # 原子数据 Skill 目标架构
@@ -168,6 +168,7 @@ journal、handoff 和 review；这些状态不得回流到薄 Skill。
 - 离线 stale-binding、skill-creator、安装 smoke 和 docpact 门禁通过；
 - Research 如需该来源，通过 CLI adapter 复用核心结果，而不是继续执行 Skill 脚本。
 
-AirNow 与 Federal Register 是首批落地实例，USGS Water IV 是首个逐项后续迁移实例。
-本地候选分支可先完成薄化和测试，但只有在对应 CLI 正式版本发布、binding 重生成、
-隔离安装 smoke 和回退路径验证后才达到生产完成。其他候选继续逐个执行同一门槛。
+AirNow 与 Federal Register 是首批落地实例，USGS Water IV 与 Open-Meteo Air Quality
+是前两个逐项后续迁移实例。本地候选分支可先完成薄化和测试，但只有在对应 CLI 正式
+版本发布、binding 重生成、隔离安装 smoke 和回退路径验证后才达到生产完成。其他候选
+继续逐个执行同一门槛。
