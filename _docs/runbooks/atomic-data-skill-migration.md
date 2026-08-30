@@ -18,7 +18,7 @@ checkPaths:
   - "*-download/**"
   - tiangong-auto-research/**
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: 13db8268ff7017d1d6f6aa7715d5c8f8c3d69d8b
+lastReviewedCommit: 09d49fcce0871ac97997c4e5e79975ae29c79c84
 ---
 
 # 原子数据 Skill 迁移实施计划
@@ -53,6 +53,28 @@ lastReviewedCommit: 13db8268ff7017d1d6f6aa7715d5c8f8c3d69d8b
 - 当前本地候选包 `0.0.55` 只用于分支内兼容验证，不代表 npm 正式发布。PR 前必须用
   实际包含全部十五个 capability 的正式版本重新生成十七个 binding，并用该 npm 包
   重跑全部门禁。
+
+## 2026-08-31 本地完成性审计
+
+- 仓库中实际存在 38 个 fetch/search/download 候选：17 个原子 provider Skill 已薄化，
+  其余 21 个均落入下文记录的内容/文件、产品或私有账户保留边界；没有未分类目录。
+- CLI 候选使用 Node 24、TypeScript 7.0.2 和版本 `0.0.55`，发布 15 个 capability；
+  17 个薄 Skill 的 `generatedWithCliVersion` 与 `minimumCliVersion` 均为 `0.0.55`。
+- 每个薄 Skill 只含 `SKILL.md`、`agents/openai.yaml` 和
+  `references/tiangong-data-binding.json`；原 Python connector、provider 配置、重复 API
+  notes 和 OpenClaw 模板均不在生产 Skill 路径中。
+- 17 个 binding 已逐项对照最终候选的 execution manifest 与 operation 输入/输出 Schema
+  digest；copy/symlink 隔离安装 smoke 使用最终 tarball 通过，且不访问真实 provider。
+- CLI 的 lint、typecheck、486 项全量测试、3 项 platform contract、coverage、npm pack、
+  immutable setup pin audit 和 docpact 均通过；17 个薄 Skill 与 21 个明确保留 Skill 的
+  `quick_validate.py` 均通过，binding contract 与 docpact 也通过。
+- 两个仓库的 cold-container 命令已实际执行，但当前主机的 Docker Desktop 服务及
+  `docker-desktop` WSL 后端未运行，均在构建前以 `docker` 不可用退出；这是唯一未通过的
+  PR 前门禁。Docker 环境恢复后必须重跑 CLI `npm run test:clean:cold` 与 Skills
+  `scripts/test-clean-container.sh --cold-build`，不能用宿主测试替代。
+- CLI Research adapter/必要的 Auto Research 变更仍是下文明确分离的后续工作包，不被
+  伪装为本次 17 个原子 Skill 迁移的完成证据。
+- 当前只有本地分支提交；在维护者统一审阅并明确确认前，不推送实现分支、不创建 PR。
 
 ## 与 CLI 的同步顺序
 
