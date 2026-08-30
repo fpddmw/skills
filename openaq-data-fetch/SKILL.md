@@ -1,129 +1,146 @@
 ---
 name: openaq-data-fetch
-description: Retrieve OpenAQ metadata and measurements through authenticated API queries or public S3 archive fetches with automatic source routing. Use when tasks need OpenAQ data discovery across countries/providers/locations/sensors/parameters, filtered current or historical API queries, or large historical backfills from the AWS Open Data archive.
+description: Discover bounded OpenAQ air-quality monitoring locations and retrieve raw, hourly, or daily measurements for one known sensor through the Tiangong CLI. Use when a task needs OpenAQ location, provider, sensor, parameter, license, coverage, or time-series context; do not use for arbitrary API paths, S3 archive downloads, AQI calculation, health or regulatory decisions, forecasting, source attribution, or cross-sensor analysis.
 ---
 
 # OpenAQ Data Fetch
 
-## Core Goal
-- Query OpenAQ API v3 endpoints for metadata and measurements with one generic client.
-- Fetch large historical files from the public OpenAQ S3 archive by prefix or direct key.
-- Auto-route requests:
-  - API for interactive or filtered queries.
-  - S3 for full backfills and partition-based bulk download.
-- Keep credentials and region configuration in environment variables.
+Use the CLI-owned `openaq.air-quality` capability. This Skill supplies intent
+routing and result-use boundaries only; the CLI owns source discovery,
+input/output schemas, API-key injection, pagination, limits, validation, and
+receipts.
 
-## Required Environment
-- `OPENAQ_API_KEY` (required for API requests).
-- `OPENAQ_REGION` (optional for S3 endpoint selection, defaults to `us-east-1` when unset).
-- Optional:
-  - `OPENAQ_S3_BUCKET` (defaults to `openaq-data-archive`).
+## Before running
 
-Reference:
-- `references/env.md`
-- `assets/config.example.env`
-
-## Workflow
-1. Validate environment and defaults.
+1. Read `references/tiangong-data-binding.json`.
+2. Use its exact `generatedWithCliVersion` in every package spec below. Never
+   use `latest`, a tag, or a version range.
+3. Run `data describe` and compare the returned capability version, execution
+   manifest digest, both operation versions, and all input/output schema digests
+   with the binding. Stop on any mismatch.
+4. Ensure `OPENAQ_API_KEY` is present in the CLI process environment, then run
+   the default static doctor. Never place the key in argv, request JSON, a
+   Skill-local config file, logs, or output.
 
 ```bash
-python3 scripts/openaq_api_client.py check-config
-python3 scripts/openaq_s3_fetch.py check-config
+npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
+  tiangong-ai data describe openaq.air-quality --json
+npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
+  tiangong-ai data doctor openaq.air-quality --json
 ```
 
-2. Choose a source mode:
-- `api`: filtered queries, entity lookup, latest data access, paged exploration.
-- `s3`: partition-based historical file retrieval for large volumes.
-- `auto`: use `volume-profile` (`interactive`, `batch`, `full-backfill`) to select API or S3.
+Use the returned Discovery Metadata to confirm current ownership, coverage,
+granularity, source-specific quality and license limits, selection hints,
+`provides`, and `doesNotProvide`. Do not substitute facts remembered from an
+older Skill revision. A blocked static doctor means the required logical
+credential is unavailable; stop instead of bypassing the CLI.
 
-3. Fetch data with one of the commands below.
+## Choose one operation
 
-## API Usage
-Rate limits (API only, scoped to API key):
-- `60 / minute`
-- `2,000 / hour`
-- On exceed: `429 Too Many Requests`.
-- S3 archive access does not use these OpenAQ API key rate limits.
+- Use `search-locations` when the relevant sensor ID is not yet known. Supply at
+  least one explicit country, provider, parameter, license, monitor, mobile,
+  center-radius, or bounding-box filter. Inspect provider, monitor status,
+  parameter, license, and coverage metadata before choosing a sensor.
+- Use `fetch-sensor-measurements` only after selecting one trusted sensor ID.
+  Choose `raw` for upstream-reported observations or `hourly`/`daily` for
+  OpenAQ's precomputed aggregates, and use an explicit RFC3339 window of no more
+  than 366 days.
 
-Query any v3 path with optional query parameters:
+Do not invent or pass an API path. Do not use this Skill to list or download
+OpenAQ S3 archive objects; bulk files require a separately governed
+content/download workflow.
+
+## Prepare a location request
+
+Build a `tiangong.data.run-request.v1` envelope and replace the version
+placeholders with the exact matching binding values. This example searches a
+bounded country/parameter combination; use the current input schema from
+`data describe` for other supported filters.
+
+```json
+{
+  "schemaVersion": "tiangong.data.run-request.v1",
+  "capabilityId": "openaq.air-quality",
+  "capabilityVersion": "<binding.capabilityVersion>",
+  "operationId": "search-locations",
+  "operationVersion": "<binding.operations[1].operationVersion>",
+  "input": {
+    "countryCode": "NL",
+    "parameterIds": [2],
+    "pageSize": 250,
+    "sortOrder": "asc"
+  }
+}
+```
+
+Do not silently widen spatial or provider filters, turn a bounded search into a
+global scan, combine center with bounding box, geocode a place name, or infer
+that every returned sensor has continuous data for the desired time window.
+
+## Prepare a measurement request
+
+Use the selected sensor's exact ID and an explicit granularity and time window.
+Do not merge sensors, convert units, or switch granularity inside this atomic
+call.
+
+```json
+{
+  "schemaVersion": "tiangong.data.run-request.v1",
+  "capabilityId": "openaq.air-quality",
+  "capabilityVersion": "<binding.capabilityVersion>",
+  "operationId": "fetch-sensor-measurements",
+  "operationVersion": "<binding.operations[0].operationVersion>",
+  "input": {
+    "sensorId": 1001,
+    "granularity": "hourly",
+    "startDateTime": "2026-03-01T00:00:00Z",
+    "endDateTime": "2026-03-07T23:59:59Z",
+    "pageSize": 1000
+  }
+}
+```
+
+## Run
 
 ```bash
-python3 scripts/openaq_api_client.py request \
-  --path /v3/locations \
-  --query countries_id=9 \
-  --query limit=100 \
-  --pretty
+npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
+  tiangong-ai data run openaq.air-quality search-locations \
+  --input /absolute/path/to/location-request.json --json
+
+npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
+  tiangong-ai data run openaq.air-quality fetch-sensor-measurements \
+  --input /absolute/path/to/measurement-request.json --json
 ```
 
-Fetch across pages and merge `results`:
+Each command emits a `tiangong.data.run-result.v1` envelope. Preserve its
+`contract`, `warnings`, `errors`, and `receipt` with `data` when handing the
+result to another workflow.
 
-```bash
-python3 scripts/openaq_api_client.py request \
-  --path /v3/locations \
-  --query countries_id=9 \
-  --all-pages \
-  --max-pages 20 \
-  --pretty
-```
+## Result boundaries
 
-## S3 Usage
-List partition prefixes:
+- Preserve OpenAQ attribution and every original provider's license and
+  attribution metadata. OpenAQ's terms do not replace source-specific terms.
+- Treat location, owner, provider, instrument, monitor, sensor, and coverage
+  fields as provider-dependent metadata, not proof of regulatory-network status
+  or measurement quality.
+- Keep raw, hourly, and daily granularities explicit. Do not mix raw upstream
+  records with OpenAQ aggregates without an explicit analytical method, and
+  retain aggregate summary and coverage fields.
+- Treat `partial` as incomplete page or record coverage. Report missing pages
+  and provider errors with the usable records.
+- Treat `blocked` as no usable business result. Surface credential, input,
+  endpoint, rate-limit, or provider errors instead of bypassing limits,
+  switching endpoints, or calling the old scripts.
+- Report page/record-limit truncation. A truncated or empty result is not proof
+  that no monitors or pollution observations exist.
+- Do not calculate AQI, make health or regulatory claims, infer pollution
+  sources, forecast conditions, interpolate space, correct calibration,
+  convert units, or claim completeness from this result alone.
+- Cross-sensor comparison, recurring monitoring, source fusion, statistical
+  inference, bulk archive acquisition, and research evidence admission belong
+  to the caller or Auto Research, not this atomic Skill.
 
-```bash
-python3 scripts/openaq_s3_fetch.py ls \
-  --prefix records/csv.gz/locationid=2178/ \
-  --delimiter / \
-  --max-keys 200
-```
+## Reference
 
-Build a Hive-style prefix for partition traversal:
-
-```bash
-python3 scripts/openaq_s3_fetch.py build-prefix \
-  --location-id 2178 \
-  --year 2022 \
-  --month 5
-```
-
-Download one archived file by key:
-
-```bash
-python3 scripts/openaq_s3_fetch.py download \
-  --key records/csv.gz/locationid=2178/year=2022/month=05/location-2178-20220503.csv.gz \
-  --output ./data/location-2178-20220503.csv.gz
-```
-
-## Auto Routing
-Let the router choose API vs S3:
-
-```bash
-python3 scripts/openaq_router.py fetch \
-  --source-mode auto \
-  --volume-profile interactive \
-  --api-path /v3/providers \
-  --api-query limit=50 \
-  --pretty
-```
-
-Force S3 path via full-backfill profile:
-
-```bash
-python3 scripts/openaq_router.py fetch \
-  --source-mode auto \
-  --volume-profile full-backfill \
-  --s3-action build-prefix \
-  --location-id 2178 \
-  --year 2022 \
-  --month 5 \
-  --pretty
-```
-
-## References
-- `references/openaq-api-endpoints.md`
-- `references/openaq-s3-layout.md`
-- `references/openaq-limitations.md`
-
-## Scripts
-- `scripts/openaq_api_client.py`
-- `scripts/openaq_s3_fetch.py`
-- `scripts/openaq_router.py`
+- `references/tiangong-data-binding.json`: exact execution compatibility
+  binding for the reviewed CLI package.

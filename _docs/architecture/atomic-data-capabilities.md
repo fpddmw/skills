@@ -169,6 +169,7 @@ journal、handoff 和 review；这些状态不得回流到薄 Skill。
 - Research 如需该来源，通过 CLI adapter 复用核心结果，而不是继续执行 Skill 脚本。
 
 AirNow 与 Federal Register 是首批落地实例，USGS Water IV、Open-Meteo Air Quality、
-Open-Meteo Flood、Open-Meteo Historical Weather 与 NASA FIRMS 是五个逐项后续迁移实例。本地候选
-分支可先完成薄化和测试，但只有在对应 CLI 正式版本发布、binding 重生成、隔离安装
-smoke 和回退路径验证后才达到生产完成。其他候选继续逐个执行同一门槛。
+Open-Meteo Flood、Open-Meteo Historical Weather、NASA FIRMS 与 OpenAQ 是六个逐项
+后续迁移实例。本地候选分支可先完成薄化和测试，但只有在对应 CLI 正式版本发布、
+binding 重生成、隔离安装 smoke 和回退路径验证后才达到生产完成。其他候选继续逐个
+执行同一门槛。

@@ -1,4 +1,4 @@
 interface:
-  display_name: "OpenAQ Data Fetch"
-  short_description: "Fetch OpenAQ API and S3 data with automatic source routing"
-  default_prompt: "Use $openaq-data-fetch to query OpenAQ metadata/measurements via API or backfill bulk records from the OpenAQ S3 archive."
+  display_name: "OpenAQ Air Quality"
+  short_description: "Discover OpenAQ sensors and fetch bounded measurements"
+  default_prompt: "Use $openaq-data-fetch to find a bounded OpenAQ monitoring location or retrieve raw, hourly, or daily measurements for one known sensor."

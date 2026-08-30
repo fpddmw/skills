@@ -18,38 +18,44 @@ const PILOTS = [
   {
     skill: "airnow-hourly-obs-fetch",
     capability: "airnow.hourly-observations",
-    operation: "fetch-hourly",
+    operations: ["fetch-hourly"],
   },
   {
     skill: "federal-register-doc-fetch",
     capability: "federal-register.documents",
-    operation: "search",
+    operations: ["search"],
   },
   {
     skill: "nasa-firms-fire-fetch",
     capability: "nasa-firms.active-fire",
-    operation: "fetch-area",
+    operations: ["fetch-area"],
     requiredCredential: true,
   },
   {
     skill: "open-meteo-air-quality-fetch",
     capability: "open-meteo.air-quality",
-    operation: "fetch-hourly",
+    operations: ["fetch-hourly"],
   },
   {
     skill: "open-meteo-flood-fetch",
     capability: "open-meteo.flood",
-    operation: "fetch-daily",
+    operations: ["fetch-daily"],
   },
   {
     skill: "open-meteo-historical-fetch",
     capability: "open-meteo.historical-weather",
-    operation: "fetch",
+    operations: ["fetch"],
+  },
+  {
+    skill: "openaq-data-fetch",
+    capability: "openaq.air-quality",
+    operations: ["fetch-sensor-measurements", "search-locations"],
+    requiredCredential: true,
   },
   {
     skill: "usgs-water-iv-fetch",
     capability: "usgs.water-instantaneous-values",
-    operation: "fetch",
+    operations: ["fetch"],
   },
 ];
 
@@ -106,7 +112,7 @@ test(
         };
         for (const name of Object.keys(environment)) {
           if (
-            /AIRNOW|FEDERAL_REGISTER|NASA|FIRMS|OPEN_METEO|USGS|TIANGONG.*KEY/i.test(
+            /AIRNOW|FEDERAL_REGISTER|NASA|FIRMS|OPENAQ|OPEN_METEO|USGS|TIANGONG.*KEY/i.test(
               name,
             )
           ) {
@@ -168,7 +174,7 @@ test(
           env: environment,
         });
         assert.equal(catalog.status, 0, catalog.stderr);
-        assert.equal(JSON.parse(catalog.stdout).capabilities.length >= 7, true);
+        assert.equal(JSON.parse(catalog.stdout).capabilities.length >= 8, true);
 
         for (const pilot of PILOTS) {
           const describe = run(
@@ -198,33 +204,39 @@ test(
           );
 
           const binding = readInstalledBinding(consumer, pilot);
-          const blocked = run(
-            "npx",
-            [
-              ...cli,
-              "data",
-              "run",
-              pilot.capability,
-              pilot.operation,
-              "--input",
-              "-",
-              "--json",
-            ],
-            {
-              cwd: consumer,
-              env: environment,
-              input: `${JSON.stringify({
-                schemaVersion: "tiangong.data.run-request.v1",
-                capabilityId: pilot.capability,
-                capabilityVersion: binding.capabilityVersion,
-                operationId: pilot.operation,
-                operationVersion: binding.operations[0].operationVersion,
-                input: {},
-              })}\n`,
-            },
-          );
-          assert.notEqual(blocked.status, 0);
-          assert.equal(JSON.parse(blocked.stdout).status, "blocked");
+          for (const operationId of pilot.operations) {
+            const operation = binding.operations.find(
+              (candidate) => candidate.operationId === operationId,
+            );
+            assert.ok(operation, operationId);
+            const blocked = run(
+              "npx",
+              [
+                ...cli,
+                "data",
+                "run",
+                pilot.capability,
+                operationId,
+                "--input",
+                "-",
+                "--json",
+              ],
+              {
+                cwd: consumer,
+                env: environment,
+                input: `${JSON.stringify({
+                  schemaVersion: "tiangong.data.run-request.v1",
+                  capabilityId: pilot.capability,
+                  capabilityVersion: binding.capabilityVersion,
+                  operationId,
+                  operationVersion: operation.operationVersion,
+                  input: {},
+                })}\n`,
+              },
+            );
+            assert.notEqual(blocked.status, 0);
+            assert.equal(JSON.parse(blocked.stdout).status, "blocked");
+          }
         }
       }
     } finally {

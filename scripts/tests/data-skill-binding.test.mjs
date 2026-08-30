@@ -19,90 +19,138 @@ const PILOT_SKILLS = [
   {
     name: "airnow-hourly-obs-fetch",
     capabilityId: "airnow.hourly-observations",
-    operationId: "fetch-hourly",
-    inputKeys: [
-      "boundingBox",
-      "endDateTimeUtc",
-      "parameters",
-      "startDateTimeUtc",
+    operations: [
+      {
+        operationId: "fetch-hourly",
+        inputKeys: [
+          "boundingBox",
+          "endDateTimeUtc",
+          "parameters",
+          "startDateTimeUtc",
+        ],
+      },
     ],
   },
   {
     name: "federal-register-doc-fetch",
     capabilityId: "federal-register.documents",
-    operationId: "search",
-    inputKeys: [
-      "agencies",
-      "documentTypes",
-      "order",
-      "pageSize",
-      "publicationDate",
-      "term",
+    operations: [
+      {
+        operationId: "search",
+        inputKeys: [
+          "agencies",
+          "documentTypes",
+          "order",
+          "pageSize",
+          "publicationDate",
+          "term",
+        ],
+        usesExecutionLimits: true,
+      },
     ],
-    usesExecutionLimits: true,
   },
   {
     name: "nasa-firms-fire-fetch",
     capabilityId: "nasa-firms.active-fire",
-    operationId: "fetch-area",
-    inputKeys: [
-      "boundingBox",
-      "checkAvailability",
-      "endDate",
-      "source",
-      "startDate",
+    operations: [
+      {
+        operationId: "fetch-area",
+        inputKeys: [
+          "boundingBox",
+          "checkAvailability",
+          "endDate",
+          "source",
+          "startDate",
+        ],
+      },
     ],
   },
   {
     name: "open-meteo-air-quality-fetch",
     capabilityId: "open-meteo.air-quality",
-    operationId: "fetch-hourly",
-    inputKeys: [
-      "cellSelection",
-      "domain",
-      "endDate",
-      "hourlyVariables",
-      "locations",
-      "startDate",
+    operations: [
+      {
+        operationId: "fetch-hourly",
+        inputKeys: [
+          "cellSelection",
+          "domain",
+          "endDate",
+          "hourlyVariables",
+          "locations",
+          "startDate",
+        ],
+      },
     ],
   },
   {
     name: "open-meteo-flood-fetch",
     capabilityId: "open-meteo.flood",
-    operationId: "fetch-daily",
-    inputKeys: [
-      "cellSelection",
-      "dailyVariables",
-      "endDate",
-      "includeEnsembleMembers",
-      "locations",
-      "startDate",
+    operations: [
+      {
+        operationId: "fetch-daily",
+        inputKeys: [
+          "cellSelection",
+          "dailyVariables",
+          "endDate",
+          "includeEnsembleMembers",
+          "locations",
+          "startDate",
+        ],
+      },
     ],
   },
   {
     name: "open-meteo-historical-fetch",
     capabilityId: "open-meteo.historical-weather",
-    operationId: "fetch",
-    inputKeys: [
-      "cellSelection",
-      "dailyVariables",
-      "endDate",
-      "hourlyVariables",
-      "locations",
-      "model",
-      "startDate",
+    operations: [
+      {
+        operationId: "fetch",
+        inputKeys: [
+          "cellSelection",
+          "dailyVariables",
+          "endDate",
+          "hourlyVariables",
+          "locations",
+          "model",
+          "startDate",
+        ],
+      },
+    ],
+  },
+  {
+    name: "openaq-data-fetch",
+    capabilityId: "openaq.air-quality",
+    operations: [
+      {
+        operationId: "fetch-sensor-measurements",
+        inputKeys: [
+          "endDateTime",
+          "granularity",
+          "pageSize",
+          "sensorId",
+          "startDateTime",
+        ],
+      },
+      {
+        operationId: "search-locations",
+        inputKeys: ["countryCode", "pageSize", "parameterIds", "sortOrder"],
+      },
     ],
   },
   {
     name: "usgs-water-iv-fetch",
     capabilityId: "usgs.water-instantaneous-values",
-    operationId: "fetch",
-    inputKeys: [
-      "boundingBox",
-      "parameterCodes",
-      "period",
-      "siteStatus",
-      "siteType",
+    operations: [
+      {
+        operationId: "fetch",
+        inputKeys: [
+          "boundingBox",
+          "parameterCodes",
+          "period",
+          "siteStatus",
+          "siteType",
+        ],
+      },
     ],
   },
 ];
@@ -334,42 +382,61 @@ test("pilot data skills are thin CLI semantic entrypoints", () => {
     assert.equal(binding.capabilityId, pilot.capabilityId);
     assert.deepEqual(
       binding.operations.map((operation) => operation.operationId),
-      [pilot.operationId],
+      pilot.operations.map((operation) => operation.operationId).sort(),
     );
 
     const skill = readFileSync(resolve(root, "SKILL.md"), "utf8");
     assert.match(skill, /references\/tiangong-data-binding\.json/);
     assert.match(skill, new RegExp(`data describe ${pilot.capabilityId}`));
-    assert.match(
-      skill,
-      new RegExp(`data run ${pilot.capabilityId} ${pilot.operationId}`),
-    );
+    for (const operation of pilot.operations) {
+      assert.match(
+        skill,
+        new RegExp(`data run ${pilot.capabilityId} ${operation.operationId}`),
+      );
+    }
     assert.match(skill, /tiangong\.data\.run-request\.v1/);
     assert.match(skill, /"input": \{/);
-    const exampleText = /```json\n([\s\S]*?)\n```/.exec(skill)?.[1];
-    assert.ok(
-      exampleText,
-      `${pilot.name} must include one JSON request example`,
+    const exampleTexts = [...skill.matchAll(/```json\n([\s\S]*?)\n```/g)].map(
+      (match) => match[1],
     );
-    const example = JSON.parse(
-      exampleText
-        .replaceAll("<binding.capabilityVersion>", binding.capabilityVersion)
-        .replaceAll(
-          "<binding.operations[0].operationVersion>",
-          binding.operations[0].operationVersion,
-        ),
-    );
-    assert.equal(example.schemaVersion, "tiangong.data.run-request.v1");
-    assert.equal(example.capabilityId, binding.capabilityId);
-    assert.equal(example.capabilityVersion, binding.capabilityVersion);
-    assert.equal(example.operationId, binding.operations[0].operationId);
     assert.equal(
-      example.operationVersion,
-      binding.operations[0].operationVersion,
+      exampleTexts.length,
+      pilot.operations.length,
+      `${pilot.name} must include one JSON request example per operation`,
     );
-    assert.deepEqual(Object.keys(example.input).sort(), pilot.inputKeys);
-    if (pilot.usesExecutionLimits) {
-      assert.deepEqual(example.limits, { maxPages: 2, maxRecords: 100 });
+    const examples = exampleTexts.map((exampleText) => {
+      let normalized = exampleText.replaceAll(
+        "<binding.capabilityVersion>",
+        binding.capabilityVersion,
+      );
+      binding.operations.forEach((operation, index) => {
+        normalized = normalized.replaceAll(
+          `<binding.operations[${index}].operationVersion>`,
+          operation.operationVersion,
+        );
+      });
+      return JSON.parse(normalized);
+    });
+    for (const expectedOperation of pilot.operations) {
+      const bindingOperation = binding.operations.find(
+        (operation) => operation.operationId === expectedOperation.operationId,
+      );
+      const example = examples.find(
+        (candidate) => candidate.operationId === expectedOperation.operationId,
+      );
+      assert.ok(bindingOperation, expectedOperation.operationId);
+      assert.ok(example, expectedOperation.operationId);
+      assert.equal(example.schemaVersion, "tiangong.data.run-request.v1");
+      assert.equal(example.capabilityId, binding.capabilityId);
+      assert.equal(example.capabilityVersion, binding.capabilityVersion);
+      assert.equal(example.operationVersion, bindingOperation.operationVersion);
+      assert.deepEqual(
+        Object.keys(example.input).sort(),
+        expectedOperation.inputKeys,
+      );
+      if (expectedOperation.usesExecutionLimits) {
+        assert.deepEqual(example.limits, { maxPages: 2, maxRecords: 100 });
+      }
     }
     assert.doesNotMatch(
       skill,

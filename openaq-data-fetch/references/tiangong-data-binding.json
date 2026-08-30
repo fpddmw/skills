@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "tiangong.data.skill-binding.v1",
+  "skillName": "openaq-data-fetch",
+  "generatedWithCliVersion": "0.0.51",
+  "capabilityId": "openaq.air-quality",
+  "capabilityVersion": "1.0.0",
+  "minimumCliVersion": "0.0.51",
+  "manifestDigest": "0e54a1eda6140fec4d1910ed0af8045e9c0ce6b2700fc2a93a2703938c4d6674",
+  "operations": [
+    {
+      "operationId": "fetch-sensor-measurements",
+      "operationVersion": "1.0.0",
+      "inputSchemaId": "https://schemas.tiangong.ai/data/openaq/sensor-measurements-input.v1.json",
+      "inputSchemaDigest": "f1459d69625ee894636401861cd324960d9c340d19ce3ee993a8da900ae76b51",
+      "outputSchemaId": "https://schemas.tiangong.ai/data/openaq/sensor-measurements-output.v1.json",
+      "outputSchemaDigest": "c6f350faccbc590a139d0b0636148ffe4450e77cc1a89b92685252afa5fd5e57"
+    },
+    {
+      "operationId": "search-locations",
+      "operationVersion": "1.0.0",
+      "inputSchemaId": "https://schemas.tiangong.ai/data/openaq/location-search-input.v1.json",
+      "inputSchemaDigest": "406062ebcacf4ff208ce0cf1fc0e4216673b68dc21e8efe5f8233e01f5d7ecb7",
+      "outputSchemaId": "https://schemas.tiangong.ai/data/openaq/location-search-output.v1.json",
+      "outputSchemaDigest": "22c510be6584d5c56a2f293f1c06d9956234f3bc4b03fda536529f46766f8478"
+    }
+  ]
+}

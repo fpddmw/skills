@@ -40,13 +40,13 @@ lastReviewedCommit: ed9a6cc
 - 当前可安装的 `@tiangong-ai/cli@0.0.53` 尚不包含 `data` 命令，因此仍未达到删除
   Skill 旧执行脚本和提交正式 binding 的门槛。
 - Skills 仓库已增加 execution-only binding 生成/校验器及离线 stale-binding 测试。
-  AirNow、Federal Register、USGS Water IV、Open-Meteo Air Quality、Open-Meteo Flood
-  和 Open-Meteo Historical Weather、NASA FIRMS 已在本地候选分支薄化；后五项使用逐步新增 TS7
-  connectors 的本地候选包完成 binding 后，与前两项共同纳入 copy/symlink 安装 smoke。
-  七项旧 Python connector 与重复
-  provider references 已移出候选 Skill。
-- 候选包版本不得冒充正式发布版本。PR 前必须用实际包含全部七个 connector 的正式
-  版本重新生成七个 binding，并用该 npm 包重跑全部门禁。
+  AirNow、Federal Register、USGS Water IV、Open-Meteo Air Quality、Open-Meteo Flood、
+  Open-Meteo Historical Weather、NASA FIRMS 与 OpenAQ 已在本地候选分支薄化；后六项
+  使用逐步新增 TS7 connectors 的本地候选包完成 binding 后，与前两项共同纳入
+  copy/symlink 安装 smoke。八项旧 Python connector 与重复 provider references 已移出
+  候选 Skill。
+- 候选包版本不得冒充正式发布版本。PR 前必须用实际包含全部八个 connector 的正式
+  版本重新生成八个 binding，并用该 npm 包重跑全部门禁。
 
 ## 与 CLI 的同步顺序
 
@@ -171,6 +171,7 @@ Skill。以下差异必须明确，不能被误写成无损命令替换：
 | Open-Meteo Flood              | 最多 10 个坐标、366 个闭合日期、7 个官方 daily discharge variables、cell selection、optional ensemble members、nullable aligned arrays 和坐标/变量/member partial                      | timezone 固定为 GMT，ensemble 必须同时请求 `river_discharge`；删除任意 timezone、endpoint、API key、重试、节流、user-agent、日志、dry-run 和 raw artifact 调参。公开 endpoint 明确为 non-commercial 且无凭证。输出按 location-day 计数并显式区分 requested/river-grid coordinate，不把 GloFAS simulated discharge 误写成 gauge observation、告警或严重度   |
 | Open-Meteo Historical Weather | 最多 10 个坐标、366 个闭合日期、一个受控 model、12 个 curated hourly 与 12 个 curated numeric daily variables、多坐标响应、nullable aligned arrays 和坐标/section/变量 partial         | timezone 与单位固定为 GMT/摄氏度/km/h/mm；两个变量数组显式传入且至少一方非空。删除任意 timezone、endpoint、API key、任意 model、重试、节流、user-agent、日志、dry-run 和 raw artifact 调参。公开 endpoint 明确为 non-commercial 且无凭证；输出按 location 内 hourly 后 daily 的时间行计数，明确 reanalysis/model grid 并提示长期趋势使用 ERA5 或 ERA5-Land |
 | NASA FIRMS Active Fire        | 一个 reviewed source、非跨日界线 bbox、最多 31 个闭合 UTC 日期、可选 availability probe、五天分片、transaction/record cap、公共 MODIS/VIIRS/Landsat detection 字段和 chunk/row partial | `NASA_FIRMS_MAP_KEY` 只由 CLI 从进程环境解析并作为受保护 path segment 注入；删除 Skill-local env 文件、endpoint/retry/throttle/user-agent/log/dry-run/raw artifact 调参和 OpenClaw fan-out。输出改为统一 run-result/receipt，不把 thermal anomaly 误写成 fire perimeter、burned area、incident、cause 或 alert                                             |
+| OpenAQ Air Quality            | 有界 location discovery、provider/owner/sensor/parameter/license/coverage metadata，以及单 sensor、最长 366 天的 raw/hourly/daily measurements、稳定分页和 later-page partial          | 任意 v3 path/query、API/S3 自动路由、S3 prefix/list/download、Skill-local region/bucket/endpoint 配置和 Python client/router 被移除；`OPENAQ_API_KEY` 只由 CLI header 注入。批量 archive 文件转入单独 content/download 审计；输出不提供 AQI、健康/监管判断、跨 sensor 聚合、单位转换或来源归因                                                             |
 
 新结果是 `tiangong.data.run-result.v1`，字段命名和审计结构以 operation output Schema
 及 core receipt 为准，不承诺旧 Python payload 的 snake_case/raw-artifact 兼容。需要旧版
@@ -193,17 +194,19 @@ Skill。以下差异必须明确，不能被误写成无损命令替换：
 ### 批次 2：时序/空间与凭证
 
 USGS Water IV、Open-Meteo Air Quality、Open-Meteo Flood、Open-Meteo Historical
-Weather 和 NASA FIRMS 已作为本批前五项在本地完成 CLI connector 与 Skill 薄化。下一项
-评审并迁移 OpenAQ，随后是 Regulations.gov。
+Weather、NASA FIRMS 与 OpenAQ 已作为本批六项在本地完成 CLI connector 与 Skill 薄化。
+下一项逐个评审并迁移 Regulations.gov comments/detail。
 
 USGS 已扩展时间序列、空间范围、变量、qualifier 和 legacy 生命周期语义；Open-Meteo
 Air Quality 已验证模型网格、GMT 列式多变量数据、public/commercial endpoint 分离和
 attribution 语义；Flood 已验证 GloFAS river-grid、forecast-only statistics、ensemble
 members 与非 gauge/alert 边界；Historical 已验证受控单模型、hourly/daily 双粒度、
 reanalysis 与 station observation 区分，以及跨年代模型一致性提示；NASA FIRMS 已验证
-path-segment logical credential、quota estimate、CSV chunk 与 hotspot/non-perimeter 边界。
-继续用 OpenAQ/Regulations.gov 验证 provider-auth 诊断。每个 connector 单独
-批准，不因共享 provider 品牌而把多个 operation 合成一个巨型 Skill。
+path-segment logical credential、quota estimate、CSV chunk 与 hotspot/non-perimeter 边界；
+OpenAQ 已验证 header credential、location discovery、单 sensor raw/hourly/daily、双
+operation binding、source-specific attribution 和 S3 download 分层。继续用
+Regulations.gov 验证 provider-auth 诊断。每个 connector 单独批准，不因共享 provider
+品牌而把多个 operation 合成一个巨型 Skill。
 
 ### 批次 3：GDELT 与内容/社交来源
 
@@ -265,8 +268,8 @@ node --test scripts/tests/data-skill-install-smoke.test.mjs
 ```
 
 它会清除 provider 凭证，只运行 version、catalog、describe、static doctor 和本地
-结构化阻断请求，不访问 AirNow、FederalRegister.gov、Open-Meteo 或 USGS
-WaterServices。
+结构化阻断请求，不访问 AirNow、FederalRegister.gov、NASA FIRMS、OpenAQ、Open-Meteo
+或 USGS WaterServices。
 
 正式 CLI 版本发布后，先生成再用同一精确包复验；`X.Y.Z` 必须替换为实际可安装且
 包含 `data` 命令的版本：
@@ -302,6 +305,16 @@ node scripts/data-skill-binding.mjs generate \
   --capability open-meteo.historical-weather \
   --operations fetch \
   --cli-version X.Y.Z
+node scripts/data-skill-binding.mjs generate \
+  --skill nasa-firms-fire-fetch \
+  --capability nasa-firms.active-fire \
+  --operations fetch-area \
+  --cli-version X.Y.Z
+node scripts/data-skill-binding.mjs generate \
+  --skill openaq-data-fetch \
+  --capability openaq.air-quality \
+  --operations search-locations,fetch-sensor-measurements \
+  --cli-version X.Y.Z
 node scripts/data-skill-binding.mjs verify \
   --binding airnow-hourly-obs-fetch/references/tiangong-data-binding.json \
   --cli-version X.Y.Z
@@ -319,6 +332,12 @@ node scripts/data-skill-binding.mjs verify \
   --cli-version X.Y.Z
 node scripts/data-skill-binding.mjs verify \
   --binding open-meteo-historical-fetch/references/tiangong-data-binding.json \
+  --cli-version X.Y.Z
+node scripts/data-skill-binding.mjs verify \
+  --binding nasa-firms-fire-fetch/references/tiangong-data-binding.json \
+  --cli-version X.Y.Z
+node scripts/data-skill-binding.mjs verify \
+  --binding openaq-data-fetch/references/tiangong-data-binding.json \
   --cli-version X.Y.Z
 ```
 
