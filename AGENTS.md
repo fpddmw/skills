@@ -15,8 +15,8 @@ checkPaths:
   - .github/workflows/docpact.yml
   - scripts/**
   - _docs/**
-lastReviewedAt: 2026-08-22
-lastReviewedCommit: 1c0e4b9aba85ebba7c60e760b22cdc6ebf2927f4
+lastReviewedAt: 2026-08-30
+lastReviewedCommit: 4104e527facd09ecc242dad7a1e9645adf9d21f0
 ---
 
 # Tiangong AI Skills Agent Contract
@@ -42,6 +42,10 @@ skill 内容、skill 规范、marketplace 元数据和本仓文档治理属于�
 - `_docs/contracts/repo-contract.md`：本仓边界、skill 规范与完成条件。
 - `_docs/architecture/repo-architecture.md`：skill 仓库结构和分发拓扑。
 - `_docs/runbooks/development.md`：创建、校验、生成 agent 配置和交付流程。
+- `_docs/architecture/atomic-data-capabilities.md`：原子数据 Skill 与 CLI/Research
+  的目标边界。
+- `_docs/runbooks/atomic-data-skill-migration.md`：数据 Skill 分类、批次、PR 依赖和
+  迁移验收流程。
 
 ## Hard Boundaries
 
@@ -50,6 +54,8 @@ skill 内容、skill 规范、marketplace 元数据和本仓文档治理属于�
 - 不要提交真实 API key、账号密码或用户私有数据到 skill 资源中。
 - 修改 skill 触发条件、脚本、引用资料、agent 配置或 marketplace 元数据时，
   同步检查本仓 docs 和 docpact route 结果。
+- 原子数据机器契约、connector、Schema、凭证和运行回执属于 Tiangong CLI；
+  数据 Skill 只保留语义入口和可检验兼容绑定。
 
 ## Completion Criteria
 
@@ -57,6 +63,8 @@ skill 内容、skill 规范、marketplace 元数据和本仓文档治理属于�
 - route 命中的文档已 reviewed 或 updated。
 - 治理变更后 `docpact validate-config --root . --strict` 通过。
 - skill 变更按 `skill-creator` 流程运行对应校验。
+- 数据 Skill 迁移还必须验证 exact CLI capability/operation/Schema binding，且只有
+  对应 CLI 正式版本可安装后才能移除旧执行脚本。
 - `tsinghua-graduate-thesis` 的 PDF renderer 或视觉 QA 变更必须用仓库内隐私安全的真实二进制 PDF fixture，在其 targeted clean-container 中先观察 RED、再在新容器中转 GREEN；PR 前还要运行全仓 cold gate。
 - Auto Research 及其直接 evidence wrapper 的变更必须先在
   `scripts/test-clean-container.sh` 创建的独立、无宿主 HOME/全局

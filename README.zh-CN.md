@@ -13,8 +13,8 @@ checkPaths:
   - README.md
   - .claude-plugin/**
   - "*/SKILL.md"
-lastReviewedAt: 2026-08-22
-lastReviewedCommit: 1c0e4b9aba85ebba7c60e760b22cdc6ebf2927f4
+lastReviewedAt: 2026-08-30
+lastReviewedCommit: 4104e527facd09ecc242dad7a1e9645adf9d21f0
 ---
 
 # 天工 AI Skills
@@ -22,6 +22,14 @@ lastReviewedCommit: 1c0e4b9aba85ebba7c60e760b22cdc6ebf2927f4
 仓库地址: https://github.com/tiangong-ai/skills
 
 请使用 https://github.com/vercel-labs/skills 提供的 `skills` CLI 来安装、更新和管理这些 skills。
+
+## 原子数据迁移计划（proposed）
+
+本仓正在规划把经过评审的 fetch/search/download Skill 执行业务重写到 CLI 所有的
+TypeScript 7 数据运行时，并把 Skill 收敛为薄语义入口。这是开发计划，不是当前已
+可用的命令面。仓库边界、候选清单、分阶段 PR 顺序和验收门槛见
+`_docs/architecture/atomic-data-capabilities.md` 与
+`_docs/runbooks/atomic-data-skill-migration.md`。
 
 ## 安装 CLI
 

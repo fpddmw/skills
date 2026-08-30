@@ -13,8 +13,8 @@ checkPaths:
   - .github/workflows/docpact.yml
   - _docs/**
   - "*/SKILL.md"
-lastReviewedAt: 2026-08-22
-lastReviewedCommit: 1c0e4b9aba85ebba7c60e760b22cdc6ebf2927f4
+lastReviewedAt: 2026-08-30
+lastReviewedCommit: 4104e527facd09ecc242dad7a1e9645adf9d21f0
 ---
 
 # Skills Documentation Standards
@@ -43,3 +43,8 @@ lastReviewedCommit: 1c0e4b9aba85ebba7c60e760b22cdc6ebf2927f4
   in this repository.
 - Do not include real credentials, user-private data, or large generated
   artifacts in skill docs or assets.
+- Proposed architecture/runbook documents must label unavailable commands and
+  future behavior as proposed. For atomic data, CLI documents are authoritative
+  for machine contracts; Skills documents cover semantic entrypoints,
+  compatibility bindings, inventory, and migration workflow without copying
+  closed schemas.

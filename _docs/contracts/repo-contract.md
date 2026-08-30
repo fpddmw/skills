@@ -17,8 +17,8 @@ checkPaths:
   - Dockerfile.clean-test
   - scripts/**
   - "*/SKILL.md"
-lastReviewedAt: 2026-08-22
-lastReviewedCommit: 1c0e4b9aba85ebba7c60e760b22cdc6ebf2927f4
+lastReviewedAt: 2026-08-30
+lastReviewedCommit: 4104e527facd09ecc242dad7a1e9645adf9d21f0
 ---
 
 # Skills Repository Contract
@@ -37,6 +37,12 @@ marketplace grouping metadata.
   the workspace repository.
 - Runtime credentials and user-private data do not belong in skill assets,
   references, or scripts.
+- Atomic data Skills own trigger semantics, source guidance, limitations, and
+  an exact compatibility binding. Tiangong CLI owns connector execution,
+  machine schemas, HTTP/authentication, retries, errors, and core receipts.
+  A data Skill must not merge before its referenced CLI contract is available
+  from an approved package, and it must not retain a second runtime after
+  migration.
 - Default Research Policy assets must remain conservative, non-secret, and
   visibly generic. They must not claim target-journal fit or acceptance; user
   customization, approval, expiry, and hash enforcement belong to the CLI and
@@ -83,6 +89,9 @@ assets, generated `agents/**` files, or marketplace metadata require review of:
   skill when available.
 - When a Skill changes an exact external CLI pin, add or update an offline
   stale-pin contract and run its clean temporary install/command-surface smoke.
+- When migrating an atomic data Skill, verify its capability, operation,
+  minimum CLI version, manifest digest, and input/output schema digests against
+  the exact CLI package before removing the old executable implementation.
 - For `tsinghua-graduate-thesis` PDF renderer changes, preserve the privacy-safe
   embedded Adobe-GB1 binary fixture, observe the behavior regression in its
   targeted clean container, and turn it green in a separate container. The

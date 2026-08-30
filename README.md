@@ -13,8 +13,8 @@ checkPaths:
   - README.zh-CN.md
   - .claude-plugin/**
   - "*/SKILL.md"
-lastReviewedAt: 2026-08-22
-lastReviewedCommit: 1c0e4b9aba85ebba7c60e760b22cdc6ebf2927f4
+lastReviewedAt: 2026-08-30
+lastReviewedCommit: 4104e527facd09ecc242dad7a1e9645adf9d21f0
 ---
 
 # Tiangong AI Skills
@@ -22,6 +22,15 @@ lastReviewedCommit: 1c0e4b9aba85ebba7c60e760b22cdc6ebf2927f4
 Repository: https://github.com/tiangong-ai/skills
 
 Use the `skills` CLI from https://github.com/vercel-labs/skills to install, update, and manage these skills.
+
+## Proposed atomic data migration
+
+The repository is planning to replace selected fetch/search/download Skill
+runtime scripts with thin semantic Skills over a CLI-owned TypeScript 7 data
+runtime. This is a development plan, not a currently available command surface.
+See `_docs/architecture/atomic-data-capabilities.md` and
+`_docs/runbooks/atomic-data-skill-migration.md` for the ownership boundary,
+inventory, staged PR order, and acceptance gates.
 
 ## Install the CLI
 

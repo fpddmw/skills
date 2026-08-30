@@ -1,7 +1,7 @@
 version: 1
 layout: repo
-lastReviewedAt: "2026-08-22"
-lastReviewedCommit: "1c0e4b9aba85ebba7c60e760b22cdc6ebf2927f4"
+lastReviewedAt: "2026-08-30"
+lastReviewedCommit: "4104e527facd09ecc242dad7a1e9645adf9d21f0"
 
 repo:
   id: skills
@@ -29,6 +29,17 @@ routing:
     marketplace:
       paths:
         - .claude-plugin/**
+    atomic-data-migration:
+      paths:
+        - _docs/architecture/atomic-data-capabilities.md
+        - _docs/runbooks/atomic-data-skill-migration.md
+        - "*-fetch/**"
+        - "*-search/**"
+        - "*-download/**"
+        - "gdelt-*/**"
+        - "open-meteo-*/**"
+        - "regulationsgov-*/**"
+        - tiangong-auto-research/**
 
 coverage:
   include:
@@ -169,3 +180,37 @@ rules:
       - path: _docs/contracts/repo-contract.md
         mode: review_or_update
     reason: Marketplace metadata affects skill discovery and installation and must stay aligned with repository docs.
+  - id: skills-atomic-data-migration
+    scope: repo
+    repo: skills
+    triggers:
+      - path: _docs/architecture/atomic-data-capabilities.md
+        kind: proposed-atomic-data-architecture
+      - path: _docs/runbooks/atomic-data-skill-migration.md
+        kind: proposed-atomic-data-runbook
+      - path: "*-fetch/**"
+        kind: data-fetch-skill
+      - path: "*-search/**"
+        kind: data-search-skill
+      - path: "*-download/**"
+        kind: data-download-skill
+      - path: "gdelt-*/**"
+        kind: gdelt-data-skill
+      - path: "open-meteo-*/**"
+        kind: open-meteo-data-skill
+      - path: "regulationsgov-*/**"
+        kind: regulations-data-skill
+    requiredDocs:
+      - path: AGENTS.md
+        mode: review_or_update
+      - path: _docs/architecture/repo-architecture.md
+        mode: review_or_update
+      - path: _docs/contracts/repo-contract.md
+        mode: review_or_update
+      - path: _docs/architecture/atomic-data-capabilities.md
+        mode: review_or_update
+      - path: _docs/runbooks/atomic-data-skill-migration.md
+        mode: review_or_update
+      - path: _docs/runbooks/development.md
+        mode: review_or_update
+    reason: Data Skills must remain thin semantic consumers of the CLI-owned TypeScript runtime and machine contract.

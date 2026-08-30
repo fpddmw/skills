@@ -17,8 +17,8 @@ checkPaths:
   - scripts/**
   - .claude-plugin/**
   - "*/SKILL.md"
-lastReviewedAt: 2026-08-22
-lastReviewedCommit: 1c0e4b9aba85ebba7c60e760b22cdc6ebf2927f4
+lastReviewedAt: 2026-08-30
+lastReviewedCommit: 4104e527facd09ecc242dad7a1e9645adf9d21f0
 ---
 
 # Skills Development Runbook
@@ -35,6 +35,16 @@ lastReviewedCommit: 1c0e4b9aba85ebba7c60e760b22cdc6ebf2927f4
 Use the `skill-creator` workflow. Prefer the official initializer when creating
 new skills, then fill in `SKILL.md`, optional `scripts/`, `references/`,
 `assets/`, and generated `agents/**` files as required.
+
+## Atomic Data Skill Migration
+
+Before changing a fetch/search/download Skill as part of the proposed atomic
+data refactor, read `_docs/architecture/atomic-data-capabilities.md` and follow
+`_docs/runbooks/atomic-data-skill-migration.md`. Do not remove a provider
+runtime until the CLI's TypeScript 7 connector is accepted, an exact package is
+installable, and the Skill's capability/operation/schema binding passes the
+offline and isolated install contracts. Planning changes alone do not authorize
+Skill rewrites or file deletion.
 
 ## Validation
 
