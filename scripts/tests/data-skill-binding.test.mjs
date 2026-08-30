@@ -20,11 +20,26 @@ const PILOT_SKILLS = [
     name: "airnow-hourly-obs-fetch",
     capabilityId: "airnow.hourly-observations",
     operationId: "fetch-hourly",
+    inputKeys: [
+      "boundingBox",
+      "endDateTimeUtc",
+      "parameters",
+      "startDateTimeUtc",
+    ],
   },
   {
     name: "federal-register-doc-fetch",
     capabilityId: "federal-register.documents",
     operationId: "search",
+    inputKeys: [
+      "agencies",
+      "documentTypes",
+      "order",
+      "pageSize",
+      "publicationDate",
+      "term",
+    ],
+    usesExecutionLimits: true,
   },
 ];
 
@@ -266,6 +281,28 @@ test("pilot data skills are thin CLI semantic entrypoints", () => {
     );
     assert.match(skill, /tiangong\.data\.run-request\.v1/);
     assert.match(skill, /"input": \{/);
+    const exampleText = /```json\n([\s\S]*?)\n```/.exec(skill)?.[1];
+    assert.ok(exampleText, `${pilot.name} must include one JSON request example`);
+    const example = JSON.parse(
+      exampleText
+        .replaceAll("<binding.capabilityVersion>", binding.capabilityVersion)
+        .replaceAll(
+          "<binding.operations[0].operationVersion>",
+          binding.operations[0].operationVersion,
+        ),
+    );
+    assert.equal(example.schemaVersion, "tiangong.data.run-request.v1");
+    assert.equal(example.capabilityId, binding.capabilityId);
+    assert.equal(example.capabilityVersion, binding.capabilityVersion);
+    assert.equal(example.operationId, binding.operations[0].operationId);
+    assert.equal(
+      example.operationVersion,
+      binding.operations[0].operationVersion,
+    );
+    assert.deepEqual(Object.keys(example.input).sort(), pilot.inputKeys);
+    if (pilot.usesExecutionLimits) {
+      assert.deepEqual(example.limits, { maxPages: 2, maxRecords: 100 });
+    }
     assert.doesNotMatch(
       skill,
       /python3|OpenClaw|eco-council|check-config|--dry-run|--output|config\.example\.env/,

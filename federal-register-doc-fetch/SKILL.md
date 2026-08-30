@@ -41,6 +41,10 @@ least one publication-date bound and at least one narrowing filter:
   "capabilityVersion": "<binding.capabilityVersion>",
   "operationId": "search",
   "operationVersion": "<binding.operations[0].operationVersion>",
+  "limits": {
+    "maxPages": 2,
+    "maxRecords": 100
+  },
   "input": {
     "term": "clean air",
     "publicationDate": {
@@ -57,8 +61,10 @@ least one publication-date bound and at least one narrowing filter:
 
 Use the operation input schema returned by `data describe` for current agency,
 document type, topic, docket, RIN, ordering, and page-size semantics under
-`input`. Do not invent provider slugs or broaden the publication window without
-the user's intent.
+`input`. Optional top-level `limits` may only reduce the operation's published
+page, record, response-size, or timeout limits; they cannot raise them. Do not
+invent provider slugs or broaden the publication window without the user's
+intent.
 
 ## Run
 

@@ -18,7 +18,7 @@ checkPaths:
   - "*-download/**"
   - tiangong-auto-research/**
 lastReviewedAt: 2026-08-30
-lastReviewedCommit: 34ee21593ec90bf7c1c96445d3a97b453bcb2531
+lastReviewedCommit: 45e364b6dcf50c7d1a1f665426ea1af0f23d974b
 ---
 
 # 原子数据 Skill 迁移实施计划
@@ -154,6 +154,21 @@ lastReviewedCommit: 34ee21593ec90bf7c1c96445d3a97b453bcb2531
 4. 将 Python fetch 脚本、OpenClaw chaining 模板和旧 raw artifact 约定从生产路径移除。
 5. 示例只使用精确 capability/operation 和文件/stdin 输入，不放 secret 到 argv/JSON。
 6. README/marketplace 只有在可用性、安装或发现面实际变化时才同步更新。
+
+### 旧实现行为对照
+
+首批迁移按已评审的 capability v1 边界重写，不把旧 Python 命令行逐参数兼容层带入
+Skill。以下差异必须明确，不能被误写成无损命令替换：
+
+| Skill | 保留到 CLI capability 的核心行为 | 有意收敛或替代的旧行为 |
+| --- | --- | --- |
+| AirNow | UTC 小时文件规划、bbox/time/pollutant 过滤、站点小时记录、逐文件 lineage、缺失/坏文件 partial | 任意 endpoint/path/user-agent/重试调参、Skill `check-config`、dry-run、日志文件和 raw artifact 写入被 CLI manifest、`data doctor`、统一 limits、run-result/receipt 取代；非整点输入不再静默截断而是拒绝 |
+| Federal Register | publication date、term、agency、type、topic、docket、RIN、稳定查询编码、有界分页/记录、空结果/截断/later-page partial | `section`、`significant` 输入过滤、任意 `fields` 投影和 `executive_order_number` 排序不属于首个 capability v1；Skill 不再宣称支持。每次调用的 page/record 上限改用 run-request 顶层 `limits` 且只能降低 manifest 上限；dry-run、日志和 raw artifact 路径不再保留 |
+
+新结果是 `tiangong.data.run-result.v1`，字段命名和审计结构以 operation output Schema
+及 core receipt 为准，不承诺旧 Python payload 的 snake_case/raw-artifact 兼容。需要旧版
+已收敛过滤或输出字段的消费者必须先推动新的 capability/operation 版本评审，不能绕回
+已删除脚本。
 
 ### 首批验收
 
