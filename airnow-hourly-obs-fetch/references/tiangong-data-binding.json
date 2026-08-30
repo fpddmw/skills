@@ -1,11 +1,11 @@
 {
   "schemaVersion": "tiangong.data.skill-binding.v1",
   "skillName": "airnow-hourly-obs-fetch",
-  "generatedWithCliVersion": "0.0.51",
+  "generatedWithCliVersion": "0.0.55",
   "capabilityId": "airnow.hourly-observations",
   "capabilityVersion": "1.0.0",
-  "minimumCliVersion": "0.0.51",
-  "manifestDigest": "437c783f0cb28ef10f70c0a916731c4155de82fc5cfb74240d337af4d524dc27",
+  "minimumCliVersion": "0.0.55",
+  "manifestDigest": "c07513e53903629ad56c38e5498a3575c29f00f7063dd8173506d78202561fa1",
   "operations": [
     {
       "operationId": "fetch-hourly",

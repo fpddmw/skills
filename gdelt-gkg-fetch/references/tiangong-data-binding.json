@@ -1,11 +1,11 @@
 {
   "schemaVersion": "tiangong.data.skill-binding.v1",
   "skillName": "gdelt-gkg-fetch",
-  "generatedWithCliVersion": "0.0.51",
+  "generatedWithCliVersion": "0.0.55",
   "capabilityId": "gdelt.gkg",
   "capabilityVersion": "1.0.0",
-  "minimumCliVersion": "0.0.51",
-  "manifestDigest": "fefcd9563d1293716e2d3523d3a52ff5e4a4cce0bdbc9550688603247eb345ed",
+  "minimumCliVersion": "0.0.55",
+  "manifestDigest": "789e72bff0dc806dbcdfa2e7f484e902b041fe3d33a9e5e4d0c7d2e365eda602",
   "operations": [
     {
       "operationId": "fetch",

@@ -1,11 +1,11 @@
 {
   "schemaVersion": "tiangong.data.skill-binding.v1",
   "skillName": "open-meteo-flood-fetch",
-  "generatedWithCliVersion": "0.0.51",
+  "generatedWithCliVersion": "0.0.55",
   "capabilityId": "open-meteo.flood",
   "capabilityVersion": "1.0.0",
-  "minimumCliVersion": "0.0.51",
-  "manifestDigest": "3287d5dcf754bb1657f783a1ab69eb246c933a6ba38242494eb65dfc257487b6",
+  "minimumCliVersion": "0.0.55",
+  "manifestDigest": "d009ea8fca34a24031a47ff03eab2a5bd4941b1567d57c6df2cd500eb5c58fe4",
   "operations": [
     {
       "operationId": "fetch-daily",

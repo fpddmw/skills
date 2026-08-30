@@ -1,11 +1,11 @@
 {
   "schemaVersion": "tiangong.data.skill-binding.v1",
   "skillName": "gdelt-events-fetch",
-  "generatedWithCliVersion": "0.0.51",
+  "generatedWithCliVersion": "0.0.55",
   "capabilityId": "gdelt.events",
   "capabilityVersion": "1.0.0",
-  "minimumCliVersion": "0.0.51",
-  "manifestDigest": "205e3011d4b58518cbe90d5a0562a3a66d03323de8a8b0fb08f6e86d9980066b",
+  "minimumCliVersion": "0.0.55",
+  "manifestDigest": "42cef37a9d6723ca1f81c4c6fb946771b3bfa0c9dbcb0752a6bdb79c8e285e26",
   "operations": [
     {
       "operationId": "fetch",

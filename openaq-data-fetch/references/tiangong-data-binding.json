@@ -1,11 +1,11 @@
 {
   "schemaVersion": "tiangong.data.skill-binding.v1",
   "skillName": "openaq-data-fetch",
-  "generatedWithCliVersion": "0.0.51",
+  "generatedWithCliVersion": "0.0.55",
   "capabilityId": "openaq.air-quality",
   "capabilityVersion": "1.0.0",
-  "minimumCliVersion": "0.0.51",
-  "manifestDigest": "0e54a1eda6140fec4d1910ed0af8045e9c0ce6b2700fc2a93a2703938c4d6674",
+  "minimumCliVersion": "0.0.55",
+  "manifestDigest": "92f088e0cad6ddf4a04b81c9cc838d935e651207a2da1e7cf0ff0e1074995091",
   "operations": [
     {
       "operationId": "fetch-sensor-measurements",

@@ -1,11 +1,11 @@
 {
   "schemaVersion": "tiangong.data.skill-binding.v1",
   "skillName": "open-meteo-air-quality-fetch",
-  "generatedWithCliVersion": "0.0.51",
+  "generatedWithCliVersion": "0.0.55",
   "capabilityId": "open-meteo.air-quality",
   "capabilityVersion": "1.0.0",
-  "minimumCliVersion": "0.0.51",
-  "manifestDigest": "709a1c7668256db76c4bd51ca42af6dda3b87b28fd5f5db3798135286d2e76ad",
+  "minimumCliVersion": "0.0.55",
+  "manifestDigest": "17ef09e5f73321b133469b0481417b3d1d0639fe17636ce1de1f9f9569ab98dd",
   "operations": [
     {
       "operationId": "fetch-hourly",

@@ -14,7 +14,7 @@ checkPaths:
   - .claude-plugin/**
   - "*/SKILL.md"
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: c4326ba08eaede8e64ba0d042c35da0a3884da73
+lastReviewedCommit: 13db8268ff7017d1d6f6aa7715d5c8f8c3d69d8b
 ---
 
 # Tiangong AI Skills

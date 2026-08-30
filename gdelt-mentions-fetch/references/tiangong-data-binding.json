@@ -1,11 +1,11 @@
 {
   "schemaVersion": "tiangong.data.skill-binding.v1",
   "skillName": "gdelt-mentions-fetch",
-  "generatedWithCliVersion": "0.0.51",
+  "generatedWithCliVersion": "0.0.55",
   "capabilityId": "gdelt.mentions",
   "capabilityVersion": "1.0.0",
-  "minimumCliVersion": "0.0.51",
-  "manifestDigest": "1b21d646ccf35f6b6f1c6040e8546378148f9a475328c0c976df9a2420ecdccf",
+  "minimumCliVersion": "0.0.55",
+  "manifestDigest": "bafd5aee31de21f3b1ade2ea0c23d34bbcc628395c96edc49c2c661e3becae15",
   "operations": [
     {
       "operationId": "fetch",

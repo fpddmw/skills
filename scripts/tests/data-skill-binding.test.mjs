@@ -10,7 +10,7 @@ import {
   verifyDataSkillBinding,
 } from "../data-skill-binding.mjs";
 
-const CLI_VERSION = "0.0.54";
+const CLI_VERSION = "0.0.55";
 const REPOSITORY_ROOT = resolve(
   dirname(fileURLToPath(import.meta.url)),
   "../..",

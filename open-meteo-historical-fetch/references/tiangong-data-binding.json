@@ -1,11 +1,11 @@
 {
   "schemaVersion": "tiangong.data.skill-binding.v1",
   "skillName": "open-meteo-historical-fetch",
-  "generatedWithCliVersion": "0.0.51",
+  "generatedWithCliVersion": "0.0.55",
   "capabilityId": "open-meteo.historical-weather",
   "capabilityVersion": "1.0.0",
-  "minimumCliVersion": "0.0.51",
-  "manifestDigest": "6c013ef215125ad6d20166c55f3851c640b7b3a398e54b2db9313cd98e973415",
+  "minimumCliVersion": "0.0.55",
+  "manifestDigest": "6e10294987353b7db0fe00159589eeb97086694a71db23009c0faa4275c889e9",
   "operations": [
     {
       "operationId": "fetch",

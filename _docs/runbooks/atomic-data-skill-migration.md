@@ -18,7 +18,7 @@ checkPaths:
   - "*-download/**"
   - tiangong-auto-research/**
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: c4326ba08eaede8e64ba0d042c35da0a3884da73
+lastReviewedCommit: 13db8268ff7017d1d6f6aa7715d5c8f8c3d69d8b
 ---
 
 # 原子数据 Skill 迁移实施计划
@@ -37,7 +37,7 @@ lastReviewedCommit: c4326ba08eaede8e64ba0d042c35da0a3884da73
 - CLI PR #71 已合并到 `tiangong-ai/cli` 主分支，merge commit 为 `832e302`；
   TypeScript 7、data runtime、AirNow、Federal Register 以及 Execution Manifest /
   Discovery Metadata 分层均已进入源码主线。
-- 当前可安装的 `@tiangong-ai/cli@0.0.53` 尚不包含 `data` 命令，因此仍未达到删除
+- 当前公共 `@tiangong-ai/cli@0.0.54` 尚不包含 `data` 命令，因此仍未达到删除
   Skill 旧执行脚本和提交正式 binding 的门槛。
 - Skills 仓库已增加 execution-only binding 生成/校验器及离线 stale-binding 测试。
   AirNow、Federal Register、USGS Water IV、Open-Meteo Air Quality、Open-Meteo Flood、
@@ -50,7 +50,7 @@ lastReviewedCommit: c4326ba08eaede8e64ba0d042c35da0a3884da73
   `youtube.public-content` capability 的 search-videos 与 fetch-comments operation。
   十七项旧 Python connector 与重复 provider references 已移出候选 Skill，并共同纳入
   copy/symlink 安装 smoke。
-- 当前本地候选包 `0.0.51` 只用于分支内兼容验证，不代表 npm 正式发布。PR 前必须用
+- 当前本地候选包 `0.0.55` 只用于分支内兼容验证，不代表 npm 正式发布。PR 前必须用
   实际包含全部十五个 capability 的正式版本重新生成十七个 binding，并用该 npm 包
   重跑全部门禁。
 

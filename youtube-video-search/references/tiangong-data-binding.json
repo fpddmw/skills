@@ -1,11 +1,11 @@
 {
   "schemaVersion": "tiangong.data.skill-binding.v1",
   "skillName": "youtube-video-search",
-  "generatedWithCliVersion": "0.0.51",
+  "generatedWithCliVersion": "0.0.55",
   "capabilityId": "youtube.public-content",
   "capabilityVersion": "1.0.0",
-  "minimumCliVersion": "0.0.51",
-  "manifestDigest": "12dc22702c74bccebc2bf2abcbdd9a77ec707b488feaea55bbfd7f9ea5cc0cdc",
+  "minimumCliVersion": "0.0.55",
+  "manifestDigest": "6266974ab1ffc6c9b9163e8330bfc9b3fa609c324b0482e6187a2c9c13326904",
   "operations": [
     {
       "operationId": "search-videos",

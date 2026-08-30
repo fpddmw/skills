@@ -1,11 +1,11 @@
 {
   "schemaVersion": "tiangong.data.skill-binding.v1",
   "skillName": "bluesky-cascade-fetch",
-  "generatedWithCliVersion": "0.0.51",
+  "generatedWithCliVersion": "0.0.55",
   "capabilityId": "bluesky.public-posts",
   "capabilityVersion": "1.0.0",
-  "minimumCliVersion": "0.0.51",
-  "manifestDigest": "980fe026669d912478334e540934ea8f254751537337a56b97e299b16a10b5e7",
+  "minimumCliVersion": "0.0.55",
+  "manifestDigest": "6cdcca90961347ae6c585758e5b5e9a30afbd2d6bbb54375a125cbd3bfc77b70",
   "operations": [
     {
       "operationId": "fetch-cascades",

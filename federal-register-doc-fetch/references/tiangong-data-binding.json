@@ -1,11 +1,11 @@
 {
   "schemaVersion": "tiangong.data.skill-binding.v1",
   "skillName": "federal-register-doc-fetch",
-  "generatedWithCliVersion": "0.0.51",
+  "generatedWithCliVersion": "0.0.55",
   "capabilityId": "federal-register.documents",
   "capabilityVersion": "1.0.0",
-  "minimumCliVersion": "0.0.51",
-  "manifestDigest": "96eed6af28f893c277443abcefdee146d8656a6d915ec7badff406e09f57669a",
+  "minimumCliVersion": "0.0.55",
+  "manifestDigest": "a72c236f2800f369331cea8490bf52b51d5a500f01e3e4fc089d27d50fe8717a",
   "operations": [
     {
       "operationId": "search",

@@ -1,11 +1,11 @@
 {
   "schemaVersion": "tiangong.data.skill-binding.v1",
   "skillName": "gdelt-doc-search",
-  "generatedWithCliVersion": "0.0.51",
+  "generatedWithCliVersion": "0.0.55",
   "capabilityId": "gdelt.doc-search",
   "capabilityVersion": "1.0.0",
-  "minimumCliVersion": "0.0.51",
-  "manifestDigest": "13f042c02762a0625a1662d7f285ae3b8265eddc083fe504ffc6efaa40929ccf",
+  "minimumCliVersion": "0.0.55",
+  "manifestDigest": "28b8d774738255f1adb3ddeac12f07d54c872fad2f886df12109a26dd8b2d4dc",
   "operations": [
     {
       "operationId": "search",

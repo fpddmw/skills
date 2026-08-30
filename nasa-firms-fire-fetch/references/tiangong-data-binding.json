@@ -1,11 +1,11 @@
 {
   "schemaVersion": "tiangong.data.skill-binding.v1",
   "skillName": "nasa-firms-fire-fetch",
-  "generatedWithCliVersion": "0.0.51",
+  "generatedWithCliVersion": "0.0.55",
   "capabilityId": "nasa-firms.active-fire",
   "capabilityVersion": "1.0.0",
-  "minimumCliVersion": "0.0.51",
-  "manifestDigest": "61f0d6a3be6ed5e6b6ec4ae56824f5faecb85272fe808c07e9d58e28d36d1e8c",
+  "minimumCliVersion": "0.0.55",
+  "manifestDigest": "958d88b2aba435b9f5e23aa741c8c78f672eb9fe4ff2eb3fd0924a5f4455f167",
   "operations": [
     {
       "operationId": "fetch-area",
