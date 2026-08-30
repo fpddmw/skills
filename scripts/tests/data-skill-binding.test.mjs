@@ -41,6 +41,18 @@ const PILOT_SKILLS = [
     ],
     usesExecutionLimits: true,
   },
+  {
+    name: "usgs-water-iv-fetch",
+    capabilityId: "usgs.water-instantaneous-values",
+    operationId: "fetch",
+    inputKeys: [
+      "boundingBox",
+      "parameterCodes",
+      "period",
+      "siteStatus",
+      "siteType",
+    ],
+  },
 ];
 
 function listFiles(root, current = root) {

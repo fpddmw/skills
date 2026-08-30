@@ -14,7 +14,7 @@ checkPaths:
   - .claude-plugin/**
   - "*/SKILL.md"
 lastReviewedAt: 2026-08-30
-lastReviewedCommit: 45e364b6dcf50c7d1a1f665426ea1af0f23d974b
+lastReviewedCommit: 1c96d78
 ---
 
 # Skills Repository Architecture
@@ -106,12 +106,15 @@ schemas, credentials, retries, and core receipts live only in the CLI's
 TypeScript 7 runtime. Auto Research reuses that same runtime and adds its own
 evidence admission and persistence instead of executing a second Skill script.
 
-AirNow Hourly Observations and Federal Register Documents are the first pair.
-Each has only `SKILL.md`, generated agent metadata, and an execution-only CLI
-binding; their former Python connectors and duplicate provider references are
-not part of the production Skill. Later candidates retain their current runtime
-until the same accepted-connector, exact-release, binding, and install-smoke
-gates pass independently.
+AirNow Hourly Observations and Federal Register Documents are the first pair;
+USGS Water IV is the first subsequent one-by-one migration. In the local
+implementation branch, all three have only `SKILL.md`, generated agent metadata,
+and an execution-only CLI binding; their former Python connectors and duplicate
+provider references are not part of the candidate Skill. This becomes a
+production migration only after the exact CLI package is published and the
+bindings/install smoke are regenerated against that package. Later candidates
+retain their current runtime until the same accepted-connector, exact-release,
+binding, and install-smoke gates pass independently.
 
 ## Integration Points
 

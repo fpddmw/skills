@@ -18,7 +18,7 @@ checkPaths:
   - "*-download/**"
   - tiangong-auto-research/**
 lastReviewedAt: 2026-08-30
-lastReviewedCommit: 45e364b6dcf50c7d1a1f665426ea1af0f23d974b
+lastReviewedCommit: 1c96d78
 ---
 
 # 原子数据 Skill 迁移实施计划
@@ -40,11 +40,12 @@ lastReviewedCommit: 45e364b6dcf50c7d1a1f665426ea1af0f23d974b
 - 当前可安装的 `@tiangong-ai/cli@0.0.53` 尚不包含 `data` 命令，因此仍未达到删除
   Skill 旧执行脚本和提交正式 binding 的门槛。
 - Skills 仓库已增加 execution-only binding 生成/校验器及离线 stale-binding 测试。
-  两个试点 Skill 已薄化，本地从合并源码打出的候选包已通过 binding、copy/symlink
-  安装和无 provider 网络的命令面 smoke；旧 Python connector 与重复 provider
-  references 已移出生产 Skill。
-- 候选包版本不得冒充正式发布版本。PR 前必须用实际包含 `data` 命令的正式版本重新
-  生成两个 binding，并用该 npm 包重跑全部门禁。
+  AirNow、Federal Register 和 USGS Water IV 已在本地候选分支薄化；前两项已通过
+  copy/symlink 安装 smoke，USGS 使用新增 TS7 connector 的本地候选包完成 binding 后
+  纳入同一 smoke。三项旧 Python connector 与重复 provider references 已移出候选
+  Skill。
+- 候选包版本不得冒充正式发布版本。PR 前必须用实际包含全部三个 connector 的正式
+  版本重新生成三个 binding，并用该 npm 包重跑全部门禁。
 
 ## 与 CLI 的同步顺序
 
@@ -164,6 +165,7 @@ Skill。以下差异必须明确，不能被误写成无损命令替换：
 | --- | --- | --- |
 | AirNow | UTC 小时文件规划、bbox/time/pollutant 过滤、站点小时记录、逐文件 lineage、缺失/坏文件 partial | 任意 endpoint/path/user-agent/重试调参、Skill `check-config`、dry-run、日志文件和 raw artifact 写入被 CLI manifest、`data doctor`、统一 limits、run-result/receipt 取代；非整点输入不再静默截断而是拒绝 |
 | Federal Register | publication date、term、agency、type、topic、docket、RIN、稳定查询编码、有界分页/记录、空结果/截断/later-page partial | `section`、`significant` 输入过滤、任意 `fields` 投影和 `executive_order_number` 排序不属于首个 capability v1；Skill 不再宣称支持。每次调用的 page/record 上限改用 run-request 顶层 `limits` 且只能降低 manifest 上限；dry-run、日志和 raw artifact 路径不再保留 |
+| USGS Water IV | bbox 或最多 100 个 sites、period 或显式 window、参数/site type/status/agency 过滤、WaterML series/value 归一化、qualifier/provisional、no-data 过滤和坏 row/series partial | 旧脚本允许本地 env/argv 覆盖 endpoint、重试、节流、上限、user-agent、日志和 `file://` fixture，并提供 `check-config`、dry-run、raw artifact 写入；这些改由 CLI endpoint policy、manifest limits、static doctor、fixture tests 和 run-result/receipt 取代。官方 legacy 上限把旧 Skill 的 200 sites 收紧为 100，且明确 2027-Q1 decommission 风险 |
 
 新结果是 `tiangong.data.run-result.v1`，字段命名和审计结构以 operation output Schema
 及 core receipt 为准，不承诺旧 Python payload 的 snake_case/raw-artifact 兼容。需要旧版
@@ -185,11 +187,13 @@ Skill。以下差异必须明确，不能被误写成无损命令替换：
 
 ### 批次 2：时序/空间与凭证
 
-候选：USGS Water IV、Open-Meteo 三个能力、NASA FIRMS、OpenAQ、Regulations.gov。
+USGS Water IV 已作为本批首项在本地完成 CLI connector 与 Skill 薄化；下一项候选为
+Open-Meteo 三个能力，随后是 NASA FIRMS、OpenAQ、Regulations.gov。
 
-先用 USGS/Open-Meteo 扩展时间序列、空间范围和变量语义，再用 NASA FIRMS/OpenAQ/
-Regulations.gov 验证真实 logical credential/provider-auth 诊断。每个 connector 单独批准，
-不因共享 provider 品牌而把多个 operation 合成一个巨型 Skill。
+USGS 已扩展时间序列、空间范围、变量、qualifier 和 legacy 生命周期语义；继续用
+Open-Meteo 扩展模型数据语义，再用 NASA FIRMS/OpenAQ/Regulations.gov 验证真实
+logical credential/provider-auth 诊断。每个 connector 单独批准，不因共享 provider
+品牌而把多个 operation 合成一个巨型 Skill。
 
 ### 批次 3：GDELT 与内容/社交来源
 
@@ -251,7 +255,7 @@ node --test scripts/tests/data-skill-install-smoke.test.mjs
 ```
 
 它会清除 provider 凭证，只运行 version、catalog、describe、static doctor 和本地
-结构化阻断请求，不访问 AirNow 或 FederalRegister.gov。
+结构化阻断请求，不访问 AirNow、FederalRegister.gov 或 USGS WaterServices。
 
 正式 CLI 版本发布后，先生成再用同一精确包复验；`X.Y.Z` 必须替换为实际可安装且
 包含 `data` 命令的版本：
@@ -267,11 +271,19 @@ node scripts/data-skill-binding.mjs generate \
   --capability federal-register.documents \
   --operations search \
   --cli-version X.Y.Z
+node scripts/data-skill-binding.mjs generate \
+  --skill usgs-water-iv-fetch \
+  --capability usgs.water-instantaneous-values \
+  --operations fetch \
+  --cli-version X.Y.Z
 node scripts/data-skill-binding.mjs verify \
   --binding airnow-hourly-obs-fetch/references/tiangong-data-binding.json \
   --cli-version X.Y.Z
 node scripts/data-skill-binding.mjs verify \
   --binding federal-register-doc-fetch/references/tiangong-data-binding.json \
+  --cli-version X.Y.Z
+node scripts/data-skill-binding.mjs verify \
+  --binding usgs-water-iv-fetch/references/tiangong-data-binding.json \
   --cli-version X.Y.Z
 ```
 

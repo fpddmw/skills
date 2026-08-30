@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "tiangong.data.skill-binding.v1",
+  "skillName": "usgs-water-iv-fetch",
+  "generatedWithCliVersion": "0.0.51",
+  "capabilityId": "usgs.water-instantaneous-values",
+  "capabilityVersion": "1.0.0",
+  "minimumCliVersion": "0.0.51",
+  "manifestDigest": "f6451df2f87436f60d8d1c32613f2be3560338d117422d0223317b52c5f5ef64",
+  "operations": [
+    {
+      "operationId": "fetch",
+      "operationVersion": "1.0.0",
+      "inputSchemaId": "https://schemas.tiangong.ai/data/usgs/water-instantaneous-values-input.v1.json",
+      "inputSchemaDigest": "b1bbea2d5cdb74caba98e3cbeef707e1ffe6bd54fe9a7f03edc405177352614c",
+      "outputSchemaId": "https://schemas.tiangong.ai/data/usgs/water-instantaneous-values-output.v1.json",
+      "outputSchemaDigest": "16a67b3a99050556e902bac0c13911a8b96a361aac4a832e5dee893681dd6974"
+    }
+  ]
+}
