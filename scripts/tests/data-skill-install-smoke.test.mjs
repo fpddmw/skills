@@ -53,6 +53,18 @@ const PILOTS = [
     requiredCredential: true,
   },
   {
+    skill: "regulationsgov-comment-detail-fetch",
+    capability: "regulations-gov.comments",
+    operations: ["fetch-details"],
+    requiredCredential: true,
+  },
+  {
+    skill: "regulationsgov-comments-fetch",
+    capability: "regulations-gov.comments",
+    operations: ["search"],
+    requiredCredential: true,
+  },
+  {
     skill: "usgs-water-iv-fetch",
     capability: "usgs.water-instantaneous-values",
     operations: ["fetch"],
@@ -112,7 +124,7 @@ test(
         };
         for (const name of Object.keys(environment)) {
           if (
-            /AIRNOW|FEDERAL_REGISTER|NASA|FIRMS|OPENAQ|OPEN_METEO|USGS|TIANGONG.*KEY/i.test(
+            /AIRNOW|FEDERAL_REGISTER|NASA|FIRMS|OPENAQ|OPEN_METEO|REGGOV|USGS|TIANGONG.*KEY/i.test(
               name,
             )
           ) {
@@ -174,7 +186,7 @@ test(
           env: environment,
         });
         assert.equal(catalog.status, 0, catalog.stderr);
-        assert.equal(JSON.parse(catalog.stdout).capabilities.length >= 8, true);
+        assert.equal(JSON.parse(catalog.stdout).capabilities.length >= 9, true);
 
         for (const pilot of PILOTS) {
           const describe = run(

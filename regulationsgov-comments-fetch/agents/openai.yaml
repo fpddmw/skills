@@ -1,4 +1,4 @@
 interface:
   display_name: "Regulations.gov Comments Fetch"
-  short_description: "Fetch Regulations.gov comments with validation logs"
-  default_prompt: "Use $regulationsgov-comments-fetch to fetch Regulations.gov comments by time window with robust retries, validation, and JSONL output."
+  short_description: "Search bounded Regulations.gov comment metadata"
+  default_prompt: "Use $regulationsgov-comments-fetch to search a bounded Regulations.gov public-comment window through the exact bound Tiangong CLI operation and preserve the result boundaries."

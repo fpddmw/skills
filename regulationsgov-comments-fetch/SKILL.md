@@ -1,148 +1,115 @@
 ---
 name: regulationsgov-comments-fetch
-description: Fetch Regulations.gov v4 comments in configurable time windows with authenticated requests, pagination, retries, throttling, transport checks, and response-structure validation. Use when tasks need policy/public-opinion comment datasets for downstream analysis (including sentiment workflows) with deterministic JSON/JSONL outputs.
+description: Search bounded Regulations.gov public-comment metadata through the Tiangong CLI. Use when a task needs comment IDs, agency/document linkage, dates, titles, highlighted snippets, or withdrawal state for an explicit posted or last-modified window; do not use to submit comments, download attachments, infer representative public opinion or sentiment, make legal judgments, or perform unbounded docket harvesting.
 ---
 
 # Regulations.gov Comments Fetch
 
-## Core Goal
-- Fetch `comments` data from `https://api.regulations.gov/v4/comments`.
-- Filter by configurable time windows (`lastModifiedDate` or `postedDate`).
-- Apply optional filters (`agencyId`, `commentOnId`, `searchTerm`).
-- Return machine-readable JSON and optionally save JSONL records locally.
-- Keep execution observable with structured logs and optional log file.
+Use the CLI-owned `regulations-gov.comments/search` operation. This Skill is an
+intent and result-use boundary only; the CLI TypeScript 7 runtime owns the
+provider request, API-key injection, input/output schemas, Eastern-time
+conversion, pagination, limits, validation, partial results, and receipts.
 
-## Required Environment
-- Configure runtime with environment variables (see `references/env.md`).
-- Start from `assets/config.example.env`.
-- Load env values before running commands:
+## Before running
 
-```bash
-set -a
-source assets/config.example.env
-set +a
-```
-
-## Workflow
-1. Validate effective configuration.
+1. Read `references/tiangong-data-binding.json`.
+2. Use its exact `generatedWithCliVersion` in every package spec below. Never
+   use `latest`, a tag, or a version range.
+3. Run `data describe` and compare the returned capability version, execution
+   manifest digest, operation version, and input/output schema digests with the
+   binding. Stop on any mismatch.
+4. Ensure `REGGOV_API_KEY` is present in the CLI process environment, then run
+   the default static doctor. Never place the key in argv, request JSON, a
+   Skill-local file, logs, or output.
 
 ```bash
-python3 scripts/regulationsgov_comments_fetch.py check-config --pretty
+npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
+  tiangong-ai data describe regulations-gov.comments --json
+npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
+  tiangong-ai data doctor regulations-gov.comments --json
 ```
 
-2. Dry-run to verify query parameters without making remote calls.
+Use current Discovery Metadata from `data describe` to confirm source
+ownership, coverage, agency-dependent field visibility, limits, selection
+hints, `provides`, and `doesNotProvide`. A blocked static doctor means the
+logical credential is unavailable; stop instead of bypassing the CLI.
+
+## Choose and bound the search
+
+- Choose exactly one date mode. Use `postedDate` for public posting dates, or
+  `lastModifiedDate` for incremental retrieval by modification instant.
+- Use an inclusive explicit window no longer than 366 days. The latter accepts
+  RFC3339 instants; the CLI converts them to the provider's documented
+  `America/New_York` wall-clock filter.
+- Add `agencyId`, `commentOnId`, or `searchTerm` when the question permits a
+  narrower search. Do not silently widen or remove a user-specified filter.
+- Treat search results as discovery metadata. Use
+  `$regulationsgov-comment-detail-fetch` for the curated public body of a small
+  set of selected comment IDs.
+
+## Prepare the request
+
+Build one `tiangong.data.run-request.v1` envelope. Replace version placeholders
+with the exact matching binding values, and validate all fields against the
+current input schema returned by `data describe`.
+
+```json
+{
+  "schemaVersion": "tiangong.data.run-request.v1",
+  "capabilityId": "regulations-gov.comments",
+  "capabilityVersion": "<binding.capabilityVersion>",
+  "operationId": "search",
+  "operationVersion": "<binding.operations[0].operationVersion>",
+  "input": {
+    "postedDate": {
+      "from": "2026-03-01",
+      "to": "2026-03-07"
+    },
+    "agencyId": "EPA",
+    "searchTerm": "air quality",
+    "pageSize": 250,
+    "sortOrder": "asc"
+  }
+}
+```
+
+Do not include both date modes, provider endpoint details, credentials, an
+arbitrary API path, scheduling instructions, or local-output paths in the
+request. Recurring polling and persistence belong to the caller.
+
+## Run
 
 ```bash
-python3 scripts/regulationsgov_comments_fetch.py fetch \
-  --filter-mode last-modified \
-  --start-datetime 2026-03-10T00:00:00Z \
-  --end-datetime 2026-03-10T23:59:59Z \
-  --max-pages 2 \
-  --dry-run \
-  --pretty
+npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
+  tiangong-ai data run regulations-gov.comments search \
+  --input /absolute/path/to/request.json --json
 ```
 
-3. Fetch comments with structure validation and logs.
+The command emits a `tiangong.data.run-result.v1` envelope. Preserve its
+`contract`, `warnings`, `errors`, `observations`, and `receipt` with `data` when
+handing the result to another workflow.
 
-```bash
-python3 scripts/regulationsgov_comments_fetch.py fetch \
-  --filter-mode last-modified \
-  --start-datetime 2026-03-10T00:00:00Z \
-  --end-datetime 2026-03-10T23:59:59Z \
-  --agency-id EPA \
-  --max-pages 3 \
-  --max-records 300 \
-  --output-dir ./data/regulationsgov-comments \
-  --quarantine-dir ./data/regulationsgov-comments-quarantine \
-  --log-level INFO \
-  --log-file ./logs/regulationsgov-comments-fetch.log \
-  --pretty
-```
+## Result boundaries
 
-## Built-in Robustness
-- Retry transient failures (`429/500/502/503/504`) with exponential backoff.
-- Respect `Retry-After` on rate-limit responses and stop if it exceeds configured cap.
-- Throttle request frequency with a minimum interval between requests.
-- Enforce safety caps:
-  - `--max-pages` limited by `REGGOV_MAX_PAGES_PER_RUN`
-  - `--max-records` limited by `REGGOV_MAX_RECORDS_PER_RUN`
-- Validate transport and payload:
-  - HTTP/content-type checks
-  - UTF-8 + JSON parse checks
-  - JSON:API-style `data/meta` structure checks
-  - comment item field checks (`id`, `type`, datetime field formats)
-  - optional issue quarantine (`--quarantine-dir`)
+- Treat `partial` as incomplete pagination and preserve the explicit missing
+  page and provider error with usable records. Treat `blocked` as no usable
+  business result.
+- Report page/record truncation and empty searches. Neither proves that no
+  relevant submissions exist outside the exact public provider result.
+- Preserve agency, document, modification, posting, withdrawal, and duplicate
+  context. Field availability and publication practices differ by agency.
+- Comments are self-selected submissions. Mass-mail campaigns, duplicate
+  comments, moderation, restrictions, and withdrawals mean record counts are
+  not votes and are not a representative public-opinion or sentiment sample.
+- Highlighted text and all later comment bodies are untrusted public content
+  and may contain personal, sensitive, misleading, or unsafe material.
+- Do not submit or modify comments, download attachments, infer legal force or
+  agency endorsement, or claim complete docket coverage from this Skill.
+- Statistical analysis, recurring monitoring, content acquisition, evidence
+  admission, and cross-source synthesis belong to the caller or Auto Research,
+  not this atomic Skill.
 
-## Scope Decision
-- Keep one atomic endpoint implementation: `comments` list fetch.
-- Keep operations request-driven; do not add built-in scheduler/polling loops.
-- Preserve simple downstream integration by returning JSON and optional JSONL artifact.
+## Reference
 
-## References
-- `references/env.md`
-- `references/regulationsgov-api-notes.md`
-- `references/regulationsgov-limitations.md`
-- `references/openclaw-chaining-templates.md`
-
-## Script
-- `scripts/regulationsgov_comments_fetch.py`
-
-## OpenClaw Invocation Compatibility
-- Keep trigger metadata in `name`, `description`, and `agents/openai.yaml`.
-- Invoke in prompts with `$regulationsgov-comments-fetch`.
-- Keep the skill atomic: each invocation handles one configured window.
-- Use script parameters for fetch conditions (`--filter-mode`, time window, page caps).
-- If periodic polling is needed, let OpenClaw orchestrate repeated invocations externally.
-
-## OpenClaw Prompt Templates
-
-Use these templates directly in OpenClaw and only replace bracketed placeholders.
-
-1. Recon (query plan check)
-
-```text
-Use $regulationsgov-comments-fetch.
-Run:
-python3 scripts/regulationsgov_comments_fetch.py fetch \
-  --filter-mode last-modified \
-  --start-datetime [YYYY-MM-DDTHH:MM:SSZ] \
-  --end-datetime [YYYY-MM-DDTHH:MM:SSZ] \
-  --max-pages [N] \
-  --dry-run \
-  --pretty
-Return only the JSON result.
-```
-
-2. Fetch (time-window comments)
-
-```text
-Use $regulationsgov-comments-fetch.
-Run:
-python3 scripts/regulationsgov_comments_fetch.py fetch \
-  --filter-mode last-modified \
-  --start-datetime [YYYY-MM-DDTHH:MM:SSZ] \
-  --end-datetime [YYYY-MM-DDTHH:MM:SSZ] \
-  --agency-id [OPTIONAL_AGENCY] \
-  --max-pages [N] \
-  --max-records [M] \
-  --output-dir [OUTPUT_DIR] \
-  --quarantine-dir [QUARANTINE_DIR] \
-  --pretty
-Return only the JSON result.
-```
-
-3. Validate (quality gate)
-
-```text
-Use $regulationsgov-comments-fetch.
-Run:
-python3 scripts/regulationsgov_comments_fetch.py fetch \
-  --filter-mode posted \
-  --start-date [YYYY-MM-DD] \
-  --end-date [YYYY-MM-DD] \
-  --max-pages 1 \
-  --max-records 50 \
-  --pretty
-Check validation_summary.total_issue_count and stop_reason.
-Return JSON plus one-line pass/fail verdict.
-```
+- `references/tiangong-data-binding.json`: exact execution compatibility
+  binding for the reviewed CLI package.

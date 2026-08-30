@@ -26,9 +26,9 @@ lastReviewedCommit: ed9a6cc
 ## 原子数据 Skills
 
 AirNow Hourly Observations、Federal Register Documents、NASA FIRMS Active Fire、
-OpenAQ Air Quality、USGS Water IV、Open-Meteo Air Quality、Open-Meteo Flood 与
-Open-Meteo Historical Weather 八个 Skill 已收敛为 Tiangong CLI TypeScript 7 数据运行时
-之上的薄语义 Skill。每个
+OpenAQ Air Quality、Regulations.gov Comments、Regulations.gov Comment Details、
+USGS Water IV、Open-Meteo Air Quality、Open-Meteo Flood 与 Open-Meteo Historical
+Weather 十个 Skill 已收敛为 Tiangong CLI TypeScript 7 数据运行时之上的薄语义 Skill。每个
 Skill 都在
 `references/tiangong-data-binding.json` 中记录一个经过评审的精确 CLI 版本；Agent
 通过 CLI `data describe` 获取当前数据源事实，通过 `data run` 执行已绑定 operation。

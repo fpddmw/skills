@@ -106,15 +106,16 @@ schemas, credentials, retries, and core receipts live only in the CLI's
 TypeScript 7 runtime. Auto Research reuses that same runtime and adds its own
 evidence admission and persistence instead of executing a second Skill script.
 
-AirNow Hourly Observations and Federal Register Documents are the first pair;
-USGS Water IV is the first subsequent one-by-one migration. In the local
-implementation branch, all three have only `SKILL.md`, generated agent metadata,
-and an execution-only CLI binding; their former Python connectors and duplicate
-provider references are not part of the candidate Skill. This becomes a
-production migration only after the exact CLI package is published and the
-bindings/install smoke are regenerated against that package. Later candidates
-retain their current runtime until the same accepted-connector, exact-release,
-binding, and install-smoke gates pass independently.
+Ten local candidate Skills now use this shape: AirNow, Federal Register, USGS
+Water IV, three Open-Meteo sources, NASA FIRMS, OpenAQ, and the separate
+Regulations.gov search and detail semantic entrypoints. The two Regulations.gov
+Skills bind different operations of one CLI capability. Each directory has only
+`SKILL.md`, generated agent metadata, and an execution-only CLI binding; its
+former Python connector and duplicate provider references are absent. These
+become production migrations only after the exact CLI package is published and
+the bindings/install smoke are regenerated against that package. Later
+candidates retain their current runtime until the same accepted-connector,
+exact-release, binding, and install-smoke gates pass independently.
 
 ## Integration Points
 

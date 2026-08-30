@@ -138,6 +138,32 @@ const PILOT_SKILLS = [
     ],
   },
   {
+    name: "regulationsgov-comment-detail-fetch",
+    capabilityId: "regulations-gov.comments",
+    operations: [
+      {
+        operationId: "fetch-details",
+        inputKeys: ["commentIds", "includeAttachments"],
+      },
+    ],
+  },
+  {
+    name: "regulationsgov-comments-fetch",
+    capabilityId: "regulations-gov.comments",
+    operations: [
+      {
+        operationId: "search",
+        inputKeys: [
+          "agencyId",
+          "pageSize",
+          "postedDate",
+          "searchTerm",
+          "sortOrder",
+        ],
+      },
+    ],
+  },
+  {
     name: "usgs-water-iv-fetch",
     capabilityId: "usgs.water-instantaneous-values",
     operations: [

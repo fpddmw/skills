@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "tiangong.data.skill-binding.v1",
+  "skillName": "regulationsgov-comment-detail-fetch",
+  "generatedWithCliVersion": "0.0.51",
+  "capabilityId": "regulations-gov.comments",
+  "capabilityVersion": "1.0.0",
+  "minimumCliVersion": "0.0.51",
+  "manifestDigest": "939646bca8908ea7a208f0e8b5e0ad20db85e397cfc485c8fa225668d38b11be",
+  "operations": [
+    {
+      "operationId": "fetch-details",
+      "operationVersion": "1.0.0",
+      "inputSchemaId": "https://schemas.tiangong.ai/data/regulations-gov/comment-detail-input.v1.json",
+      "inputSchemaDigest": "e8ecc93f7123a0a06696a2fc4e84f342c98513f3ff8927dc7a916ac21bef2399",
+      "outputSchemaId": "https://schemas.tiangong.ai/data/regulations-gov/comment-detail-output.v1.json",
+      "outputSchemaDigest": "30631ff11ffafdfaba7fe4fb5b597f652c54cecf1e97544616e5290f1d529cc3"
+    }
+  ]
+}
