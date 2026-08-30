@@ -17,8 +17,8 @@ checkPaths:
   - "*-search/**"
   - "*-download/**"
   - tiangong-auto-research/**
-lastReviewedAt: 2026-08-30
-lastReviewedCommit: 669f16c
+lastReviewedAt: 2026-08-31
+lastReviewedCommit: ed9a6cc
 ---
 
 # 原子数据 Skill 目标架构
@@ -40,16 +40,16 @@ CLI 仓库中的 `docs/agents/data-runtime-architecture.md` 是命令、manifest
 
 ## 所有权
 
-| 内容 | 所有者 | Skills 侧规则 |
-| --- | --- | --- |
-| 用户意图、任务选择、结果使用边界 | Skills | 写入 `SKILL.md`，为 agent 提供语义入口 |
-| 数据源客观说明、覆盖范围、许可、限制 | CLI | 由 Discovery Metadata 统一发布，Skill 不复制 |
-| capability/operation 的客观说明 | CLI | 由 catalog/describe 发布三层发现语义 |
-| capability/operation/CLI 兼容绑定 | Skills | 保存最小机器可检验 binding |
-| connector、Schema、错误码、回执 | CLI | Skills 只验证 digest，不复制定义 |
-| HTTP、认证、分页、限流、缓存 | CLI | Skill 不再直接执行网络业务代码 |
-| 多源选择、证据准入、研究持久化 | Auto Research | 不下沉到原子 Skill |
-| 旧 Python/OpenClaw 实现 | 只读迁移输入 | 正式路径不得依赖 |
+| 内容                                 | 所有者        | Skills 侧规则                                |
+| ------------------------------------ | ------------- | -------------------------------------------- |
+| 用户意图、任务选择、结果使用边界     | Skills        | 写入 `SKILL.md`，为 agent 提供语义入口       |
+| 数据源客观说明、覆盖范围、许可、限制 | CLI           | 由 Discovery Metadata 统一发布，Skill 不复制 |
+| capability/operation 的客观说明      | CLI           | 由 catalog/describe 发布三层发现语义         |
+| capability/operation/CLI 兼容绑定    | Skills        | 保存最小机器可检验 binding                   |
+| connector、Schema、错误码、回执      | CLI           | Skills 只验证 digest，不复制定义             |
+| HTTP、认证、分页、限流、缓存         | CLI           | Skill 不再直接执行网络业务代码               |
+| 多源选择、证据准入、研究持久化       | Auto Research | 不下沉到原子 Skill                           |
+| 旧 Python/OpenClaw 实现              | 只读迁移输入  | 正式路径不得依赖                             |
 
 CLI 是先确认、先实现、先发布的基座。Skills 计划可以与 CLI 计划同步评审，但生产 Skill
 不能先合并一份指向尚不存在命令、未冻结 Schema 或未发布版本的绑定。
@@ -169,6 +169,6 @@ journal、handoff 和 review；这些状态不得回流到薄 Skill。
 - Research 如需该来源，通过 CLI adapter 复用核心结果，而不是继续执行 Skill 脚本。
 
 AirNow 与 Federal Register 是首批落地实例，USGS Water IV、Open-Meteo Air Quality、
-Open-Meteo Flood 与 Open-Meteo Historical Weather 是四个逐项后续迁移实例。本地候选
+Open-Meteo Flood、Open-Meteo Historical Weather 与 NASA FIRMS 是五个逐项后续迁移实例。本地候选
 分支可先完成薄化和测试，但只有在对应 CLI 正式版本发布、binding 重生成、隔离安装
 smoke 和回退路径验证后才达到生产完成。其他候选继续逐个执行同一门槛。

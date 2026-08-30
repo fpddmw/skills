@@ -13,8 +13,8 @@ checkPaths:
   - README.md
   - .claude-plugin/**
   - "*/SKILL.md"
-lastReviewedAt: 2026-08-30
-lastReviewedCommit: 669f16c
+lastReviewedAt: 2026-08-31
+lastReviewedCommit: ed9a6cc
 ---
 
 # 天工 AI Skills
@@ -25,9 +25,9 @@ lastReviewedCommit: 669f16c
 
 ## 原子数据 Skills
 
-AirNow Hourly Observations、Federal Register Documents、USGS Water IV、
-Open-Meteo Air Quality、Open-Meteo Flood 与 Open-Meteo Historical Weather
-六个 Skill 已收敛为 Tiangong CLI TypeScript 7 数据运行时之上的薄语义 Skill。每个
+AirNow Hourly Observations、Federal Register Documents、NASA FIRMS Active Fire、
+USGS Water IV、Open-Meteo Air Quality、Open-Meteo Flood 与 Open-Meteo Historical
+Weather 七个 Skill 已收敛为 Tiangong CLI TypeScript 7 数据运行时之上的薄语义 Skill。每个
 Skill 都在
 `references/tiangong-data-binding.json` 中记录一个经过评审的精确 CLI 版本；Agent
 通过 CLI `data describe` 获取当前数据源事实，通过 `data run` 执行已绑定 operation。

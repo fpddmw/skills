@@ -1,4 +1,4 @@
 interface:
-  display_name: "NASA FIRMS Fire Fetch"
-  short_description: "Fetch NASA FIRMS active fire detections by bbox and time window"
-  default_prompt: "Use $nasa-firms-fire-fetch to fetch NASA FIRMS active fire detections for a specified bounding box, source, and date window with validation and logs."
+  display_name: "NASA FIRMS Active Fire"
+  short_description: "Retrieve bounded FIRMS active-fire detections"
+  default_prompt: "Use $nasa-firms-fire-fetch to retrieve bounded NASA FIRMS active-fire detections for a known area and UTC date window."

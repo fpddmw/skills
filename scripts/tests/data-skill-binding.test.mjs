@@ -42,6 +42,18 @@ const PILOT_SKILLS = [
     usesExecutionLimits: true,
   },
   {
+    name: "nasa-firms-fire-fetch",
+    capabilityId: "nasa-firms.active-fire",
+    operationId: "fetch-area",
+    inputKeys: [
+      "boundingBox",
+      "checkAvailability",
+      "endDate",
+      "source",
+      "startDate",
+    ],
+  },
+  {
     name: "open-meteo-air-quality-fetch",
     capabilityId: "open-meteo.air-quality",
     operationId: "fetch-hourly",
@@ -163,8 +175,7 @@ test("builds a closed execution-only binding", () => {
       {
         operationId: "search",
         operationVersion: "2.0.0",
-        inputSchemaId:
-          "https://schemas.tiangong.ai/data/example/input.v1.json",
+        inputSchemaId: "https://schemas.tiangong.ai/data/example/input.v1.json",
         inputSchemaDigest: "a".repeat(64),
         outputSchemaId:
           "https://schemas.tiangong.ai/data/example/output.v1.json",
@@ -183,7 +194,8 @@ test("accepts discovery-only wording changes", () => {
     describe,
     operationIds: ["search"],
   });
-  describe.discovery.summary = "Updated wording that does not affect execution.";
+  describe.discovery.summary =
+    "Updated wording that does not affect execution.";
   describe.discovery.discoveryDigest = "e".repeat(64);
 
   assert.doesNotThrow(() =>
@@ -202,7 +214,8 @@ test("rejects a missing capability", () => {
   describe.manifest.capabilityId = "other.records";
 
   assert.throws(
-    () => verifyDataSkillBinding({ binding, cliVersion: CLI_VERSION, describe }),
+    () =>
+      verifyDataSkillBinding({ binding, cliVersion: CLI_VERSION, describe }),
     /capabilityId/,
   );
 });
@@ -233,14 +246,16 @@ test("rejects manifest and operation schema drift", () => {
 
   describe.manifest.manifestDigest = "f".repeat(64);
   assert.throws(
-    () => verifyDataSkillBinding({ binding, cliVersion: CLI_VERSION, describe }),
+    () =>
+      verifyDataSkillBinding({ binding, cliVersion: CLI_VERSION, describe }),
     /manifestDigest/,
   );
 
   describe.manifest.manifestDigest = binding.manifestDigest;
   describe.manifest.operations[0].inputSchema.digest = "0".repeat(64);
   assert.throws(
-    () => verifyDataSkillBinding({ binding, cliVersion: CLI_VERSION, describe }),
+    () =>
+      verifyDataSkillBinding({ binding, cliVersion: CLI_VERSION, describe }),
     /inputSchemaDigest/,
   );
 });
@@ -258,7 +273,8 @@ test("rejects undeclared binding fields", () => {
   };
 
   assert.throws(
-    () => verifyDataSkillBinding({ binding, cliVersion: CLI_VERSION, describe }),
+    () =>
+      verifyDataSkillBinding({ binding, cliVersion: CLI_VERSION, describe }),
     /Unexpected binding field/,
   );
 });
@@ -293,10 +309,7 @@ test("pilot data skills are thin CLI semantic entrypoints", () => {
   const generatedWithCliVersions = [];
   for (const pilot of PILOT_SKILLS) {
     const root = resolve(REPOSITORY_ROOT, pilot.name);
-    const bindingPath = resolve(
-      root,
-      "references/tiangong-data-binding.json",
-    );
+    const bindingPath = resolve(root, "references/tiangong-data-binding.json");
     assert.equal(existsSync(resolve(root, "scripts")), false, pilot.name);
     assert.equal(existsSync(resolve(root, "assets")), false, pilot.name);
     assert.deepEqual(
@@ -334,7 +347,10 @@ test("pilot data skills are thin CLI semantic entrypoints", () => {
     assert.match(skill, /tiangong\.data\.run-request\.v1/);
     assert.match(skill, /"input": \{/);
     const exampleText = /```json\n([\s\S]*?)\n```/.exec(skill)?.[1];
-    assert.ok(exampleText, `${pilot.name} must include one JSON request example`);
+    assert.ok(
+      exampleText,
+      `${pilot.name} must include one JSON request example`,
+    );
     const example = JSON.parse(
       exampleText
         .replaceAll("<binding.capabilityVersion>", binding.capabilityVersion)

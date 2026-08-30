@@ -1,10 +1,5 @@
 import assert from "node:assert/strict";
-import {
-  existsSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-} from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -29,6 +24,12 @@ const PILOTS = [
     skill: "federal-register-doc-fetch",
     capability: "federal-register.documents",
     operation: "search",
+  },
+  {
+    skill: "nasa-firms-fire-fetch",
+    capability: "nasa-firms.active-fire",
+    operation: "fetch-area",
+    requiredCredential: true,
   },
   {
     skill: "open-meteo-air-quality-fetch",
@@ -104,7 +105,11 @@ test(
           npm_config_cache: npmCache,
         };
         for (const name of Object.keys(environment)) {
-          if (/AIRNOW|FEDERAL_REGISTER|OPEN_METEO|USGS|TIANGONG.*KEY/i.test(name)) {
+          if (
+            /AIRNOW|FEDERAL_REGISTER|NASA|FIRMS|OPEN_METEO|USGS|TIANGONG.*KEY/i.test(
+              name,
+            )
+          ) {
             delete environment[name];
           }
         }
@@ -132,17 +137,17 @@ test(
           });
           assert.equal(install.status, 0, install.stderr || install.stdout);
 
-          const installed = resolve(
-            consumer,
-            ".agents/skills",
-            pilot.skill,
-          );
+          const installed = resolve(consumer, ".agents/skills", pilot.skill);
           for (const relative of [
             "SKILL.md",
             "agents/openai.yaml",
             "references/tiangong-data-binding.json",
           ]) {
-            assert.equal(existsSync(resolve(installed, relative)), true, relative);
+            assert.equal(
+              existsSync(resolve(installed, relative)),
+              true,
+              relative,
+            );
           }
           assert.equal(existsSync(resolve(installed, "scripts")), false);
           assert.equal(existsSync(resolve(installed, "assets")), false);
@@ -150,13 +155,7 @@ test(
           assert.equal(binding.generatedWithCliVersion, CLI_VERSION);
         }
 
-        const cli = [
-          "--yes",
-          "--package",
-          CLI_PACKAGE,
-          "--",
-          "tiangong-ai",
-        ];
+        const cli = ["--yes", "--package", CLI_PACKAGE, "--", "tiangong-ai"];
         const version = run("npx", [...cli, "--version"], {
           cwd: consumer,
           env: environment,
@@ -169,7 +168,7 @@ test(
           env: environment,
         });
         assert.equal(catalog.status, 0, catalog.stderr);
-        assert.equal(JSON.parse(catalog.stdout).capabilities.length >= 6, true);
+        assert.equal(JSON.parse(catalog.stdout).capabilities.length >= 7, true);
 
         for (const pilot of PILOTS) {
           const describe = run(
@@ -188,7 +187,15 @@ test(
             [...cli, "data", "doctor", pilot.capability, "--json"],
             { cwd: consumer, env: environment },
           );
-          assert.equal(doctor.status, 0, doctor.stderr);
+          assert.equal(
+            doctor.status,
+            pilot.requiredCredential ? 3 : 0,
+            doctor.stderr,
+          );
+          assert.equal(
+            JSON.parse(doctor.stdout).status,
+            pilot.requiredCredential ? "blocked" : "ready",
+          );
 
           const binding = readInstalledBinding(consumer, pilot);
           const blocked = run(
