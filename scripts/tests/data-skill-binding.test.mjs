@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { dirname, relative, resolve } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
@@ -27,6 +27,13 @@ const PILOT_SKILLS = [
     operationId: "search",
   },
 ];
+
+function listFiles(root, current = root) {
+  return readdirSync(current, { withFileTypes: true }).flatMap((entry) => {
+    const path = resolve(current, entry.name);
+    return entry.isDirectory() ? listFiles(root, path) : [relative(root, path)];
+  });
+}
 
 function describeFixture() {
   return {
@@ -216,6 +223,7 @@ test("rejects internally inconsistent or duplicate binding entries", () => {
 });
 
 test("pilot data skills are thin CLI semantic entrypoints", () => {
+  const generatedWithCliVersions = [];
   for (const pilot of PILOT_SKILLS) {
     const root = resolve(REPOSITORY_ROOT, pilot.name);
     const bindingPath = resolve(
@@ -225,6 +233,15 @@ test("pilot data skills are thin CLI semantic entrypoints", () => {
     assert.equal(existsSync(resolve(root, "scripts")), false, pilot.name);
     assert.equal(existsSync(resolve(root, "assets")), false, pilot.name);
     assert.deepEqual(
+      listFiles(root).sort(),
+      [
+        "SKILL.md",
+        "agents/openai.yaml",
+        "references/tiangong-data-binding.json",
+      ],
+      pilot.name,
+    );
+    assert.deepEqual(
       readdirSync(resolve(root, "references")).sort(),
       ["tiangong-data-binding.json"],
       pilot.name,
@@ -232,6 +249,7 @@ test("pilot data skills are thin CLI semantic entrypoints", () => {
 
     const binding = JSON.parse(readFileSync(bindingPath, "utf8"));
     validateDataSkillBinding(binding);
+    generatedWithCliVersions.push(binding.generatedWithCliVersion);
     assert.equal(binding.skillName, pilot.name);
     assert.equal(binding.capabilityId, pilot.capabilityId);
     assert.deepEqual(
@@ -248,11 +266,15 @@ test("pilot data skills are thin CLI semantic entrypoints", () => {
     );
     assert.match(skill, /tiangong\.data\.run-request\.v1/);
     assert.match(skill, /"input": \{/);
-    assert.doesNotMatch(skill, /python3|OpenClaw|eco-council/);
+    assert.doesNotMatch(
+      skill,
+      /python3|OpenClaw|eco-council|check-config|--dry-run|--output|config\.example\.env/,
+    );
     assert.doesNotMatch(skill, /@tiangong-ai\/cli@\d+\.\d+\.\d+/);
 
     const agent = readFileSync(resolve(root, "agents/openai.yaml"), "utf8");
     assert.match(agent, new RegExp(`\\$${pilot.name}`));
     assert.doesNotMatch(agent, /raw artifact|OpenClaw|eco-council/);
   }
+  assert.equal(new Set(generatedWithCliVersions).size, 1);
 });
