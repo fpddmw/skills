@@ -18,7 +18,7 @@ checkPaths:
   - scripts/**
   - "*/SKILL.md"
 lastReviewedAt: 2026-08-30
-lastReviewedCommit: 49d7b01
+lastReviewedCommit: 669f16c
 ---
 
 # Skills Repository Contract

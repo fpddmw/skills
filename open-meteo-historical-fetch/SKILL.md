@@ -1,172 +1,124 @@
 ---
 name: open-meteo-historical-fetch
-description: Fetch Open-Meteo Historical Weather API time-window data for weather and shallow-soil variables with retries, throttling, detailed logs, and transport/structure validation. Use when tasks need deterministic physical-world context for ecology or environmental verification, such as checking historical temperature, precipitation, wind, humidity, FAO evapotranspiration, soil temperature, or soil moisture for one or more coordinates in a specified date range.
+description: Retrieve bounded Open-Meteo historical weather reanalysis through the Tiangong CLI for up to ten known coordinates, one controlled model, and explicit hourly or daily variables. Use for gap-filled historical temperature, precipitation, humidity, wind, radiation, or shallow-soil context; do not use for station observations, forecasts, climate projections or attribution, geocoding, commercial public-endpoint use, or unreviewed cross-model trend conclusions.
 ---
 
-# Open-Meteo Historical Fetch
+# Open-Meteo Historical Weather
 
-## Core Goal
-- Fetch historical Open-Meteo archive data for one or more coordinates in one invocation.
-- Support inclusive `start_date` and `end_date` windows.
-- Return machine-readable JSON with request metadata, transport info, validation summary, and normalized records.
-- Keep runtime observable with structured logs and optional log file output.
+Use the CLI-owned `open-meteo.historical-weather` capability. This Skill
+supplies intent routing and result-use boundaries only; the CLI owns source
+discovery, input/output schemas, HTTP behavior, limits, validation, and
+receipts.
 
-## Required Environment
-- Configure runtime by environment variables (see `references/env.md`).
-- Start from `assets/config.example.env`.
-- Load env values before running commands:
+## Before running
 
-```bash
-set -a
-source assets/config.example.env
-set +a
-```
-
-## Workflow
-1. Validate effective configuration.
+1. Read `references/tiangong-data-binding.json`.
+2. Use its exact `generatedWithCliVersion` in the package spec below. Never use
+   `latest`, a tag, or a version range.
+3. Run `data describe` and compare the returned capability version, execution
+   manifest digest, operation version, and input/output schema digests with the
+   binding. Stop on any mismatch.
+4. Run the default static doctor. Do not add `--live` unless the user explicitly
+   asks for a provider probe.
 
 ```bash
-python3 scripts/open_meteo_historical_fetch.py check-config --pretty
+npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
+  tiangong-ai data describe open-meteo.historical-weather --json
+npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
+  tiangong-ai data doctor open-meteo.historical-weather --json
 ```
 
-2. Dry-run the request plan first.
+Use the returned Discovery Metadata to confirm current model coverage,
+resolution, update delay, variable availability, public-endpoint terms,
+attribution, `provides`, and `doesNotProvide`. Do not substitute facts remembered
+from an older Skill revision.
+
+## Prepare the request
+
+Build a `tiangong.data.run-request.v1` envelope and replace the two version
+placeholders with the exact values in the binding. Coordinates are WGS84
+decimal degrees. Both variable arrays are required; use an empty array for an
+unneeded granularity. At least one array must be non-empty. The CLI fixes
+timezone and units, preserves coordinate order, and normalizes variable order:
+
+```json
+{
+  "schemaVersion": "tiangong.data.run-request.v1",
+  "capabilityId": "open-meteo.historical-weather",
+  "capabilityVersion": "<binding.capabilityVersion>",
+  "operationId": "fetch",
+  "operationVersion": "<binding.operations[0].operationVersion>",
+  "input": {
+    "locations": [
+      { "latitude": 52.52, "longitude": 13.41 },
+      { "latitude": 48.85, "longitude": 2.35 }
+    ],
+    "startDate": "2024-01-01",
+    "endDate": "2024-01-07",
+    "hourlyVariables": [
+      "temperature_2m",
+      "relative_humidity_2m",
+      "precipitation",
+      "soil_moisture_0_to_7cm"
+    ],
+    "dailyVariables": [
+      "temperature_2m_max",
+      "temperature_2m_min",
+      "precipitation_sum",
+      "et0_fao_evapotranspiration"
+    ],
+    "model": "era5",
+    "cellSelection": "land"
+  }
+}
+```
+
+Use the operation input schema returned by `data describe` for current variable
+codes, model meanings, and limits. Select `era5` or `era5_land` for a
+multi-decade analysis where one consistent model family matters. The default
+`best_match` favors available local detail but can change model families over
+time. Do not add an API key: this capability uses the public non-commercial
+endpoint only. Commercial customer-endpoint access requires a separately
+reviewed capability. Do not silently geocode names, adjust coordinates, widen
+the date range, switch models, or add variables beyond the user's intent.
+
+## Run
 
 ```bash
-python3 scripts/open_meteo_historical_fetch.py fetch \
-  --location 52.52,13.41 \
-  --start-date 2026-03-01 \
-  --end-date 2026-03-02 \
-  --hourly-var temperature_2m \
-  --hourly-var soil_moisture_0_to_7cm \
-  --timezone GMT \
-  --dry-run \
-  --pretty
+npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
+  tiangong-ai data run open-meteo.historical-weather fetch \
+  --input /absolute/path/to/request.json --json
 ```
 
-3. Run the fetch with validation and operational logs.
+The command emits a `tiangong.data.run-result.v1` envelope. Preserve its
+`contract`, `warnings`, `errors`, and `receipt` with `data` when handing the
+result to another workflow.
 
-```bash
-python3 scripts/open_meteo_historical_fetch.py fetch \
-  --location 52.52,13.41 \
-  --location 48.85,2.35 \
-  --start-date 2026-03-01 \
-  --end-date 2026-03-02 \
-  --hourly-var temperature_2m \
-  --hourly-var relative_humidity_2m \
-  --hourly-var wind_speed_10m \
-  --hourly-var soil_temperature_0cm \
-  --hourly-var soil_moisture_0_to_7cm \
-  --daily-var precipitation_sum \
-  --daily-var et0_fao_evapotranspiration \
-  --model era5 \
-  --timezone GMT \
-  --output ./data/open-meteo/open-meteo-fetch.json \
-  --log-level INFO \
-  --log-file ./logs/open-meteo-historical-fetch.log \
-  --pretty
-```
+## Result boundaries
 
-## Built-in Robustness
-- Retry transient HTTP and network failures with exponential backoff.
-- Respect `Retry-After` when present and fail fast when it exceeds configured cap.
-- Throttle request rate with minimum request interval.
-- Enforce safety caps before remote calls:
-  - maximum locations
-  - maximum day range
-  - maximum hourly variables
-  - maximum daily variables
-- Validate transport:
-  - HTTP status handling
-  - JSON content-type
-  - UTF-8 strict decode
-  - JSON parse
-- Validate structure:
-  - response object/list shape
-  - requested section presence (`hourly`, `daily`)
-  - time axis parseability and range checks
-  - requested variable presence and aligned array lengths
+- Treat values as gap-filled reanalysis or model-grid estimates, not raw
+  observations from a named station. Preserve requested and returned grid
+  coordinates plus elevation.
+- Retain nulls as unavailable model values. Never convert them to zero or
+  interpolate them without an explicit downstream method.
+- Treat `partial` as incomplete coordinate, section, timestamp, variable, or
+  unit coverage and report the affected paths with the usable series.
+- Treat `blocked` as no usable business result and surface the structured
+  errors instead of bypassing limits or switching endpoints.
+- Report record-limit truncation. The CLI keeps every retained variable aligned
+  to its returned time axis, but a truncated result is not exhaustive.
+- Preserve the selected model in analysis and citations. Do not combine models
+  or interpret a Best Match discontinuity as a weather or climate trend.
+- Choose a station source when instrument provenance, local measurement
+  quality, or regulatory-grade observations are required.
+- Do not use this capability for forecasts, future climate scenarios, causal
+  attribution, significance testing, or safety-critical weather decisions.
+- Attribute Open-Meteo and the underlying data providers. The public endpoint
+  is non-commercial; do not imply commercial-use permission.
+- Cross-source comparison, statistical inference, and research evidence
+  admission belong to the caller or Auto Research, not this atomic Skill.
 
-## Scope Decision
-- Keep one atomic fetch implementation for the Open-Meteo historical archive endpoint only.
-- Do not embed geocoding, polling loops, scheduler logic, or flood API handling.
-- If recurring execution is needed, let OpenClaw orchestrate repeated calls externally.
+## Reference
 
-## References
-- `references/env.md`
-- `references/open-meteo-api-notes.md`
-- `references/open-meteo-limitations.md`
-- `references/openclaw-chaining-templates.md`
-
-## Script
-- `scripts/open_meteo_historical_fetch.py`
-
-## OpenClaw Invocation Compatibility
-- Keep trigger metadata in `name`, `description`, and `agents/openai.yaml`.
-- Invoke with `$open-meteo-historical-fetch`.
-- Keep calls atomic and parameterized by:
-  - `--location`
-  - `--start-date`
-  - `--end-date`
-  - `--hourly-var`
-  - `--daily-var`
-  - `--model`
-- Use OpenClaw orchestration, not this script, for recurring jobs.
-
-## OpenClaw Prompt Templates
-
-Use these templates directly in OpenClaw and only replace bracketed placeholders.
-
-1. Recon (dry-run)
-
-```text
-Use $open-meteo-historical-fetch.
-Run:
-python3 scripts/open_meteo_historical_fetch.py fetch \
-  --location [LATITUDE,LONGITUDE] \
-  --start-date [YYYY-MM-DD] \
-  --end-date [YYYY-MM-DD] \
-  --hourly-var [HOURLY_VARIABLE] \
-  --timezone GMT \
-  --dry-run \
-  --pretty
-Return only the JSON result.
-```
-
-2. Fetch (ecology verification window)
-
-```text
-Use $open-meteo-historical-fetch.
-Run:
-python3 scripts/open_meteo_historical_fetch.py fetch \
-  --location [LATITUDE,LONGITUDE] \
-  --start-date [YYYY-MM-DD] \
-  --end-date [YYYY-MM-DD] \
-  --hourly-var temperature_2m \
-  --hourly-var relative_humidity_2m \
-  --hourly-var precipitation \
-  --hourly-var wind_speed_10m \
-  --hourly-var soil_moisture_0_to_7cm \
-  --daily-var precipitation_sum \
-  --daily-var et0_fao_evapotranspiration \
-  --timezone GMT \
-  --pretty
-Return only the JSON result.
-```
-
-3. Validate (quality gate)
-
-```text
-Use $open-meteo-historical-fetch.
-Run:
-python3 scripts/open_meteo_historical_fetch.py fetch \
-  --location [LATITUDE,LONGITUDE] \
-  --start-date [YYYY-MM-DD] \
-  --end-date [YYYY-MM-DD] \
-  --hourly-var temperature_2m \
-  --hourly-var soil_moisture_0_to_7cm \
-  --daily-var precipitation_sum \
-  --timezone GMT \
-  --pretty
-Check validation_summary.total_issue_count and validation_summary.ok.
-Return JSON plus one-line pass/fail verdict.
-```
+- `references/tiangong-data-binding.json`: exact execution compatibility
+  binding for the reviewed CLI release.

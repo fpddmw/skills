@@ -68,6 +68,20 @@ const PILOT_SKILLS = [
     ],
   },
   {
+    name: "open-meteo-historical-fetch",
+    capabilityId: "open-meteo.historical-weather",
+    operationId: "fetch",
+    inputKeys: [
+      "cellSelection",
+      "dailyVariables",
+      "endDate",
+      "hourlyVariables",
+      "locations",
+      "model",
+      "startDate",
+    ],
+  },
+  {
     name: "usgs-water-iv-fetch",
     capabilityId: "usgs.water-instantaneous-values",
     operationId: "fetch",

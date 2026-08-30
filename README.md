@@ -14,7 +14,7 @@ checkPaths:
   - .claude-plugin/**
   - "*/SKILL.md"
 lastReviewedAt: 2026-08-30
-lastReviewedCommit: 49d7b01
+lastReviewedCommit: 669f16c
 ---
 
 # Tiangong AI Skills
@@ -25,11 +25,13 @@ Use the `skills` CLI from https://github.com/vercel-labs/skills to install, upda
 
 ## Atomic data skills
 
-`airnow-hourly-obs-fetch` and `federal-register-doc-fetch` are thin semantic
-Skills over the Tiangong CLI TypeScript 7 data runtime. Each Skill records one
-exact reviewed CLI release in `references/tiangong-data-binding.json`; the
-agent uses CLI `data describe` for current source facts and `data run` for the
-bound operation. The Skills contain no second provider connector runtime.
+Six Skills—AirNow Hourly Observations, Federal Register Documents, USGS Water
+IV, Open-Meteo Air Quality, Open-Meteo Flood, and Open-Meteo Historical
+Weather—are thin semantic Skills over the Tiangong CLI TypeScript 7 data
+runtime. Each Skill records one exact reviewed CLI release in
+`references/tiangong-data-binding.json`; the agent uses CLI `data describe` for
+current source facts and `data run` for the bound operation. These Skills
+contain no second provider connector runtime.
 
 See `_docs/architecture/atomic-data-capabilities.md` and
 `_docs/runbooks/atomic-data-skill-migration.md` for the ownership boundary,
