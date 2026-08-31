@@ -91,16 +91,25 @@ result to another workflow.
 - Retain nulls as unavailable model values. Never convert them to zero.
 - Treat `partial` as incomplete coordinate, date, variable, or ensemble-member
   coverage and report the affected paths with the usable columns.
+- Require one real, strictly ascending GMT date per inclusive request date and
+  a zero provider UTC offset. Preserve count, ordering, timezone, unit,
+  alignment, and non-numeric-value issues rather than treating a structurally
+  incomplete response as complete.
 - Treat `blocked` as no usable business result and surface the structured
   errors instead of bypassing limits or switching endpoints.
 - Report record-limit truncation; all variables and ensemble arrays remain
   aligned to the returned GMT dates, but a truncated result is not exhaustive.
 - Ensemble members are model realizations. Do not translate them directly into
   flood probability, severity, alerts, return periods, or emergency guidance.
+- Preserve each provider `river_discharge_memberN` field name and its safe
+  integer member ID; member suffixes are not assumed to have a fixed width.
 - Attribute Open-Meteo and GloFAS. The public endpoint is non-commercial; do
   not imply commercial-use permission.
 - Cross-source comparison and research evidence admission belong to the caller
   or Auto Research, not this atomic Skill.
+- The fixed public execution contract intentionally omits the source script's
+  arbitrary timezone, optional API-key/customer access, endpoint overrides,
+  and raw JSON/log artifacts. Those require separately reviewed contracts.
 
 ## Reference
 
