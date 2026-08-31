@@ -71,7 +71,7 @@ lastReviewedCommit: 2998da54897f8f254a37e187ff64c62feae3dbd2
 | 6 | `fetch-gdelt-events` | `gdelt-events-fetch` | `gdelt.events/fetch` | 源语义复核完成；最终统一门禁待跑 |
 | 7 | `fetch-gdelt-gkg` | `gdelt-gkg-fetch` | `gdelt.gkg/fetch` | 源语义复核完成；最终统一门禁待跑 |
 | 8 | `fetch-gdelt-mentions` | `gdelt-mentions-fetch` | `gdelt.mentions/fetch` | 源语义复核完成；最终统一门禁待跑 |
-| 9 | `fetch-nasa-firms-fire` | `nasa-firms-fire-fetch` | `nasa-firms.active-fire/fetch-area` | 已有候选，复核中 |
+| 9 | `fetch-nasa-firms-fire` | `nasa-firms-fire-fetch` | `nasa-firms.active-fire/fetch-area` | 源语义复核完成；最终统一门禁待跑 |
 | 10 | `fetch-open-meteo-air-quality` | `open-meteo-air-quality-fetch` | `open-meteo.air-quality/fetch-hourly` | 已有候选，复核中 |
 | 11 | `fetch-open-meteo-flood` | `open-meteo-flood-fetch` | `open-meteo.flood/fetch-daily` | 已有候选，复核中 |
 | 12 | `fetch-open-meteo-historical` | `open-meteo-historical-fetch` | `open-meteo.historical-weather/fetch` | 已有候选，复核中 |
@@ -129,6 +129,13 @@ GDELT Mentions 复核确认了固定源的 `.mentions.CSV.zip`、16 列、UTC �
 capability、闭合字段 Schema 和 mention-level discovery。非对齐范围、截断、坏行隔离、
 SHA-256/CRC/行级问题处理与另外两个 feed 一致；CLI 不创建 ZIP 归档、masterfilelist、
 preview 或 quarantine artifact，也不把 mention row 解释为独立文章、认可或已验证事件。
+
+NASA FIRMS 复核确认了固定源的 8 个 source、31 个闭合 UTC 日期、5 日分片、area 交易估算、
+可选 availability 校验、MAP_KEY 路径注入和共同 active-fire 字段；TypeScript 连接器补回了
+源实现的重复 CSV header 诊断，并在保留可用 detection 的同时显式报告行/字段 partial。
+CLI 将 bbox 进一步限制为非跨日界线且非全球扫描，并发布闭合的跨传感器公共字段；源脚本
+的 standalone MAP_KEY transaction-status 探针、任意 sensor raw columns、raw JSON/log
+artifact 继续作为明确边界，不由 thin Skill 复制。
 
 ## 2026-08-31 实现状态
 
@@ -318,7 +325,7 @@ Skill。以下差异必须明确，不能被误写成无损命令替换：
 | Open-Meteo Air Quality         | 最多 10 个坐标、92 个闭合日期、16 个官方 hourly variables、domain/cell selection、单次多坐标响应、nullable aligned arrays 和坐标/变量 partial                                          | timezone 固定为 GMT，删除任意 timezone、endpoint、API key、重试、节流、user-agent、日志、dry-run 和 raw artifact 调参。公开 endpoint 明确为 non-commercial 且无凭证；商业 customer endpoint/API key 需要独立 capability 评审。输出改为 location-hour 列式结果和统一 run-result/receipt，不兼容旧 snake_case payload                                        |
 | Open-Meteo Flood               | 最多 10 个坐标、366 个闭合日期、7 个官方 daily discharge variables、cell selection、optional ensemble members、nullable aligned arrays 和坐标/变量/member partial                      | timezone 固定为 GMT，ensemble 必须同时请求 `river_discharge`；删除任意 timezone、endpoint、API key、重试、节流、user-agent、日志、dry-run 和 raw artifact 调参。公开 endpoint 明确为 non-commercial 且无凭证。输出按 location-day 计数并显式区分 requested/river-grid coordinate，不把 GloFAS simulated discharge 误写成 gauge observation、告警或严重度   |
 | Open-Meteo Historical Weather  | 最多 10 个坐标、366 个闭合日期、一个受控 model、12 个 curated hourly 与 12 个 curated numeric daily variables、多坐标响应、nullable aligned arrays 和坐标/section/变量 partial         | timezone 与单位固定为 GMT/摄氏度/km/h/mm；两个变量数组显式传入且至少一方非空。删除任意 timezone、endpoint、API key、任意 model、重试、节流、user-agent、日志、dry-run 和 raw artifact 调参。公开 endpoint 明确为 non-commercial 且无凭证；输出按 location 内 hourly 后 daily 的时间行计数，明确 reanalysis/model grid 并提示长期趋势使用 ERA5 或 ERA5-Land |
-| NASA FIRMS Active Fire         | 一个 reviewed source、非跨日界线 bbox、最多 31 个闭合 UTC 日期、可选 availability probe、五天分片、transaction/record cap、公共 MODIS/VIIRS/Landsat detection 字段和 chunk/row partial | `NASA_FIRMS_MAP_KEY` 只由 CLI 从进程环境解析并作为受保护 path segment 注入；删除 Skill-local env 文件、endpoint/retry/throttle/user-agent/log/dry-run/raw artifact 调参和 OpenClaw fan-out。输出改为统一 run-result/receipt，不把 thermal anomaly 误写成 fire perimeter、burned area、incident、cause 或 alert                                             |
+| NASA FIRMS Active Fire         | 一个 reviewed source、非跨日界线 bbox、最多 31 个闭合 UTC 日期、可选 availability probe、五天分片、transaction/record cap、重复/不一致 header 与 row validation、公共 MODIS/VIIRS/Landsat detection 字段和 chunk/row partial | `NASA_FIRMS_MAP_KEY` 只由 CLI 从进程环境解析并作为受保护 path segment 注入；删除 Skill-local env 文件、standalone MAP_KEY status probe、endpoint/retry/throttle/user-agent/log/dry-run/raw artifact 调参、任意 sensor raw columns 和 OpenClaw fan-out。输出改为统一 run-result/receipt，不把 thermal anomaly 误写成 fire perimeter、burned area、incident、cause 或 alert                                             |
 | OpenAQ Air Quality             | 有界 location discovery、provider/owner/sensor/parameter/license/coverage metadata，以及单 sensor、最长 366 天的 raw/hourly/daily measurements、稳定分页和 later-page partial          | 任意 v3 path/query、API/S3 自动路由、S3 prefix/list/download、Skill-local region/bucket/endpoint 配置和 Python client/router 被移除；`OPENAQ_API_KEY` 只由 CLI header 注入。批量 archive 文件转入单独 content/download 审计；输出不提供 AQI、健康/监管判断、跨 sensor 聚合、单位转换或来源归因                                                             |
 | Regulations.gov Comments       | posted 或 last-modified 二选一的最长 366 天窗口、agency/comment-on/search-term 收窄、稳定 JSON:API 分页、comment ID/日期/标题/withdrawal metadata 和 later-page partial                | `REGGOV_API_KEY` 只由 CLI header 注入；移除任意 endpoint、重试/节流/log/dry-run、JSONL 写入和 quarantine。结果明确不是代表性公众意见、投票或统计 sentiment，不提供 comment post/modify、detail body 或 attachment download                                                                                                                                 |
 | Regulations.gov Comment Detail | 最多 100 个显式 comment ID、caller 顺序、comment/docket/document linkage、日期、withdrawal/restriction、组织上下文、duplicate count、可选 attachment metadata 和 per-ID partial        | 删除本地文件 ID 解析、任意 endpoint、重试/节流/log/dry-run、raw/JSONL/quarantine 写入；CLI 以 allowlist 排除姓名、邮箱、电话、地址与 locality 等个人 profile 字段，只返回 attachment metadata/link，不下载 bytes，也不提供法律判断或代表性 sentiment                                                                                                       |

@@ -96,6 +96,10 @@ result to another workflow.
   Do not merge NRT and Standard Processing records without an explicit method.
 - Treat `partial` as incomplete chunk or row coverage. Report missing chunks
   and invalid paths together with the usable detections.
+- Preserve duplicate/inconsistent-header and row-validation issues. Rows with
+  invalid required coordinates or acquisition timestamps are omitted, while a
+  duplicate optional header or malformed optional measurement does not discard
+  an otherwise usable detection.
 - Treat `blocked` as no usable business result. Surface credential, request,
   availability, endpoint, quota, or provider errors instead of bypassing limits
   or switching endpoints.
@@ -107,6 +111,10 @@ result to another workflow.
 - Recurring monitoring, multi-area or multi-source fan-out, duplicate-event
   resolution, statistical inference, and research evidence admission belong to
   the caller or Auto Research, not this atomic Skill.
+- This execution contract does not expose the source script's standalone
+  MAP_KEY-status probe, arbitrary sensor-specific raw columns, or raw JSON/log
+  artifact output. Use the static doctor plus an explicit bounded operation;
+  add any future live quota diagnostic as a separately reviewed CLI contract.
 
 ## Reference
 
