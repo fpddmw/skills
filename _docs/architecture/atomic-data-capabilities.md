@@ -30,10 +30,15 @@ Tiangong CLI 的 TypeScript 7.x 数据运行时。Skills 仓库继续拥有面�
 入口，但不再维护第二份 Python/JavaScript connector、HTTP/认证/分页/重试实现或闭合
 机器 Schema。
 
-旧 `openclaw-eco-concil_v1` 及现有 Skill 脚本只作为只读迁移输入，用于核对来源知识、
-外部行为、字段、限制和 privacy-safe fixtures。迁移不合并旧 Git 历史，不保留 Python
-兼容层，也不迁入 OpenClaw harness、议会/多 agent 编排、跨 round/case 数据库或案例
-工作流。
+EcoCouncil 仓库已提交的 `main@ac19289b4876d8a90595a0270721ef3f5ee7ced8`
+是本次迁移范围和源行为的权威输入；其中 21 个 `skills/source-fetch` Skill 必须逐项形成
+迁移或明确保留/退役决定。Skills 仓库现有脚本只作为目标仓库集成与兼容性参考，不得
+覆盖 EcoCouncil 的源清单，也不得据此静默遗漏 EcoCouncil 独有能力。
+
+EcoCouncil 工作树 `codex/pluggable-harness-migration` 的未提交内容属于已废弃实验，混合
+了 council runtime、报告链、数据路线纪律和部分 fetch 脚本改动；它不属于本次迁移输入，
+不得复制、择取或用于推断源语义。迁移不合并旧 Git 历史，不保留 Python 兼容层，也不
+迁入 OpenClaw harness、议会/多 agent 编排、跨 round/case 数据库或案例工作流。
 
 CLI 仓库中的 `docs/agents/data-runtime-architecture.md` 是命令、manifest、Schema、错误、
 回执、凭证和执行行为的权威目标契约；本文件只规定 Skills 如何消费它。

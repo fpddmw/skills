@@ -28,9 +28,28 @@ lastReviewedCommit: 09d49fcce0871ac97997c4e5e79975ae29c79c84
 - 计划基线：`origin/main` at
   `4104e527facd09ecc242dad7a1e9645adf9d21f0`。
 - 计划分支：`codex/atomic-data-plan`，使用独立干净 worktree。
+- EcoCouncil 迁移源固定为 `https://github.com/fpddmw/EcoCouncil.git` 的已提交
+  `main@ac19289b4876d8a90595a0270721ef3f5ee7ced8`；其 21 个
+  `skills/source-fetch` Skill 是迁移范围的权威清单。
+- EcoCouncil 工作树当前分支 `codex/pluggable-harness-migration` 的未提交改动被明确
+  归档为废弃实验，不属于迁移输入。该工作树混合 council runtime、报告链、数据路线
+  纪律和部分 fetch 脚本试验；不得从中复制、择取实现或用其修正 `ac19289` 的源语义。
 - 原 Skills checkout、现有 `codex/atomic-environment-data-skills` worktree 及 CLI 的
   未提交变更都保持不动，不 stash/reset/rebase/clean。
 - 首批实现继续使用该独立 worktree；正式 CLI 包、binding 和全部门禁通过后才提交 PR。
+
+## 2026-08-31 迁移源审计更正
+
+- 早期计划把 Skills 目标仓库中的 38 个 fetch/search/download 目录作为总候选清单，
+  这是目标目录盘点，不是 EcoCouncil 迁移源清单，不能证明迁移完整性。
+- 当前 17 个薄 Skill 与 15 个 CLI capability 只能视为内部兼容候选；在按 EcoCouncil
+  21 项清单重建映射并完成源语义复核前，不得描述为“EcoCouncil 已全部迁移”。
+- 当前明确未覆盖 `fetch-epa-eis-records`、`fetch-regulationsgov-attachments`、
+  `fetch-usbr-project-records` 和 `fetch-usbr-rise`。这四项以及现有 17 项都必须进入新的
+  21 项迁移矩阵。
+- EcoCouncil 功能分支已提交点 `32d38e5172ebe8703c61a7031b7055c766ac9028`
+  与 `ac19289` 的 `skills/source-fetch` 内容一致；本次仍只引用远端可复现的
+  `main@ac19289`，不引用未提交工作树状态。
 
 ## 2026-08-31 实现状态
 
@@ -54,10 +73,11 @@ lastReviewedCommit: 09d49fcce0871ac97997c4e5e79975ae29c79c84
   实际包含全部十五个 capability 的正式版本重新生成十七个 binding，并用该 npm 包
   重跑全部门禁。
 
-## 2026-08-31 本地完成性审计
+## 2026-08-31 本地候选自洽性审计（不代表 EcoCouncil 迁移完成）
 
-- 仓库中实际存在 38 个 fetch/search/download 候选：17 个原子 provider Skill 已薄化，
-  其余 21 个均落入下文记录的内容/文件、产品或私有账户保留边界；没有未分类目录。
+- Skills 目标仓库中实际存在 38 个 fetch/search/download 候选：17 个原子 provider
+  Skill 已薄化，其余 21 个落入下文记录的内容/文件、产品或私有账户保留边界。该统计
+  只说明目标仓库目录已分类，不覆盖 EcoCouncil 独有 Skill，也不是迁移完成证据。
 - CLI 候选使用 Node 24、TypeScript 7.0.2 和版本 `0.0.55`，发布 15 个 capability；
   17 个薄 Skill 的 `generatedWithCliVersion` 与 `minimumCliVersion` 均为 `0.0.55`。
 - 每个薄 Skill 只含 `SKILL.md`、`agents/openai.yaml` 和

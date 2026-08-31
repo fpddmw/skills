@@ -14,7 +14,7 @@ checkPaths:
   - .claude-plugin/**
   - "*/SKILL.md"
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: 09d49fcce0871ac97997c4e5e79975ae29c79c84
+lastReviewedCommit: 3bb1cb109d8f0b039d531f63d9d22348791326ee
 ---
 
 # Tiangong AI Skills
@@ -25,19 +25,26 @@ Use the `skills` CLI from https://github.com/vercel-labs/skills to install, upda
 
 ## Atomic data skills
 
-Seventeen Skills—AirNow Hourly Observations, Federal Register Documents, NASA
+Seventeen local candidate Skills—AirNow Hourly Observations, Federal Register Documents, NASA
 FIRMS Active Fire, OpenAQ Air Quality, Regulations.gov Comments,
 Regulations.gov Comment Details, USGS Water IV, three Open-Meteo sources, and
 GDELT DOC, Events, GKG, and Mentions, plus Bluesky Cascades, YouTube Video
 Search, and YouTube Comments—are thin semantic Skills over the Tiangong CLI
-TypeScript 7 data runtime. Each Skill records one exact reviewed CLI release
+TypeScript 7 data runtime. Each candidate records one exact CLI package binding
 in `references/tiangong-data-binding.json`; the agent uses CLI `data describe`
 for current source facts and `data run` for the bound operation. These Skills
 contain no second provider connector runtime.
 
+This candidate set is not a complete EcoCouncil migration. The authoritative
+EcoCouncil source baseline, `main@ac19289b4876d8a90595a0270721ef3f5ee7ced8`,
+contains 21 `source-fetch` Skills. Four are not yet represented here—EPA EIS
+records, Regulations.gov attachments, USBR project records, and USBR RISE—and
+the existing 17 still require source-semantic revalidation before a Skills PR.
+
 See `_docs/architecture/atomic-data-capabilities.md` and
 `_docs/runbooks/atomic-data-skill-migration.md` for the ownership boundary,
-candidate inventory, staged migration order, and release gates. The audited
+candidate inventory, source audit correction, staged migration order, and
+release gates. The audited
 RSS/full-text, Figshare-download, academic-paper, Tiangong/KB, and private-email
 candidates retain their existing content, artifact, product, research, or
 security boundaries instead of being narrowed into stateless data connectors.
