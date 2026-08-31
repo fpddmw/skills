@@ -44,11 +44,14 @@ credential is unavailable; stop instead of bypassing the CLI.
 - Use `fetch-sensor-measurements` only after selecting one trusted sensor ID.
   Choose `raw` for upstream-reported observations or `hourly`/`daily` for
   OpenAQ's precomputed aggregates, and use an explicit RFC3339 window of no more
-  than 366 days.
+  than 366 days. Daily records use the sensor location's local-day boundaries;
+  preserve the returned period instead of treating them as UTC calendar days.
 
 Do not invent or pass an API path. Do not use this Skill to list or download
 OpenAQ S3 archive objects; bulk files require a separately governed
-content/download workflow.
+content/download workflow. `search-locations` returns metadata attached to
+bounded location results; it is not a global country, provider, parameter,
+license, instrument, or sensor catalog.
 
 ## Prepare a location request
 
@@ -125,7 +128,13 @@ result to another workflow.
   or measurement quality.
 - Keep raw, hourly, and daily granularities explicit. Do not mix raw upstream
   records with OpenAQ aggregates without an explicit analytical method, and
-  retain aggregate summary and coverage fields.
+  retain `flagInfo`, aggregate summary, coverage interval, and period fields.
+- Preserve provider nulls. A null value, period, coordinate, summary member, or
+  coverage object is a valid unavailable field, not proof of zero, clean data,
+  absence of pollution, or a failed request. Inspect `flagInfo.hasFlags`
+  separately from nullability.
+- Interpret daily aggregates in the selected location's timezone and preserve
+  their returned period; do not relabel them as UTC calendar-day averages.
 - Treat `partial` as incomplete page or record coverage. Report missing pages
   and provider errors with the usable records.
 - Treat `blocked` as no usable business result. Surface credential, input,
