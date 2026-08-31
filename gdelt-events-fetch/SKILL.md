@@ -50,8 +50,10 @@ bounded range of source snapshots:
 ```
 
 Use the operation input schema returned by `data describe` when choosing
-`latest` or `range`. Do not round timestamps, widen a range, or increase a
-safety limit without the caller's approval.
+`latest` or `range`. Range bounds need not align to a snapshot: the CLI selects
+the first published 15-minute timestamp at or after the lower bound and stops
+at `maxFiles`, even when the requested window is larger. Do not widen the
+user's range or increase a safety limit without approval.
 
 ## Run
 
@@ -78,6 +80,9 @@ result to another workflow.
   polling and incremental state management.
 - Surface `partial`, truncation warnings, archive-validation failures, and empty
   results. Never reinterpret them as complete absence of events.
+- Preserve file SHA-256 values and validation issues. Invalid UTF-8 or
+  wrong-column rows are omitted locally while valid rows from the same verified
+  ZIP remain usable; report that omission explicitly.
 - Use the dedicated GKG or Mentions Skill for their row types; this Skill must
   not invoke or combine other feeds automatically.
 - Cross-source comparison, persistence, scheduling, and research evidence

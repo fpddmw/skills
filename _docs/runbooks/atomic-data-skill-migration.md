@@ -68,7 +68,7 @@ lastReviewedCommit: 2998da54897f8f254a37e187ff64c62feae3dbd2
 | 3 | `fetch-epa-eis-records` | `epa-eis-records-fetch` | `epa.eis-records/search`；只解析官方 EIS 结果表，不作法律或政策判断 | 本地实现完成；统一安装/冷门禁待最终树 |
 | 4 | `fetch-federal-register-documents` | `federal-register-doc-fetch` | `federal-register.documents/search` | 源语义复核完成；最终统一门禁待跑 |
 | 5 | `fetch-gdelt-doc-search` | `gdelt-doc-search` | `gdelt.doc-search/search` | 源语义复核完成；最终统一门禁待跑 |
-| 6 | `fetch-gdelt-events` | `gdelt-events-fetch` | `gdelt.events/fetch` | 已有候选，复核中 |
+| 6 | `fetch-gdelt-events` | `gdelt-events-fetch` | `gdelt.events/fetch` | 源语义复核完成；最终统一门禁待跑 |
 | 7 | `fetch-gdelt-gkg` | `gdelt-gkg-fetch` | `gdelt.gkg/fetch` | 已有候选，复核中 |
 | 8 | `fetch-gdelt-mentions` | `gdelt-mentions-fetch` | `gdelt.mentions/fetch` | 已有候选，复核中 |
 | 9 | `fetch-nasa-firms-fire` | `nasa-firms-fire-fetch` | `nasa-firms.active-fire/fetch-area` | 已有候选，复核中 |
@@ -111,6 +111,12 @@ GDELT DOC 复核补回 query lint（拒绝 `site:`/`inurl:` 与未加括号的 `
 timeline 窗口与 `tonechart` 归一化；稀疏 article 字段不再使整批失败。CLI 继续只发布
 结构化 JSON 数据面，不迁入源脚本的 HTML/RSS/CSV 展示或任意 `--param` 透传，这些不是稳定
 机器执行契约；article body、图像和页面内容仍属于单独治理的内容获取边界。
+
+GDELT Events 复核恢复了源 `max-files` 作为“大窗口内最多选择 N 个”的语义，允许非 15 分钟
+对齐的 UTC 边界并从首个落入窗口的快照开始；坏 UTF-8/列数行会记录问题并局部隔离，有效行
+继续返回，每个 ZIP 增加 SHA-256。CLI 仍以确定性 HTTPS 15 分钟路径替代体量无界的
+`masterfilelist.txt` 流式扫描，并返回命名列而不落地原始 ZIP；这是经 receipt/partial 补偿的
+执行边界，不宣称创建了源脚本的本地归档镜像或 quarantine 文件。
 
 ## 2026-08-31 实现状态
 

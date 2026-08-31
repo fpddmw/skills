@@ -1,4 +1,4 @@
 interface:
   display_name: "GDELT Events Fetch"
   short_description: "Retrieve bounded GDELT event records"
-  default_prompt: "Use $gdelt-events-fetch to retrieve bounded GDELT machine-coded event rows."
+  default_prompt: "Use -events-fetch to retrieve bounded, validated GDELT machine-coded event rows while preserving file and row-level limitations."
