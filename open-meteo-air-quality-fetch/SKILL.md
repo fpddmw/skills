@@ -86,6 +86,10 @@ result to another workflow.
 - Retain nulls as unavailable model values. Never convert them to zero.
 - Treat `partial` as incomplete coordinate, timestamp, or variable coverage and
   report the affected paths with the usable columns.
+- In GMT mode, require exactly 24 strictly ascending hourly timestamps per
+  inclusive date and a zero provider UTC offset. Preserve time-count, ordering,
+  timezone, unit, array-alignment, and non-numeric-value issues instead of
+  treating a structurally short response as complete.
 - Treat `blocked` as no usable business result and surface the structured
   errors instead of bypassing limits or switching endpoints.
 - Report record-limit truncation; all variable arrays are aligned to the
@@ -96,6 +100,10 @@ result to another workflow.
   personal exposure, alerts, or causes from these modeled fields.
 - Cross-source comparison and research evidence admission belong to the caller
   or Auto Research, not this atomic Skill.
+- The fixed public execution contract intentionally omits the source script's
+  arbitrary timezone, optional API-key/customer access, endpoint overrides, and
+  raw JSON/log artifacts. Those require separately reviewed contracts rather
+  than Skill-local parameters.
 
 ## Reference
 

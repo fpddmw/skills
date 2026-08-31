@@ -72,7 +72,7 @@ lastReviewedCommit: 2998da54897f8f254a37e187ff64c62feae3dbd2
 | 7 | `fetch-gdelt-gkg` | `gdelt-gkg-fetch` | `gdelt.gkg/fetch` | 源语义复核完成；最终统一门禁待跑 |
 | 8 | `fetch-gdelt-mentions` | `gdelt-mentions-fetch` | `gdelt.mentions/fetch` | 源语义复核完成；最终统一门禁待跑 |
 | 9 | `fetch-nasa-firms-fire` | `nasa-firms-fire-fetch` | `nasa-firms.active-fire/fetch-area` | 源语义复核完成；最终统一门禁待跑 |
-| 10 | `fetch-open-meteo-air-quality` | `open-meteo-air-quality-fetch` | `open-meteo.air-quality/fetch-hourly` | 已有候选，复核中 |
+| 10 | `fetch-open-meteo-air-quality` | `open-meteo-air-quality-fetch` | `open-meteo.air-quality/fetch-hourly` | 源语义复核完成；最终统一门禁待跑 |
 | 11 | `fetch-open-meteo-flood` | `open-meteo-flood-fetch` | `open-meteo.flood/fetch-daily` | 已有候选，复核中 |
 | 12 | `fetch-open-meteo-historical` | `open-meteo-historical-fetch` | `open-meteo.historical-weather/fetch` | 已有候选，复核中 |
 | 13 | `fetch-openaq` | `openaq-data-fetch` | `openaq.air-quality/search-locations` 与 `fetch-sensor-measurements`；S3 archive 下载继续单独审计 | 已有 API 候选，复核中 |
@@ -136,6 +136,13 @@ NASA FIRMS 复核确认了固定源的 8 个 source、31 个闭合 UTC 日期、
 CLI 将 bbox 进一步限制为非跨日界线且非全球扫描，并发布闭合的跨传感器公共字段；源脚本
 的 standalone MAP_KEY transaction-status 探针、任意 sensor raw columns、raw JSON/log
 artifact 继续作为明确边界，不由 thin Skill 复制。
+
+Open-Meteo Air Quality 复核确认了固定源的最多 10 个坐标、92 个闭合日期、最多 16 个
+hourly variables、domain/cell selection、多坐标顺序和 nullable aligned arrays。TypeScript
+连接器补回 GMT 下每个闭合日期严格 24 个小时、时间严格递增以及 provider 零 UTC offset
+校验；短时间轴、乱序、timezone drift、缺变量/单位或坏数值现在显式 partial。CLI 继续固定
+公共 non-commercial endpoint 与 GMT，不迁入任意 timezone、optional customer API key、
+endpoint override 或 raw artifact 参数。
 
 ## 2026-08-31 实现状态
 
@@ -322,7 +329,7 @@ Skill。以下差异必须明确，不能被误写成无损命令替换：
 | EPA EIS Records                 | 四种官方 common search、显式官方 UI search URL、`submissionsTable` 的 title/CEQ/unique ID/type/date/agency/state/detail/download cues、跨搜索去重和 later-search partial | 删除任意 base URL、http URL、重试/节流/user-agent/log/dry-run/output 与 raw artifact 写入；显式 URL 只允许官方 HTTPS origin/path，HTML 漂移 fail closed。CLI 不下载链接文件，也不判断 NEPA/EIS adequacy、legal sufficiency、environmental effects、compliance 或 policy responsibility |
 | Federal Register               | publication date、term、agency、type、topic、docket、RIN、稳定查询编码、有界分页/记录、空结果/截断/later-page partial                                                                  | `section`、`significant` 输入过滤、任意 `fields` 投影和 `executive_order_number` 排序不属于首个 capability v1；Skill 不再宣称支持。每次调用的 page/record 上限改用 run-request 顶层 `limits` 且只能降低 manifest 上限；dry-run、日志和 raw artifact 路径不再保留                                                                                           |
 | USGS Water IV                  | bbox 或最多 100 个 sites、period 或显式 window、参数/site type/status/agency 过滤、WaterML series/value 归一化、qualifier/provisional、no-data 过滤和坏 row/series partial             | 旧脚本允许本地 env/argv 覆盖 endpoint、重试、节流、上限、user-agent、日志和 `file://` fixture，并提供 `check-config`、dry-run、raw artifact 写入；这些改由 CLI endpoint policy、manifest limits、static doctor、fixture tests 和 run-result/receipt 取代。官方 legacy 上限把旧 Skill 的 200 sites 收紧为 100，且明确 2027-Q1 decommission 风险             |
-| Open-Meteo Air Quality         | 最多 10 个坐标、92 个闭合日期、16 个官方 hourly variables、domain/cell selection、单次多坐标响应、nullable aligned arrays 和坐标/变量 partial                                          | timezone 固定为 GMT，删除任意 timezone、endpoint、API key、重试、节流、user-agent、日志、dry-run 和 raw artifact 调参。公开 endpoint 明确为 non-commercial 且无凭证；商业 customer endpoint/API key 需要独立 capability 评审。输出改为 location-hour 列式结果和统一 run-result/receipt，不兼容旧 snake_case payload                                        |
+| Open-Meteo Air Quality         | 最多 10 个坐标、92 个闭合日期、16 个官方 hourly variables、domain/cell selection、单次多坐标响应、GMT 下严格 24 小时/日且递增、nullable aligned arrays 和坐标/变量 partial                                          | timezone 固定为 GMT 并校验 provider 零 UTC offset；删除任意 timezone、endpoint、API key、重试、节流、user-agent、日志、dry-run 和 raw artifact 调参。公开 endpoint 明确为 non-commercial 且无凭证；商业 customer endpoint/API key 需要独立 capability 评审。输出改为 location-hour 列式结果和统一 run-result/receipt，不兼容旧 snake_case payload                                        |
 | Open-Meteo Flood               | 最多 10 个坐标、366 个闭合日期、7 个官方 daily discharge variables、cell selection、optional ensemble members、nullable aligned arrays 和坐标/变量/member partial                      | timezone 固定为 GMT，ensemble 必须同时请求 `river_discharge`；删除任意 timezone、endpoint、API key、重试、节流、user-agent、日志、dry-run 和 raw artifact 调参。公开 endpoint 明确为 non-commercial 且无凭证。输出按 location-day 计数并显式区分 requested/river-grid coordinate，不把 GloFAS simulated discharge 误写成 gauge observation、告警或严重度   |
 | Open-Meteo Historical Weather  | 最多 10 个坐标、366 个闭合日期、一个受控 model、12 个 curated hourly 与 12 个 curated numeric daily variables、多坐标响应、nullable aligned arrays 和坐标/section/变量 partial         | timezone 与单位固定为 GMT/摄氏度/km/h/mm；两个变量数组显式传入且至少一方非空。删除任意 timezone、endpoint、API key、任意 model、重试、节流、user-agent、日志、dry-run 和 raw artifact 调参。公开 endpoint 明确为 non-commercial 且无凭证；输出按 location 内 hourly 后 daily 的时间行计数，明确 reanalysis/model grid 并提示长期趋势使用 ERA5 或 ERA5-Land |
 | NASA FIRMS Active Fire         | 一个 reviewed source、非跨日界线 bbox、最多 31 个闭合 UTC 日期、可选 availability probe、五天分片、transaction/record cap、重复/不一致 header 与 row validation、公共 MODIS/VIIRS/Landsat detection 字段和 chunk/row partial | `NASA_FIRMS_MAP_KEY` 只由 CLI 从进程环境解析并作为受保护 path segment 注入；删除 Skill-local env 文件、standalone MAP_KEY status probe、endpoint/retry/throttle/user-agent/log/dry-run/raw artifact 调参、任意 sensor raw columns 和 OpenClaw fan-out。输出改为统一 run-result/receipt，不把 thermal anomaly 误写成 fire perimeter、burned area、incident、cause 或 alert                                             |
