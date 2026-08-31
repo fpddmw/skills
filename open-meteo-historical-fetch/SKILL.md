@@ -103,6 +103,10 @@ result to another workflow.
   interpolate them without an explicit downstream method.
 - Treat `partial` as incomplete coordinate, section, timestamp, variable, or
   unit coverage and report the affected paths with the usable series.
+- In GMT mode, require exactly 24 strictly ascending hourly timestamps and one
+  strictly ascending daily date per inclusive request date, with a zero
+  provider UTC offset. Preserve count, ordering, timezone, unit, alignment, and
+  non-numeric-value issues; a short axis is not complete coverage.
 - Treat `blocked` as no usable business result and surface the structured
   errors instead of bypassing limits or switching endpoints.
 - Report record-limit truncation. The CLI keeps every retained variable aligned
@@ -113,6 +117,10 @@ result to another workflow.
   quality, or regulatory-grade observations are required.
 - Do not use this capability for forecasts, future climate scenarios, causal
   attribution, significance testing, or safety-critical weather decisions.
+- The fixed public contract intentionally omits the source script's multi-model
+  request, arbitrary timezone and units, optional API-key/customer access,
+  endpoint overrides, and raw JSON/log artifacts. Expand those only through a
+  separately reviewed CLI contract.
 - Attribute Open-Meteo and the underlying data providers. The public endpoint
   is non-commercial; do not imply commercial-use permission.
 - Cross-source comparison, statistical inference, and research evidence
