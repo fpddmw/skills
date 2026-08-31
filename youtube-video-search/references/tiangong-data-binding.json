@@ -5,15 +5,15 @@
   "capabilityId": "youtube.public-content",
   "capabilityVersion": "1.0.0",
   "minimumCliVersion": "0.0.55",
-  "manifestDigest": "6266974ab1ffc6c9b9163e8330bfc9b3fa609c324b0482e6187a2c9c13326904",
+  "manifestDigest": "7faeedb0b5f66e70e4d0e8464f8a179fb0c4c7ac3226ff9264eb8e6974bd1edf",
   "operations": [
     {
       "operationId": "search-videos",
       "operationVersion": "1.0.0",
       "inputSchemaId": "https://schemas.tiangong.ai/data/youtube/video-search-input.v1.json",
-      "inputSchemaDigest": "81e30d2ad455d1a56c8112c65febc6f49def2ac3653d9c5d083a1ce3f4ad5227",
+      "inputSchemaDigest": "a1e82209c1eed69646432e2039602961a12ce8f938c449f9376935c900e76f53",
       "outputSchemaId": "https://schemas.tiangong.ai/data/youtube/video-search-output.v1.json",
-      "outputSchemaDigest": "2b96ba3961f550d6cf91818cf5133e6670c1605ec526b9ca62156b03b0551d42"
+      "outputSchemaDigest": "18e825ad7bbd681951f17008c5581ac5930053e7c946607eef5a26dda2e0b826"
     }
   ]
 }

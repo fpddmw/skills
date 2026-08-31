@@ -5,15 +5,15 @@
   "capabilityId": "youtube.public-content",
   "capabilityVersion": "1.0.0",
   "minimumCliVersion": "0.0.55",
-  "manifestDigest": "6266974ab1ffc6c9b9163e8330bfc9b3fa609c324b0482e6187a2c9c13326904",
+  "manifestDigest": "7faeedb0b5f66e70e4d0e8464f8a179fb0c4c7ac3226ff9264eb8e6974bd1edf",
   "operations": [
     {
       "operationId": "fetch-comments",
       "operationVersion": "1.0.0",
       "inputSchemaId": "https://schemas.tiangong.ai/data/youtube/comments-input.v1.json",
-      "inputSchemaDigest": "950c6ff3e5f81fb590ec568ce5f0e9719957fdfeaf6dbeee807aa78c44a57de7",
+      "inputSchemaDigest": "e34ef2e7557e17d20d48e6d1e45fb5b05ef1aad59142552ae8f3751a828a1a70",
       "outputSchemaId": "https://schemas.tiangong.ai/data/youtube/comments-output.v1.json",
-      "outputSchemaDigest": "c4edfc860f381c68e92aeedeee02de686c7b6d8ec8f42054fc12aef712eaf899"
+      "outputSchemaDigest": "d4327b1457416611ab959a47e9f1ef3ea561a63e79b2a1736406e5d86820eb21"
     }
   ]
 }

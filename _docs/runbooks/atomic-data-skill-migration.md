@@ -82,8 +82,8 @@ lastReviewedCommit: 2998da54897f8f254a37e187ff64c62feae3dbd2
 | 17 | `fetch-usbr-project-records` | `usbr-project-records-fetch` | `usbr.project-records/fetch`；只取显式官方 URL 与同站链接清单 | 本地实现完成；统一安装/冷门禁待最终树 |
 | 18 | `fetch-usbr-rise` | `usbr-rise-fetch` | `usbr.rise/discover-items` 与 `fetch-results` | 本地迁移完成；正式 CLI binding 待发布版本 |
 | 19 | `fetch-usgs-water-iv` | `usgs-water-iv-fetch` | `usgs.water-instantaneous-values/fetch` | 源语义复核完成；最终统一门禁待跑 |
-| 20 | `fetch-youtube-comments` | `youtube-comments-fetch` | `youtube.public-content/fetch-comments` | 已有候选，复核中 |
-| 21 | `fetch-youtube-video-search` | `youtube-video-search` | `youtube.public-content/search-videos` | 已有候选，复核中 |
+| 20 | `fetch-youtube-comments` | `youtube-comments-fetch` | `youtube.public-content/fetch-comments` | 源语义复核完成；最终统一门禁待跑 |
+| 21 | `fetch-youtube-video-search` | `youtube-video-search` | `youtube.public-content/search-videos` | 源语义复核完成；最终统一门禁待跑 |
 
 矩阵完成定义同时要求：CLI connector 或明确保留边界已批准、TypeScript 7 业务实现与
 fixture/conformance 通过、Skill 只保留意图与上层组合语义、execution binding 从同一
@@ -358,8 +358,8 @@ Skill。以下差异必须明确，不能被误写成无损命令替换：
 | GDELT GKG                      | latest 或任意秒级 inclusive UTC range（从首个落入窗口的 15 分钟快照开始）、最多 20 个 source files、ZIP/MD5/CRC/UTF-8/27-column 校验、GKG annotations 与 document lineage                                                       | 删除 masterfilelist 下载、dry-run、任意 expected-columns、output/quarantine/log 路径和持久 ZIP；CLI 返回有界内存归一化 rows，不把 machine-extracted themes/entities/locations/tone 当作已验证知识、正文或 sentiment ground truth                                                                                                                              |
 | GDELT Mentions                 | latest 或任意秒级 inclusive UTC range（从首个落入窗口的 15 分钟快照开始）、最多 20 个 source files、ZIP/MD5/CRC/UTF-8/16-column 校验、mention-level provenance/confidence/source linkage                                       | 删除 masterfilelist 下载、dry-run、任意 expected-columns、output/quarantine/log 路径和持久 ZIP；CLI 返回有界内存归一化 rows，不把 mention 当作独立 endorsement、唯一文章、验证事件或正文                                                                                                                                                                    |
 | Bluesky Cascades               | public search/author/custom/list seed source、optional UTC window、seed post normalization、visible `getPostThread` reply topology、blocked/not-found node 与 per-thread partial                               | 删除 optional auth/base URL fallback、Skill-local env、retry/throttle/log/dry-run、JSON/JSONL artifact 和 OpenClaw 配置；CLI 统一 bounded HTTP/receipt，只开放 public AppView，把 ranking/feed/indexing/moderation/counters 明确为可变快照，不宣称 archive completeness、代表性、事实、身份、sentiment 或 causal diffusion evidence                              |
-| YouTube Video Search           | query/channel/published/order/region/language/safe-search、十种 video filter、search pagination、`videos.list` detail enrichment、public comment/view threshold                                  | `YOUTUBE_API_KEY` 只经 CLI `X-Goog-Api-Key` header 注入；删除 query-string key、endpoint/retry/throttle/log/dry-run、JSONL/quarantine/artifact 输出。CLI 始终执行 detail enrichment，不下载 media/caption/transcript/thumbnail，不把 search ranking 或统计当作代表性、endorsement、truth 或 sentiment                                                                  |
-| YouTube Comments               | 显式 video IDs、optional UTC window 与 published/updated 选择、thread order/search terms、top-level comments、`comments.list` 完整可见 replies 分页、per-video partial                         | 删除本地 txt/json/jsonl ID 文件解析、HTML text mode、endpoint/retry/throttle/log/dry-run、JSONL/quarantine/artifact 输出；plainText 固定，API key 只由 CLI header 注入。operation-wide 与 per-video/per-thread limits 取代多套脚本 cap；评论不被解释为代表性 opinion、身份、事实、人口属性或 sentiment ground truth                                                        |
+| YouTube Video Search           | query/channel/published/order/region/language/safe-search、十种 video filter、最多 10 个 search pages / 250 个候选、search rank/page/position、`videos.list` 必选 detail enrichment、丰富 snippet/content/status/live fields、public comment/view threshold、缺失 detail partial | `YOUTUBE_API_KEY` 只经 CLI `X-Goog-Api-Key` header 注入；删除 query-string key、endpoint/retry/throttle/log/dry-run、JSONL/quarantine/artifact 输出。`publishedBefore` 按当前 provider 语义为 inclusive；删除只适用于 channel search 的 `videoCount` order，并收紧为严格 RFC 3339 UTC。CLI 预留 detail request budget，不下载 media/caption/transcript/thumbnail，只返回 thumbnail URL metadata；独立 Search Queries quota 和 2026-08-24 `viewCount` 口径断点显式提示，不把 ranking 或统计当作代表性、endorsement、truth 或 sentiment |
+| YouTube Comments               | 1–50 个严格 11 位显式 video IDs、成对 UTC half-open `[start,end)` window 与 published/updated 选择、thread order、只作用于 top-level 的 search terms、`comments.list` 完整可见 replies 分页、parent/video linkage validation、per-video partial | 删除本地 txt/json/jsonl ID 文件解析、HTML text mode、endpoint/retry/throttle/log/dry-run、JSONL/quarantine/artifact 输出；plainText 固定，API key 只由 CLI header 注入。per-video thread 与 per-thread reply cap 只截断本地范围，operation-wide request/record cap 才停止全局；embedded replies 不作为完整数据，reply 关联错位显式 partial；评论不被解释为代表性 opinion、身份、事实、人口属性或 sentiment ground truth |
 
 新结果是 `tiangong.data.run-result.v1`，字段命名和审计结构以 operation output Schema
 及 core receipt 为准，不承诺旧 Python payload 的 snake_case/raw-artifact 兼容。需要旧版
@@ -444,7 +444,9 @@ Bluesky 与 YouTube 的审计结论是：它们的公开、闭合、只读 API o
 runtime。CLI 已完成 `bluesky.public-posts/fetch-cascades` 以及
 `youtube.public-content/search-videos|fetch-comments`；三个 Skill 已薄化、绑定同一精确本地
 候选包并进入统一安装 smoke。YouTube key 仅经 `X-Goog-Api-Key` header 注入；comments
-operation 使用 `comments.list` 展开 replies，不信任 embedded reply sample。
+operation 使用 `comments.list` 展开 replies，不信任 embedded reply sample。固定 EcoCouncil
+提交的 17 个原有候选已全部完成逐项源语义复核；连同补齐的 4 个缺失能力，21 项迁移主体
+均已落到本地候选树，后续仅以最终统一安装、全仓和 cold-container 门禁结果判断是否可提 PR。
 
 RSS/fulltext、Figshare 与 academic paper 的审计结论相反：它们分别拥有持久订阅/正文队列、
 浏览器文件 artifact 或 Research acquisition/provenance 核心，因此继续保持现有专用实现，

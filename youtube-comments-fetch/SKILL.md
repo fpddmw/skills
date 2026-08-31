@@ -36,13 +36,22 @@ stop rather than bypassing the CLI.
 ## Select and bound the videos
 
 - Supply only explicit video IDs selected by the user or a reviewed upstream
-  result. Use `$youtube-video-search` first when IDs are unknown.
-- Preserve a supplied UTC window, timestamp field, search terms, and ordering.
-  Never widen an empty or incomplete query silently.
+  result. Use `$youtube-video-search` first when IDs are unknown. One request
+  accepts 1–50 unique IDs, each exactly 11 URL-safe identifier characters.
+- Supply `startDateTime` and `endDateTime` together as strict RFC 3339 UTC
+  timestamps. The client-side window is half-open `[startDateTime,
+  endDateTime)` over the selected published or updated timestamp. Never widen
+  an empty or incomplete window silently.
+- Preserve search terms and ordering when supplied. `searchTerms` filters only
+  top-level comment threads; replies expanded through `comments.list` are not
+  independently term-filtered.
 - Request replies only when reply text is needed. Reply expansion consumes the
   shared request budget in addition to top-level thread pages.
-- Keep the ID set and page/record limits proportionate to the task. Recurring
-  polling, deduplication across runs, and persistence belong to the caller.
+- Keep the ID set and page/record limits proportionate to the task. Per-video
+  thread-page and per-thread reply-page caps truncate that local scope without
+  preventing later videos or threads; operation-wide request/record limits can
+  stop the whole run. Recurring polling, cross-run deduplication, and
+  persistence belong to the caller.
 
 ## Prepare the request
 
@@ -72,7 +81,9 @@ current input schema from `data describe`.
 ```
 
 Do not place a credential, endpoint, local ID-file path, output path, scheduler,
-or unsupported provider parameter in the request.
+or unsupported provider parameter in the request. Text format is fixed to
+`plainText`; local JSON/JSONL/TXT ID-file parsing and artifact output belong to
+the caller.
 
 ## Run
 
@@ -92,6 +103,10 @@ completeness, per-video summaries, failures, warnings, and receipt.
 - Surface comments-disabled or unavailable videos, failed pages, empty results,
   `partial`, truncation, and reply completeness. Never label a bounded result
   exhaustive when those signals disagree.
+- When replies are requested, the CLI paginates `comments.list` instead of
+  trusting the provider's incomplete embedded reply sample. A reply whose
+  parent or video linkage disagrees with the requested thread is rejected and
+  surfaced as partial while already validated top-level comments are retained.
 - Visible comments are self-selected and moderation-dependent. Counts and text
   do not represent all viewers or the public and are not statistically valid
   sentiment or demographic evidence.

@@ -1,4 +1,4 @@
 interface:
   display_name: "Bluesky Cascade Fetch"
   short_description: "Fetch bounded public Bluesky posts and reply cascades"
-  default_prompt: "Use -cascade-fetch to collect bounded public Bluesky post seeds and visible reply cascades for a defined question."
+  default_prompt: "Use $bluesky-cascade-fetch to collect bounded public Bluesky post seeds and visible reply cascades for a defined question."

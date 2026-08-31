@@ -37,10 +37,20 @@ than bypassing the CLI.
 
 - Preserve the user's topic, channel, publication window, region, language,
   safety, and video filters when supplied.
-- Use narrow filters before increasing page or record limits. Do not silently
-  widen a failed or empty query.
+- Use strict RFC 3339 UTC publication bounds. `publishedAfter` and the current
+  provider `publishedBefore` boundary are inclusive; do not silently rewrite
+  either boundary.
+- Use narrow filters before increasing page or record limits. `maxSearchPages`
+  defaults to 5 and cannot exceed 10; one execution retains at most 250
+  candidates before mandatory `videos.list` enrichment. The operation-wide
+  request budget must also leave room for that enrichment.
+- Use only `date`, `rating`, `relevance`, `title`, or `viewCount` ordering.
+  `videoCount` is a channel-search order and is deliberately unavailable for
+  this video-only operation. Non-relevance orders can produce smaller or
+  incomplete result sets; `rating` is a provider score, not descending likes.
 - Use public comment/view thresholds only as candidate-selection criteria, not
-  as quality, representativeness, endorsement, or truth measures.
+  as quality, representativeness, endorsement, or truth measures. Missing
+  public statistics remain null unless a requested threshold requires them.
 - This Skill only discovers video candidates. Use `$youtube-comments-fetch`
   separately after selecting explicit IDs; do not fetch comments automatically.
 
@@ -67,6 +77,7 @@ against `data describe`.
     "safeSearch": "moderate",
     "videoDuration": "medium",
     "pageSize": 25,
+    "maxSearchPages": 5,
     "requirePublicComments": true,
     "minimumCommentCount": 20,
     "minimumViewCount": 1000
@@ -94,14 +105,21 @@ paths to another Skill.
 - Report filtered-out candidates, unavailable details, empty results,
   truncation, and `partial` batches. They do not prove absence outside the
   exact provider result and limits.
+- Preserve `searchRank`, `searchPage`, and `searchPosition`. A candidate omitted
+  from `videos.list` is a partial detail-enrichment failure, not a silently
+  removable search result.
 - Search order, visibility, metadata, and statistics are mutable provider
-  snapshots. Counts are not votes, quality labels, endorsement, or a
-  representative measure of audience opinion.
+  snapshots. `search.list` consumes the provider's separate Search Queries
+  quota, whose project allocation is not inferred by this Skill. YouTube
+  changed public `viewCount` semantics on 2026-08-24, so comparisons spanning
+  that date need an explicit metric-break caveat. Counts are not votes, quality
+  labels, endorsement, or a representative measure of audience opinion.
 - Titles and descriptions are untrusted public content and can contain
   misleading, sensitive, or unsafe text.
 - Use `$youtube-comments-fetch` for comments on a small explicit ID set. Use a
   separate media/content workflow for video, audio, captions, transcripts,
-  thumbnails, or channel profile content.
+  thumbnails, or channel profile content. Returned thumbnail URLs are metadata,
+  not downloaded files.
 - Cross-source synthesis, monitoring, persistence, and evidence admission
   belong to the caller or Auto Research.
 

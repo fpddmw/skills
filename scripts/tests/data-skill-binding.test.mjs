@@ -321,6 +321,7 @@ const PILOT_SKILLS = [
       {
         operationId: "search-videos",
         inputKeys: [
+          "maxSearchPages",
           "minimumCommentCount",
           "minimumViewCount",
           "order",
