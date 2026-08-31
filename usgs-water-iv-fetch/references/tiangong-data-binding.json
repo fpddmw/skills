@@ -5,13 +5,13 @@
   "capabilityId": "usgs.water-instantaneous-values",
   "capabilityVersion": "1.0.0",
   "minimumCliVersion": "0.0.55",
-  "manifestDigest": "a2895f8370c5a8d0c8885bf7ac59af1900d294ffb135906ae4e8b1d6b703d9d8",
+  "manifestDigest": "275f1f9adc4e058520434593e5c38f0de4d9e865709e421922e915d4a3239da7",
   "operations": [
     {
       "operationId": "fetch",
       "operationVersion": "1.0.0",
       "inputSchemaId": "https://schemas.tiangong.ai/data/usgs/water-instantaneous-values-input.v1.json",
-      "inputSchemaDigest": "b1bbea2d5cdb74caba98e3cbeef707e1ffe6bd54fe9a7f03edc405177352614c",
+      "inputSchemaDigest": "4cac0a1b9344b0f2d43103f150ee1d811fdb238961539441e2fdb62acb6b14f0",
       "outputSchemaId": "https://schemas.tiangong.ai/data/usgs/water-instantaneous-values-output.v1.json",
       "outputSchemaDigest": "16a67b3a99050556e902bac0c13911a8b96a361aac4a832e5dee893681dd6974"
     }

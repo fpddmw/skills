@@ -81,7 +81,7 @@ lastReviewedCommit: 2998da54897f8f254a37e187ff64c62feae3dbd2
 | 16 | `fetch-regulationsgov-comments` | `regulationsgov-comments-fetch` | `regulations-gov.comments/search` | 逐项语义复核完成 |
 | 17 | `fetch-usbr-project-records` | `usbr-project-records-fetch` | `usbr.project-records/fetch`；只取显式官方 URL 与同站链接清单 | 本地实现完成；统一安装/冷门禁待最终树 |
 | 18 | `fetch-usbr-rise` | `usbr-rise-fetch` | `usbr.rise/discover-items` 与 `fetch-results` | 本地迁移完成；正式 CLI binding 待发布版本 |
-| 19 | `fetch-usgs-water-iv` | `usgs-water-iv-fetch` | `usgs.water-instantaneous-values/fetch` | 已有候选，复核中 |
+| 19 | `fetch-usgs-water-iv` | `usgs-water-iv-fetch` | `usgs.water-instantaneous-values/fetch` | 源语义复核完成；最终统一门禁待跑 |
 | 20 | `fetch-youtube-comments` | `youtube-comments-fetch` | `youtube.public-content/fetch-comments` | 已有候选，复核中 |
 | 21 | `fetch-youtube-video-search` | `youtube-video-search` | `youtube.public-content/search-videos` | 已有候选，复核中 |
 
@@ -342,7 +342,7 @@ Skill。以下差异必须明确，不能被误写成无损命令替换：
 | AirNow                         | UTC 小时文件规划、bbox/time/pollutant 过滤、站点小时记录、逐文件 lineage、缺失/坏文件 partial                                                                                          | 任意 endpoint/path/user-agent/重试调参、Skill `check-config`、dry-run、日志文件和 raw artifact 写入被 CLI manifest、`data doctor`、统一 limits、run-result/receipt 取代；非整点输入不再静默截断而是拒绝                                                                                                                                                    |
 | EPA EIS Records                 | 四种官方 common search、显式官方 UI search URL、`submissionsTable` 的 title/CEQ/unique ID/type/date/agency/state/detail/download cues、跨搜索去重和 later-search partial | 删除任意 base URL、http URL、重试/节流/user-agent/log/dry-run/output 与 raw artifact 写入；显式 URL 只允许官方 HTTPS origin/path，HTML 漂移 fail closed。CLI 不下载链接文件，也不判断 NEPA/EIS adequacy、legal sufficiency、environmental effects、compliance 或 policy responsibility |
 | Federal Register               | publication date、term、agency、type、topic、docket、RIN、稳定查询编码、有界分页/记录、空结果/截断/later-page partial                                                                  | `section`、`significant` 输入过滤、任意 `fields` 投影和 `executive_order_number` 排序不属于首个 capability v1；Skill 不再宣称支持。每次调用的 page/record 上限改用 run-request 顶层 `limits` 且只能降低 manifest 上限；dry-run、日志和 raw artifact 路径不再保留                                                                                           |
-| USGS Water IV                  | bbox 或最多 100 个 sites、period 或显式 window、参数/site type/status/agency 过滤、WaterML series/value 归一化、qualifier/provisional、no-data 过滤和坏 row/series partial             | 旧脚本允许本地 env/argv 覆盖 endpoint、重试、节流、上限、user-agent、日志和 `file://` fixture，并提供 `check-config`、dry-run、raw artifact 写入；这些改由 CLI endpoint policy、manifest limits、static doctor、fixture tests 和 run-result/receipt 取代。官方 legacy 上限把旧 Skill 的 200 sites 收紧为 100，且明确 2027-Q1 decommission 风险             |
+| USGS Water IV                  | bbox 或最多 100 个 sites、严格正 ISO duration 或显式 window、最多 8 个参数及 site type/status/agency 过滤、WaterML series/value 归一化、qualifier/provisional、no-data 过滤和坏 row/series partial | 旧脚本允许本地 env/argv 覆盖 endpoint、重试、节流、上限、user-agent、日志和 `file://` fixture，并提供 `check-config`、dry-run、raw artifact 写入；这些改由 CLI endpoint policy、manifest limits、static doctor、fixture tests 和 run-result/receipt 取代。官方 legacy 上限把旧 Skill 的 200 sites 收紧为 100；零 duration、悬空 `T` 与 week/其他 component 混用 fail closed。明确部分未质控运行数据的 120-day 限制、2026-H2 可能 degradation/blackout 及 2027-Q1 decommission 风险 |
 | Open-Meteo Air Quality         | 最多 10 个坐标、92 个闭合日期、16 个官方 hourly variables、domain/cell selection、单次多坐标响应、GMT 下严格 24 小时/日且递增、nullable aligned arrays 和坐标/变量 partial                                          | timezone 固定为 GMT 并校验 provider 零 UTC offset；删除任意 timezone、endpoint、API key、重试、节流、user-agent、日志、dry-run 和 raw artifact 调参。公开 endpoint 明确为 non-commercial 且无凭证；商业 customer endpoint/API key 需要独立 capability 评审。输出改为 location-hour 列式结果和统一 run-result/receipt，不兼容旧 snake_case payload                                        |
 | Open-Meteo Flood               | 最多 10 个坐标、366 个闭合日期、7 个官方 daily discharge variables、cell selection、严格递增完整 GMT 日轴、variable-width `memberN` ensemble fields、nullable aligned arrays 和坐标/变量/member partial                      | timezone 固定为 GMT 并校验 provider 零 UTC offset，ensemble 必须同时请求 `river_discharge`；删除任意 timezone、endpoint、API key、重试、节流、user-agent、日志、dry-run 和 raw artifact 调参。公开 endpoint 明确为 non-commercial 且无凭证。输出按 location-day 计数并显式区分 requested/river-grid coordinate，不把 GloFAS simulated discharge 误写成 gauge observation、告警或严重度   |
 | Open-Meteo Historical Weather  | 最多 10 个坐标、366 个闭合日期、一个受控 model、12 个 curated hourly 与 12 个 curated numeric daily variables、GMT 下严格 24 小时/日与完整日轴、多坐标 nullable aligned arrays 和坐标/section/变量 partial         | timezone 与单位固定为 GMT/摄氏度/km/h/mm 并校验 provider 零 UTC offset；两个变量数组显式传入且至少一方非空。删除任意 timezone、endpoint、API key、multi-model、任意 units、重试、节流、user-agent、日志、dry-run 和 raw artifact 调参。公开 endpoint 明确为 non-commercial 且无凭证；输出按 location 内 hourly 后 daily 的时间行计数，明确 reanalysis/model grid 并提示长期趋势使用 ERA5 或 ERA5-Land |
@@ -387,7 +387,9 @@ Weather、NASA FIRMS、OpenAQ，以及 Regulations.gov comments/detail/attachmen
 attachments 使用独立 capability 和受控本地 artifact contract，三者保持独立意图入口与
 单 operation binding。
 
-USGS 已扩展时间序列、空间范围、变量、qualifier 和 legacy 生命周期语义；Open-Meteo
+USGS 已验证 100-site/25-square-degree/8-parameter 边界、严格正 duration、WaterML
+series/value、qualifier/provisional、部分运行数据 120-day 限制，以及 2026-H2 可能
+degradation/blackout 与 2027-Q1 退役语义；Open-Meteo
 Air Quality 已验证模型网格、GMT 列式多变量数据、public/commercial endpoint 分离和
 attribution 语义；Flood 已验证 GloFAS river-grid、forecast-only statistics、ensemble
 members 与非 gauge/alert 边界；Historical 已验证受控单模型、hourly/daily 双粒度、

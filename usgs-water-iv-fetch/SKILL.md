@@ -31,7 +31,11 @@ npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
 Use the returned Discovery Metadata to confirm current source coverage,
 freshness, decommission status, restrictions, `provides`, and
 `doesNotProvide`. Prefer a modern USGS Water Data capability when the task
-requires operation beyond the legacy service lifetime.
+requires operation beyond the legacy service lifetime. USGS currently warns
+that decommission preparation can include intentional degradation or blackouts
+during the second half of 2026, before the planned 2027-Q1 retirement; treat
+such failures as provider-interface availability problems, not evidence that
+water observations are absent.
 
 ## Prepare the request
 
@@ -65,7 +69,11 @@ selector (`period` or a paired explicit start/end window):
 Use the operation input schema returned by `data describe` for current field
 semantics and limits. Preserve leading zeroes in site and parameter identifiers.
 Do not infer site numbers from place names, widen an area or time range without
-the user's intent, or mix selectors that the schema declares exclusive.
+the user's intent, or mix selectors that the schema declares exclusive. The
+reviewed contract accepts at most 100 exact site IDs, one bbox whose coordinate
+span product is at most 25 square degrees, and one to eight parameter codes.
+`period` must be a positive ISO-8601 duration; do not use a zero duration,
+append an empty `T`, or mix week notation with other duration components.
 
 ## Run
 
@@ -90,6 +98,12 @@ result to another workflow.
   errors instead of silently broadening the query or bypassing limits.
 - Report record-limit truncation; do not imply that a truncated result is an
   exhaustive time series.
+- A zero or sparse provider result can reflect selector choice, activity
+  status, site/parameter coverage, outage, or a local data-retention limit; it
+  does not prove that streamflow, water-level change, or flood effects were
+  absent. Some operational parameters that are not quality assured, such as
+  temperature or precipitation, can be limited by the responsible USGS center
+  to 120 days or less.
 - Do not infer flood stage, return period, alert status, hazard, cause, or
   policy meaning from raw station observations.
 - Cross-source comparison and research evidence admission belong to the caller
