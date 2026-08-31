@@ -1,0 +1,4 @@
+interface:
+  display_name: "Regulations.gov Attachments Fetch"
+  short_description: "Download bounded official comment attachments"
+  default_prompt: "Use $regulationsgov-attachments-fetch to download official attachments for selected Regulations.gov comment IDs."

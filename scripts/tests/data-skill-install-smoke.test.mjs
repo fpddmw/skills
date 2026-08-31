@@ -83,6 +83,12 @@ const PILOTS = [
     requiredCredential: true,
   },
   {
+    skill: "regulationsgov-attachments-fetch",
+    capability: "regulations-gov.attachments",
+    operations: ["download"],
+    requiredCredential: true,
+  },
+  {
     skill: "regulationsgov-comment-detail-fetch",
     capability: "regulations-gov.comments",
     operations: ["fetch-details"],
@@ -238,7 +244,7 @@ test(
           env: environment,
         });
         assert.equal(catalog.status, 0, catalog.stderr);
-        assert.equal(JSON.parse(catalog.stdout).capabilities.length >= 18, true);
+        assert.equal(JSON.parse(catalog.stdout).capabilities.length >= 19, true);
 
         for (const pilot of PILOTS) {
           const describe = run(

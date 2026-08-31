@@ -207,6 +207,21 @@ const PILOT_SKILLS = [
     ],
   },
   {
+    name: "regulationsgov-attachments-fetch",
+    capabilityId: "regulations-gov.attachments",
+    operations: [
+      {
+        operationId: "download",
+        inputKeys: [
+          "attachmentIds",
+          "commentIds",
+          "maxFiles",
+          "maxTotalBytes",
+        ],
+      },
+    ],
+  },
+  {
     name: "regulationsgov-comment-detail-fetch",
     capabilityId: "regulations-gov.comments",
     operations: [

@@ -14,7 +14,7 @@ checkPaths:
   - .claude-plugin/**
   - "*/SKILL.md"
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: ac184814a1f5a3f2c1c1387c6c9e24a6158caf8f
+lastReviewedCommit: 2998da54897f8f254a37e187ff64c62feae3dbd2
 ---
 
 # Tiangong AI Skills
@@ -25,9 +25,9 @@ Use the `skills` CLI from https://github.com/vercel-labs/skills to install, upda
 
 ## Atomic data skills
 
-Twenty local candidate Skills—AirNow Hourly Observations, EPA EIS Records, Federal Register Documents, NASA
+Twenty-one local candidate Skills—AirNow Hourly Observations, EPA EIS Records, Federal Register Documents, NASA
 FIRMS Active Fire, OpenAQ Air Quality, Regulations.gov Comments,
-Regulations.gov Comment Details, USBR Project Records, USBR RISE, USGS Water IV, three Open-Meteo sources, and
+Regulations.gov Comment Details, Regulations.gov Attachments, USBR Project Records, USBR RISE, USGS Water IV, three Open-Meteo sources, and
 GDELT DOC, Events, GKG, and Mentions, plus Bluesky Cascades, YouTube Video
 Search, and YouTube Comments—are thin semantic Skills over the Tiangong CLI
 TypeScript 7 data runtime. Each candidate records one exact CLI package binding
@@ -35,11 +35,11 @@ in `references/tiangong-data-binding.json`; the agent uses CLI `data describe`
 for current source facts and `data run` for the bound operation. These Skills
 contain no second provider connector runtime.
 
-This candidate set is not a complete EcoCouncil migration. The authoritative
+This candidate set now has a target for every item in the authoritative
 EcoCouncil source baseline, `main@ac19289b4876d8a90595a0270721ef3f5ee7ced8`,
-contains 21 `source-fetch` Skills. Regulations.gov attachments is not yet
-represented here; the other 17 earlier candidates still require
-source-semantic revalidation before a Skills PR.
+which contains 21 `source-fetch` Skills. It is not yet a completed migration:
+the 17 earlier candidates still require source-semantic revalidation and the
+final unified install/cold gates must pass before a Skills PR.
 
 See `_docs/architecture/atomic-data-capabilities.md` and
 `_docs/runbooks/atomic-data-skill-migration.md` for the ownership boundary,

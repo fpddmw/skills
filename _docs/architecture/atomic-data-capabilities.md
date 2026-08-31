@@ -18,7 +18,7 @@ checkPaths:
   - "*-download/**"
   - tiangong-auto-research/**
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: ac184814a1f5a3f2c1c1387c6c9e24a6158caf8f
+lastReviewedCommit: 2998da54897f8f254a37e187ff64c62feae3dbd2
 ---
 
 # 原子数据 Skill 目标架构
@@ -52,6 +52,7 @@ CLI 仓库中的 `docs/agents/data-runtime-architecture.md` 是命令、manifest
 | capability/operation 的客观说明      | CLI           | 由 catalog/describe 发布三层发现语义         |
 | capability/operation/CLI 兼容绑定    | Skills        | 保存最小机器可检验 binding                   |
 | connector、Schema、错误码、回执      | CLI           | Skills 只验证 digest，不复制定义             |
+| 受控下载与本地 artifact transaction  | CLI           | Skill 只选择显式目录并解释结果边界           |
 | HTTP、认证、分页、限流、缓存         | CLI           | Skill 不再直接执行网络业务代码               |
 | 多源选择、证据准入、研究持久化       | Auto Research | 不下沉到原子 Skill                           |
 | 旧 Python/OpenClaw 实现              | 只读迁移输入  | 正式路径不得依赖                             |
@@ -118,11 +119,13 @@ manifest 或输入输出 Schema 变化仍必须显式更新 binding。
 tiangong-ai data catalog
 tiangong-ai data describe <capability-id>
 tiangong-ai data doctor <capability-id> [--live]
-tiangong-ai data run <capability-id> <operation-id> --input <path|->
+tiangong-ai data run <capability-id> <operation-id> --input <path|-> [--artifact-dir <absolute-existing-directory>]
 ```
 
 这些命令已进入 CLI 主分支。生产 Skill 只绑定包含该命令面的正式 npm 包；Skill 不
 自行发现其他来源、不跨来源 fan-out、不解释研究结论。
+只有 Execution Manifest 声明 `artifactOutput` 的 operation 才能接收显式
+`--artifact-dir`；绝对路径是 out-of-band 执行参数，不进入 request/result/receipt。
 一个来源内部有界的分页或多文件窗口仍可以是一个 operation；跨来源组合必须由 Auto
 Research 或显式上层调用者完成。
 
@@ -173,12 +176,10 @@ journal、handoff 和 review；这些状态不得回流到薄 Skill。
 - 离线 stale-binding、skill-creator、安装 smoke 和 docpact 门禁通过；
 - Research 如需该来源，通过 CLI adapter 复用核心结果，而不是继续执行 Skill 脚本。
 
-AirNow 与 Federal Register 是首批落地实例，USGS Water IV、Open-Meteo Air Quality、
-Open-Meteo Flood、Open-Meteo Historical Weather、NASA FIRMS、OpenAQ、两个
-Regulations.gov 语义入口以及 GDELT DOC、Events、GKG、Mentions 是十二个逐项后续迁移
-实例；Bluesky Cascades、YouTube Video Search 与 YouTube Comments 是三个审计后批准的
-社交/视频逐项迁移实例。两个 Regulations.gov 入口共享一个 CLI capability 并分别只绑定
-search 与 fetch-details operation，两个 YouTube 入口共享一个 capability 并分别绑定
+本地候选分支已为 EcoCouncil 21 项权威清单建立逐项薄 Skill。三个 Regulations.gov
+入口中，comments 与 comment detail 共享 `regulations-gov.comments` capability 并分别只绑定
+search 与 fetch-details；attachments 独立绑定声明 artifact output 的
+`regulations-gov.attachments/download`。两个 YouTube 入口共享一个 capability 并分别绑定
 search-videos 与 fetch-comments，四个 GDELT 入口分别绑定独立 capability。本地候选分支可先
 完成薄化和测试，但只有在对应 CLI 正式版本发布、binding 重生成、隔离安装 smoke 和
 回退路径验证后才达到生产完成。RSS/fulltext、Figshare、论文下载、Tiangong/KB 与邮箱

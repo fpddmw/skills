@@ -14,7 +14,7 @@ checkPaths:
   - .claude-plugin/**
   - "*/SKILL.md"
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: ac184814a1f5a3f2c1c1387c6c9e24a6158caf8f
+lastReviewedCommit: 2998da54897f8f254a37e187ff64c62feae3dbd2
 ---
 
 # 天工 AI Skills
@@ -26,18 +26,18 @@ lastReviewedCommit: ac184814a1f5a3f2c1c1387c6c9e24a6158caf8f
 ## 原子数据 Skills
 
 当前本地候选分支中的 AirNow Hourly Observations、EPA EIS Records、Federal Register Documents、NASA FIRMS Active Fire、
-OpenAQ Air Quality、Regulations.gov Comments、Regulations.gov Comment Details、
+OpenAQ Air Quality、Regulations.gov Comments、Regulations.gov Comment Details、Regulations.gov Attachments、
 USBR Project Records、USBR RISE、USGS Water IV、三个 Open-Meteo 来源，以及 GDELT DOC、Events、GKG、Mentions
-加上 Bluesky Cascades、YouTube Video Search 与 YouTube Comments，共二十个 Skill 已
+加上 Bluesky Cascades、YouTube Video Search 与 YouTube Comments，共二十一个 Skill 已
 收敛为 Tiangong CLI TypeScript 7 数据运行时之上的薄语义候选。每个候选都在
 `references/tiangong-data-binding.json` 中记录精确 CLI 包绑定；Agent
 通过 CLI `data describe` 获取当前数据源事实，通过 `data run` 执行已绑定 operation。
 这些 Skills 不再保留第二份 provider connector 运行时。
 
-这 20 项不代表 EcoCouncil 已完整迁移。权威迁移源
-`main@ac19289b4876d8a90595a0270721ef3f5ee7ced8` 共有 21 个 `source-fetch`
-Skill；Regulations.gov attachments 尚未覆盖，其余原有 17 项也必须完成源语义复核后
-才能提交 Skills PR。
+权威迁移源 `main@ac19289b4876d8a90595a0270721ef3f5ee7ced8` 共有 21 个
+`source-fetch` Skill，当前 21 项已经逐一建立目标，但仍不代表迁移完成：原有 17 项必须
+完成源语义复核，并且最终统一
+安装与 cold gate 通过后才能提交 Skills PR。
 
 所有权边界、候选清单、迁移源审计更正、分批迁移顺序和发布门槛见
 `_docs/architecture/atomic-data-capabilities.md` 与

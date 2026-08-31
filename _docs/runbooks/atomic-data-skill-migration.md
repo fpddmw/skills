@@ -18,7 +18,7 @@ checkPaths:
   - "*-download/**"
   - tiangong-auto-research/**
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: ac184814a1f5a3f2c1c1387c6c9e24a6158caf8f
+lastReviewedCommit: 2998da54897f8f254a37e187ff64c62feae3dbd2
 ---
 
 # 原子数据 Skill 迁移实施计划
@@ -42,12 +42,14 @@ lastReviewedCommit: ac184814a1f5a3f2c1c1387c6c9e24a6158caf8f
 
 - 早期计划把 Skills 目标仓库中的 38 个 fetch/search/download 目录作为总候选清单，
   这是目标目录盘点，不是 EcoCouncil 迁移源清单，不能证明迁移完整性。
-- 当前 20 个薄 Skill 与 18 个 CLI capability 中，USBR RISE、USBR Project Records 与
-  EPA EIS 已按 EcoCouncil 源完成本地迁移，其余 17 项仍只能视为内部兼容候选；在按 EcoCouncil
-  21 项清单重建映射并完成源语义复核前，不得描述为“EcoCouncil 已全部迁移”。
-- 当前明确未覆盖的只剩 `fetch-regulationsgov-attachments`。
-  `fetch-usbr-rise`、`fetch-usbr-project-records` 与 `fetch-epa-eis-records` 已完成本地
-  CLI/Skill 迁移；这一项缺口以及其余 17 项都继续由下方 21 项迁移矩阵跟踪。
+- 当前 21 个薄 Skill 与 19 个 CLI capability 中，USBR RISE、USBR Project Records、
+  EPA EIS 与 Regulations.gov Attachments 已按 EcoCouncil 源完成本地迁移，其余 17 项
+  仍只能视为内部兼容候选；在按 EcoCouncil 21 项清单重建映射并完成源语义复核前，
+  不得描述为“EcoCouncil 已全部迁移”。
+- 21 项现均已有 CLI/Skill 目标，不再存在结构性缺项。
+  `fetch-usbr-rise`、`fetch-usbr-project-records`、`fetch-epa-eis-records` 与
+  `fetch-regulationsgov-attachments` 已完成本地 CLI/Skill 迁移；其余 17 项继续由下方
+  迁移矩阵跟踪源语义复核。
 - EcoCouncil 功能分支已提交点 `32d38e5172ebe8703c61a7031b7055c766ac9028`
   与 `ac19289` 的 `skills/source-fetch` 内容一致；本次仍只引用远端可复现的
   `main@ac19289`，不引用未提交工作树状态。
@@ -74,7 +76,7 @@ lastReviewedCommit: ac184814a1f5a3f2c1c1387c6c9e24a6158caf8f
 | 11 | `fetch-open-meteo-flood` | `open-meteo-flood-fetch` | `open-meteo.flood/fetch-daily` | 已有候选，复核中 |
 | 12 | `fetch-open-meteo-historical` | `open-meteo-historical-fetch` | `open-meteo.historical-weather/fetch` | 已有候选，复核中 |
 | 13 | `fetch-openaq` | `openaq-data-fetch` | `openaq.air-quality/search-locations` 与 `fetch-sensor-measurements`；S3 archive 下载继续单独审计 | 已有 API 候选，复核中 |
-| 14 | `fetch-regulationsgov-attachments` | `regulationsgov-attachments-fetch` | 文件下载、SHA-256 与本地 artifact 是专用 TypeScript artifact 边界，不伪装成纯 JSON connector | 未实现 |
+| 14 | `fetch-regulationsgov-attachments` | `regulationsgov-attachments-fetch` | `regulations-gov.attachments/download`；固定官方 origin、SHA-256、relative manifest 与事务型本地 artifact | 本地实现完成；统一安装/冷门禁待最终树 |
 | 15 | `fetch-regulationsgov-comment-detail` | `regulationsgov-comment-detail-fetch` | `regulations-gov.comments/fetch-details`，只含 attachment metadata | 已有候选，复核中 |
 | 16 | `fetch-regulationsgov-comments` | `regulationsgov-comments-fetch` | `regulations-gov.comments/search` | 已有候选，复核中 |
 | 17 | `fetch-usbr-project-records` | `usbr-project-records-fetch` | `usbr.project-records/fetch`；只取显式官方 URL 与同站链接清单 | 本地实现完成；统一安装/冷门禁待最终树 |
@@ -98,40 +100,43 @@ fixture/conformance 通过、Skill 只保留意图与上层组合语义、execut
 - Skills 仓库已增加 execution-only binding 生成/校验器及离线 stale-binding 测试。
   AirNow、EPA EIS、Federal Register、USGS Water IV、Open-Meteo Air Quality、Open-Meteo Flood、
   Open-Meteo Historical Weather、NASA FIRMS、OpenAQ、Regulations.gov Comments、
-  Regulations.gov Comment Details、USBR Project Records、USBR RISE，以及 GDELT DOC、Events、GKG、Mentions 已在本地
+  Regulations.gov Comment Details、Regulations.gov Attachments、USBR Project Records、USBR RISE，以及 GDELT DOC、Events、GKG、Mentions 已在本地
   候选分支薄化；Bluesky Cascades、YouTube Video Search 与 YouTube Comments 也已在
-  完成逐项语义/许可/安全审计后薄化。两个 Regulations.gov Skill 分别绑定同一
-  `regulations-gov.comments` capability 的 search 与 fetch-details operation；四个
+  完成逐项语义/许可/安全审计后薄化。comments/detail 两个 Regulations.gov Skill 分别绑定同一
+  `regulations-gov.comments` capability 的 search 与 fetch-details operation；attachments
+  Skill 独立绑定 `regulations-gov.attachments/download` 与 artifact-output contract；四个
   GDELT Skill 分别绑定独立 capability；两个 YouTube Skill 分别绑定同一
   `youtube.public-content` capability 的 search-videos 与 fetch-comments operation。
-  二十项旧 Python connector 与重复 provider references 已移出候选 Skill，并共同纳入
+  二十一项旧 Python connector 与重复 provider references 已移出候选 Skill，并共同纳入
   copy/symlink 安装 smoke。
 - 当前本地候选包 `0.0.55` 只用于分支内兼容验证，不代表 npm 正式发布。PR 前必须用
-  实际包含全部十八个 capability 的正式版本重新生成二十个 binding，并用该 npm 包
+  实际包含全部十九个 capability 的正式版本重新生成二十一个 binding，并用该 npm 包
   重跑全部门禁。
 
 ## 2026-08-31 本地候选自洽性审计（不代表 EcoCouncil 迁移完成）
 
-- Skills 目标仓库中实际存在 41 个 fetch/search/download 候选：20 个原子 provider
+- Skills 目标仓库中实际存在 42 个 fetch/search/download 候选：21 个原子 provider
   Skill 已薄化，其余 21 个落入下文记录的内容/文件、产品或私有账户保留边界。该统计
   只说明目标仓库目录已分类，不覆盖 EcoCouncil 独有 Skill，也不是迁移完成证据。
-- CLI 候选使用 Node 24、TypeScript 7.0.2 和版本 `0.0.55`，发布 18 个 capability；
-  20 个薄 Skill 的 `generatedWithCliVersion` 与 `minimumCliVersion` 均为 `0.0.55`。
+- CLI 候选使用 Node 24、TypeScript 7.0.2 和版本 `0.0.55`，发布 19 个 capability；
+  21 个薄 Skill 的 `generatedWithCliVersion` 与 `minimumCliVersion` 均为 `0.0.55`。
 - 每个薄 Skill 只含 `SKILL.md`、`agents/openai.yaml` 和
   `references/tiangong-data-binding.json`；原 Python connector、provider 配置、重复 API
   notes 和 OpenClaw 模板均不在生产 Skill 路径中。
-- 20 个 binding 已逐项对照当前候选的 execution manifest 与 operation 输入/输出 Schema
-  digest；copy/symlink 隔离安装 smoke 已对截至 USBR RISE 的 18 项通过，EPA EIS 已通过
+- 21 个 binding 已逐项对照当前候选的 execution manifest 与 operation 输入/输出 Schema
+  digest；copy/symlink 隔离安装 smoke 已对当前全部 21 项、copy/symlink 两种模式和同一
+  本地 CLI 候选包通过，且未携带 provider 凭证。EPA EIS 已通过
   独立 `quick_validate.py`、binding verify 和 thin-skill contract；USBR Project Records
-  已完成同样的独立验证。当前 20 项
-  必须在最终树统一重跑 copy/symlink smoke，且不访问真实 provider。
-- CLI 的 lint、typecheck、505 项全量测试、3 项 platform contract、coverage、npm pack、
-  immutable setup pin audit 和 docpact 均通过；20 个薄 Skill 与 21 个明确保留 Skill 的
+  已完成同样的独立验证；Regulations.gov Attachments 已完成本地 TypeScript artifact
+  transaction、`quick_validate.py`、薄 Skill/binding contract 与 binding verify。正式 npm
+  包可用后仍必须对全部 21 项重跑同一 smoke，且不访问真实 provider。
+- CLI 的 lint、typecheck、514 项全量测试、3 项 platform contract、coverage、npm pack、
+  immutable setup pin audit 和 docpact 均通过；21 个薄 Skill 与 21 个明确保留 Skill 的
   `quick_validate.py` 均通过，binding contract 与 docpact 也通过。
-- 上一版 15 capability/17 thin Skill 候选的两仓 cold gate 已通过。当前新增到 18
-  capability/20 thin Skill 后，CLI 已在新 clean container 中通过 505 项测试，statement
-  coverage 为 84.89%；Skills binding contract 与新增项 `quick_validate.py` 已通过，最终
-  copy/symlink smoke 待全部缺失项落地后统一执行。Skills 早期
+- 上一版 15 capability/17 thin Skill 候选的两仓 cold gate 已通过。当前新增到 19
+  capability/21 thin Skill 后，CLI 已在新 clean container 中通过 514 项测试，statement
+  coverage 为 84.96%；Skills binding contract、新增项 `quick_validate.py`、精确 binding
+  verify 与全部 21 项 copy/symlink smoke 已通过。Skills 早期
   cold gate 曾暴露 `academic-paper-download`
   浏览器快照混用墙钟与 tmpfs `mtime` 的确定性缺陷；已在独立 clean container 中观察
   RED，改为以下载文件系统内排他临时标记建立时间边界，并在另一个新容器中转 GREEN。
@@ -139,7 +144,7 @@ fixture/conformance 通过、Skill 只保留意图与上层组合语义、execut
   discovery 为 77 项通过、1 项显式网络安装 smoke 跳过。完整 21 项迁移结束、准备 PR 时
   仍须对当前最终树重新运行两仓 cold gate，不能沿用旧候选结果。
 - CLI Research adapter/必要的 Auto Research 变更仍是下文明确分离的后续工作包，不被
-  伪装为本次 20 个原子 Skill 迁移的完成证据。
+  伪装为本次 21 个原子 Skill 迁移的完成证据。
 - 当前只有本地分支提交；在维护者统一审阅并明确确认前，不推送实现分支、不创建 PR。
 
 ## 与 CLI 的同步顺序
@@ -171,6 +176,7 @@ fixture/conformance 通过、Skill 只保留意图与上层组合语义、execut
 - `openaq-data-fetch`
 - `regulationsgov-comments-fetch`
 - `regulationsgov-comment-detail-fetch`
+- `regulationsgov-attachments-fetch`
 - `epa-eis-records-fetch`
 - `usbr-project-records-fetch`
 - `usbr-rise-fetch`
@@ -276,6 +282,7 @@ Skill。以下差异必须明确，不能被误写成无损命令替换：
 | OpenAQ Air Quality             | 有界 location discovery、provider/owner/sensor/parameter/license/coverage metadata，以及单 sensor、最长 366 天的 raw/hourly/daily measurements、稳定分页和 later-page partial          | 任意 v3 path/query、API/S3 自动路由、S3 prefix/list/download、Skill-local region/bucket/endpoint 配置和 Python client/router 被移除；`OPENAQ_API_KEY` 只由 CLI header 注入。批量 archive 文件转入单独 content/download 审计；输出不提供 AQI、健康/监管判断、跨 sensor 聚合、单位转换或来源归因                                                             |
 | Regulations.gov Comments       | posted 或 last-modified 二选一的最长 366 天窗口、agency/comment-on/search-term 收窄、稳定 JSON:API 分页、comment ID/日期/标题/withdrawal metadata 和 later-page partial                | `REGGOV_API_KEY` 只由 CLI header 注入；移除任意 endpoint、重试/节流/log/dry-run、JSONL 写入和 quarantine。结果明确不是代表性公众意见、投票或统计 sentiment，不提供 comment post/modify、detail body 或 attachment download                                                                                                                                 |
 | Regulations.gov Comment Detail | 最多 100 个显式 comment ID、caller 顺序、comment/docket/document linkage、日期、withdrawal/restriction、组织上下文、duplicate count、可选 attachment metadata 和 per-ID partial        | 删除本地文件 ID 解析、任意 endpoint、重试/节流/log/dry-run、raw/JSONL/quarantine 写入；CLI 以 allowlist 排除姓名、邮箱、电话、地址与 locality 等个人 profile 字段，只返回 attachment metadata/link，不下载 bytes，也不提供法律判断或代表性 sentiment                                                                                                       |
+| Regulations.gov Attachments    | 最多 20 个显式 comment ID、可选 exact attachment allowlist、官方 comment-detail attachment metadata、固定 download origin、有界 files/bytes、SHA-256、相对 manifest 与 partial file coverage | 删除旧脚本的任意 base/file URL、当前 OpenAPI 未定义的独立 attachment endpoint、Skill-local retry/log/output 与直接文件写入；`REGGOV_API_KEY` 只发往 API endpoint，CLI 通过显式 `--artifact-dir` 事务暂存、校验后 no-overwrite commit，绝对路径不进入结果/receipt。文件仍是不可信 bytes，不提供 malware scan、打开、OCR、text extraction、stance、法律或 evidence 结论 |
 | USBR Project Records            | 显式 `www.usbr.gov` 页面、title/meta description、响应 digest/bytes/safe headers、同 origin 链接去重、文档顺序/type 与 later-page partial                                      | 删除 URL 文件读取、任意/非 HTTPS/外部 host、重试/日志/dry-run/output 和 raw artifact 写入；CLI 不做站内搜索、递归 crawling 或链接下载，不把链接线索当作已审阅证据，也不推断法律、政策、运行、环境影响或治理责任                                                                                  |
 | USBR RISE                      | 有界 provider-page catalog discovery、client-side terms/location/parameter/source 过滤、显式 item ID result fetch、可选 UTC/location/parameter/order/item-metadata、item/page partial | 删除任意 endpoint、Skill-local env/retry/throttle/log/dry-run/output、operator-supplied metadata override 和 raw artifact 写入；CLI 返回统一 result/receipt，保留 unit/timestep/transformation/source/disclaimer，且不把 scan order 当排名、缺失行当物理不存在，或推断 shortage、compliance、causality 与 governance responsibility |
 | GDELT DOC                      | 有界 relative/absolute window、受控 article-list/timeline modes、GDELT query syntax、模式化 JSON 结果和 provider truncation/空结果语义                                               | 删除任意 DOC mode/format/额外 query 参数、endpoint/retry/throttle/log 配置和 raw artifact 写入；只返回文章 metadata/link 或聚合时间线，不下载正文，也不把自动 tone/count/ranking 解释为代表性、事实或因果证据                                                                                                                                                |
@@ -307,9 +314,10 @@ Skill。以下差异必须明确，不能被误写成无损命令替换：
 ### 批次 2：时序/空间与凭证
 
 USGS Water IV、Open-Meteo Air Quality、Open-Meteo Flood、Open-Meteo Historical
-Weather、NASA FIRMS、OpenAQ，以及 Regulations.gov comments/detail 两个语义入口已在
-本地完成 CLI connector 与 Skill 薄化。Regulations.gov 两个 Skill 共享一个 capability，
-但保持独立意图入口和单 operation binding。
+Weather、NASA FIRMS、OpenAQ，以及 Regulations.gov comments/detail/attachments 三个语义入口已在
+本地完成 CLI connector 与 Skill 薄化。comments/detail 两个 Skill 共享一个 capability；
+attachments 使用独立 capability 和受控本地 artifact contract，三者保持独立意图入口与
+单 operation binding。
 
 USGS 已扩展时间序列、空间范围、变量、qualifier 和 legacy 生命周期语义；Open-Meteo
 Air Quality 已验证模型网格、GMT 列式多变量数据、public/commercial endpoint 分离和
@@ -322,6 +330,13 @@ operation binding、source-specific attribution 和 S3 download 分层；Regulat
 已验证 provider-auth、JSON:API pagination、Eastern wall-clock filter、个人字段 allowlist、
 attachment metadata 与 per-ID partial。每个 connector 单独批准，不因共享 provider
 品牌而把多个 operation 合成一个巨型 Skill。
+
+Regulations.gov Attachments 已完成 `regulations-gov.attachments/download` 与
+`regulationsgov-attachments-fetch`：metadata 只通过官方 comment detail 的
+`include=attachments` 获取，文件只从精确 `downloads.regulations.gov` origin 下载；CLI
+要求显式绝对现有目录、隐藏暂存、校验后 no-overwrite commit，并只返回相对名称、digest、
+bytes 和 manifest。Skill 只负责 comment/attachment ID 选择、目录纪律、不可信文件提示与
+下游安全/提取工作流分流。
 
 USBR RISE 已作为下一项独立 capability 完成：`discover-items` 保留 provider page scan
 order 并应用 client-side filter，`fetch-results` 只接受 grounded item IDs；两者共享官方
