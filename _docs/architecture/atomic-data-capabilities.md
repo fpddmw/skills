@@ -129,9 +129,12 @@ tiangong-ai data run <capability-id> <operation-id> --input <path|-> [--artifact
 一个来源内部有界的分页或多文件窗口仍可以是一个 operation；跨来源组合必须由 Auto
 Research 或显式上层调用者完成。
 
-Auto Research 接入同一 CLI 内部数据服务后，原子 Skill 与 Research 应共享相同核心
-结果/回执。Research 另外负责 capability lock、预算、来源/证据准入、永久 evidence、
-journal、handoff 和 review；这些状态不得回流到薄 Skill。
+Auto Research 已接入同一 CLI 内部数据服务：native discover packet 从 registry 动态投影
+`data:<capability-id>:<operation-id>`，当前十九个 connector 产生二十三个 operation，
+不在 orchestrator 中维护静态 provider 表。原子 Skill、独立 data 调用与 Research 共享
+相同核心结果/回执；Research 只额外负责 runtime/manifest binding、owner-only credential
+map、预算、来源/证据准入、永久 evidence/artifact、journal、handoff 和 review。这些状态
+不得回流到薄 Skill；新增 connector/operation 也不要求新增 Auto Research provider 代码。
 
 ## 原子性与独立性
 

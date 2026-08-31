@@ -180,6 +180,11 @@ Anthropic 或 PPT Master 闭环后创作 Skills。workspace 可以是用户指�
 所有条目都是外生、独立授权、精确锁定且经用户明确确认或选择；研究 package
 不会捆绑或安装它们。完整流程见
 `tiangong-auto-research/references/setup.md` 和 `external-skills.md`。
+CLI 内置数据 connector 不属于上述外生 Skill：native discover packet 会动态投影当前
+data catalog，Auto Research 通过 Research evidence 命令进程内调用同一 TypeScript
+runtime。Skill 不复制 provider adapter，也不维护固定 connector 清单；Research 只在
+不改变核心结果的前提下增加预算、owner-only credential、不可变 receipt/ledger、artifact
+和 review 绑定。
 `tiangong-auto-research-workbuddy` 只负责沙箱 IDE 路由，会回到 canonical
 orchestrator 及其签名 reviewer bridge 流程，不维护第二套研究协议。
 创建 PPT 时首选 PPT Master；Anthropic PPTX 仍是兼容的按场景选项，需要时可在

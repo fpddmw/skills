@@ -209,8 +209,10 @@ Open-Meteo Historical Weather 复核确认了固定源的最多 10 个坐标、3
   在另一新 cold container 中以 77 项通过、1 项显式网络 smoke 跳过转 GREEN；含该前置
   修复的数据迁移集成态 `codex/atomic-data-integration@bb53a1b` 也已在第三个新 cold
   container 中通过全部 Node、Python 与 shell suites。
-- CLI Research adapter/必要的 Auto Research 变更仍是下文明确分离的后续工作包，不被
-  伪装为本次 21 个原子 Skill 迁移的完成证据。
+- CLI Research adapter 与必要的 Auto Research 变更已作为独立后续工作包实现：动态
+  registry 投影、进程内 data execution、core receipt parity、Research receipt/ledger/
+  budget/credential/artifact 绑定和 native packet 入口均有单独 clean-room TDD；这份证据
+  仍与此前 21 个原子 Skill 的迁移完成证据分离。
 - 当前只有本地分支提交；在维护者统一审阅并明确确认前，不推送实现分支、不创建 PR。
 
 ## 与 CLI 的同步顺序
@@ -220,8 +222,8 @@ Open-Meteo Historical Weather 复核确认了固定源的最多 10 个坐标、3
 3. CLI 完成空 data runtime/机器 contract PR，再实现首批 connectors。
 4. CLI 发布候选版本，导出 canonical manifest/Schema digest。
 5. Skills 首批迁移 PR 使用候选包做验证；正式 CLI 发布后更新 exact binding 并合并。
-6. CLI 再接入 Research adapter；需要修改 Auto Research Skill 时遵循其强制 clean-room
-   RED/GREEN 门禁。
+6. CLI 接入 Research adapter；Auto Research Skill 同步遵循其强制 clean-room RED/GREEN
+   门禁。状态：本地实现与文档已完成，待两个仓库各自全量门禁和维护者审阅。
 
 因此不是“Skills 先合并、CLI 后跟进”。Skills 可以提前评审语义和迁移 diff，但 CLI
 机器基座必须先确定、先可测试、先可发布。

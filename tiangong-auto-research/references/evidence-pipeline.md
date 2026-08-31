@@ -57,9 +57,37 @@ The broker owns endpoint policy, credentials, retries, response bounds,
 sanitization, immutable bytes, and receipts. A standalone search result can
 help find a lead but cannot replace a required broker occurrence.
 
+The packet also exposes built-in structured data capabilities dynamically. The
+catalog distinguishes the external data source, the CLI capability, and each
+atomic operation; use its summary, `provides`, `doesNotProvide`, and selection
+hints to choose a source, then inspect only the selected operation with
+`tiangong-ai data describe <capability-id> --json`. Follow upstream/downstream
+hints when they are useful, but do not turn them into a mandatory workflow.
+
+Run the exact published `DataRunRequest` only through the packet's
+`runDataCapability` command, whose underlying route is:
+
+```bash
+node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
+  research project evidence data run PROJECT \
+  --request /absolute/path/to/data-run-request.json \
+  --workspace /absolute/path/to/workspace --json
+```
+
+This is an in-process Research adapter over the same TypeScript data runtime,
+not a second connector implementation. It preserves the core result and core receipt digest,
+then adds the Research call/item/byte/context budget,
+namespaced owner-only credential mapping, immutable data-runtime receipt,
+candidate, ledger, journal, and review bindings. A successful or explicit
+partial result may be assessed with its stated completeness and missing ranges;
+a blocked result is journaled but never admitted as evidence. Never call
+standalone `data run` inside a project, because that intentionally creates no
+Research receipt or ledger state. New registry operations appear without a
+corresponding edit to this Skill.
+
 ## 3. Keep one immutable evidence ledger
 
-Inputs, broker results, and native-app discoveries are normalized into stable
+Inputs, broker results, structured data results, and native-app discoveries are normalized into stable
 candidate IDs and deduplicated by canonical public URL, DOI, or input hash.
 The append-only hash-chained ledger records discovery occurrences, admission or
 rejection judgments, artifact registration and assessment, snapshots, claim
@@ -78,6 +106,9 @@ occurrence. Never cite or admit a native-only candidate. Registered inputs are
 already formal candidates under their own content-hash identity. The frozen
 snapshot includes the verified activity summary so native work and formal
 broker evidence remain one auditable ledger rather than two hidden work logs.
+Each structured data result already has its own immutable data-runtime
+occurrence; assess the returned candidate ID directly. Do not re-register it as
+a native URL lead or pretend that a partial result is complete.
 
 ```bash
 node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
@@ -126,6 +157,15 @@ node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
 Register the exact downloaded file with the returned binding ID. A text or
 structured derivative must instead name the same-candidate parent artifact;
 this preserves a mechanical chain back to the bound network file.
+
+When a structured data operation produces files, the adapter preserves every
+declared hash-bound artifact in the permanent evidence object store before its
+temporary output directory is removed. Treat binary or provider-supplied files
+as untrusted: during acquisition, register the exact staged file or a legitimate
+readable derivative against the returned data candidate, then follow the same
+decomposition and atom rules below. The data-runtime receipt proves retrieval
+and byte identity; it does not by itself prove that a binary file was safely
+parsed or visually reviewed.
 
 ```bash
 node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
@@ -243,7 +283,7 @@ review may use only this verified chain and cannot fetch, register, or silently
 substitute new evidence.
 
 The review packet binds the current acquisition/content/inference/graph chain,
-selected exact artifacts, permanent broker objects, bounded excerpts, analysis,
+selected exact artifacts, permanent broker/data objects, bounded excerpts, analysis,
 and report. Claim and review bindings are appended to the ledger. Mechanical
 closure re-verifies all hashes and refuses a missing, changed, or stale
 snapshot, graph, packet, context, receipt, artifact, or source.

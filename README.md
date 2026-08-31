@@ -199,6 +199,12 @@ The workspace can be any user-selected directory. Every entry is external,
 separately licensed, pinned, and explicitly confirmed/selected; nothing is
 bundled or installed by a research package. See
 `tiangong-auto-research/references/setup.md` and `external-skills.md`.
+Built-in CLI data connectors are different: the native discover packet projects
+their current catalog dynamically, and Auto Research invokes the shared
+TypeScript runtime through its Research evidence command. The Skill does not
+duplicate provider adapters or keep a fixed connector list; Research adds only
+budget, owner-only credential, immutable receipt/ledger, artifact, and review
+bindings around the unchanged core result.
 `tiangong-auto-research-workbuddy` is only a sandboxed-IDE adapter. It routes
 back to the canonical orchestrator and its signed reviewer-bridge reference;
 it does not define a second research workflow.

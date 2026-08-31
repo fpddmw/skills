@@ -60,6 +60,18 @@ for (const marker of [
 }
 
 for (const marker of [
+  "runDataCapability",
+  "tiangong-ai data describe",
+  "standalone `data run`",
+  "dynamic data catalog",
+]) {
+  assert.ok(
+    autoResearchSkill.includes(marker),
+    `Auto Research entry must explain native data evidence marker ${marker}`,
+  );
+}
+
+for (const marker of [
   "native-direct",
   "sandbox-bridge",
   "Default Permission",
@@ -131,6 +143,10 @@ for (const marker of [
   "inference-snapshot.json",
   "claim-evidence-graph.json",
   "evidencePipeline",
+  "structured data capabilities",
+  "research project evidence data run",
+  "core receipt digest",
+  "data-runtime receipt",
 ]) {
   assert.ok(
     evidencePipelineReference.includes(marker),
