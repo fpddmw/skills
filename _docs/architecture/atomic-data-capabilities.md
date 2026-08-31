@@ -18,7 +18,7 @@ checkPaths:
   - "*-download/**"
   - tiangong-auto-research/**
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: 09d49fcce0871ac97997c4e5e79975ae29c79c84
+lastReviewedCommit: fe16c358d834fd0b8551365396d9eb4da52721c1
 ---
 
 # 原子数据 Skill 目标架构

@@ -90,6 +90,11 @@ const PILOTS = [
     requiredCredential: true,
   },
   {
+    skill: "usbr-rise-fetch",
+    capability: "usbr.rise",
+    operations: ["discover-items", "fetch-results"],
+  },
+  {
     skill: "usgs-water-iv-fetch",
     capability: "usgs.water-instantaneous-values",
     operations: ["fetch"],
@@ -223,7 +228,7 @@ test(
           env: environment,
         });
         assert.equal(catalog.status, 0, catalog.stderr);
-        assert.equal(JSON.parse(catalog.stdout).capabilities.length >= 15, true);
+        assert.equal(JSON.parse(catalog.stdout).capabilities.length >= 16, true);
 
         for (const pilot of PILOTS) {
           const describe = run(

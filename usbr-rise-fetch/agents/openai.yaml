@@ -1,0 +1,4 @@
+interface:
+  display_name: "USBR RISE Fetch"
+  short_description: "Discover and fetch bounded USBR RISE data"
+  default_prompt: "Use $usbr-rise-fetch to discover official RISE item IDs or fetch bounded result rows with source context."

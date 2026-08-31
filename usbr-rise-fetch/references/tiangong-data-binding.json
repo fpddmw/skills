@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "tiangong.data.skill-binding.v1",
+  "skillName": "usbr-rise-fetch",
+  "generatedWithCliVersion": "0.0.55",
+  "capabilityId": "usbr.rise",
+  "capabilityVersion": "1.0.0",
+  "minimumCliVersion": "0.0.55",
+  "manifestDigest": "cc7f156526b249ddb5211b811d32d48c4a506c58441f07a0b9520631b35d949a",
+  "operations": [
+    {
+      "operationId": "discover-items",
+      "operationVersion": "1.0.0",
+      "inputSchemaId": "https://schemas.tiangong.ai/data/usbr/rise-discover-items-input.v1.json",
+      "inputSchemaDigest": "d6041c08aa4887ca6df1b1ddf588f9fedb0e93db54d38d645e51f39dea2c1f18",
+      "outputSchemaId": "https://schemas.tiangong.ai/data/usbr/rise-discover-items-output.v1.json",
+      "outputSchemaDigest": "6cc210756e950f2f06cdef22a11133ed0f3698c6be4ecc31a52a6e1bbfc1ba89"
+    },
+    {
+      "operationId": "fetch-results",
+      "operationVersion": "1.0.0",
+      "inputSchemaId": "https://schemas.tiangong.ai/data/usbr/rise-fetch-results-input.v1.json",
+      "inputSchemaDigest": "0a3b3200b70ef4e1753d1d1267153d60b65fcab51cdb064c4a89a33258e81e71",
+      "outputSchemaId": "https://schemas.tiangong.ai/data/usbr/rise-fetch-results-output.v1.json",
+      "outputSchemaDigest": "4c5e40cbbae6d34d3b8babd5594ca880951736d012ff04d6c364136de0b70b19"
+    }
+  ]
+}

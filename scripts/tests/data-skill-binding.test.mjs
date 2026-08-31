@@ -223,6 +223,27 @@ const PILOT_SKILLS = [
     ],
   },
   {
+    name: "usbr-rise-fetch",
+    capabilityId: "usbr.rise",
+    operations: [
+      {
+        operationId: "discover-items",
+        inputKeys: ["locationNameContains", "pageSize", "queryTerms"],
+      },
+      {
+        operationId: "fetch-results",
+        inputKeys: [
+          "afterUtc",
+          "beforeUtc",
+          "includeItemMetadata",
+          "itemIds",
+          "orderDateTime",
+          "pageSize",
+        ],
+      },
+    ],
+  },
+  {
     name: "usgs-water-iv-fetch",
     capabilityId: "usgs.water-instantaneous-values",
     operations: [
