@@ -63,7 +63,7 @@ lastReviewedCommit: 2998da54897f8f254a37e187ff64c62feae3dbd2
 
 | # | EcoCouncil 权威源 Skill | Skills 目标 | CLI capability / operation 或保留边界 | 当前状态 |
 | -: | ------------------------ | ----------- | ---------------------------------------- | -------- |
-| 1 | `fetch-airnow-hourly-observations` | `airnow-hourly-obs-fetch` | `airnow.hourly-observations/fetch-hourly` | 已有候选，复核中 |
+| 1 | `fetch-airnow-hourly-observations` | `airnow-hourly-obs-fetch` | `airnow.hourly-observations/fetch-hourly` | 源语义复核完成；最终统一门禁待跑 |
 | 2 | `fetch-bluesky-cascade` | `bluesky-cascade-fetch` | `bluesky.public-posts/fetch-cascades` | 已有候选，复核中 |
 | 3 | `fetch-epa-eis-records` | `epa-eis-records-fetch` | `epa.eis-records/search`；只解析官方 EIS 结果表，不作法律或政策判断 | 本地实现完成；统一安装/冷门禁待最终树 |
 | 4 | `fetch-federal-register-documents` | `federal-register-doc-fetch` | `federal-register.documents/search` | 已有候选，复核中 |
@@ -89,6 +89,11 @@ lastReviewedCommit: 2998da54897f8f254a37e187ff64c62feae3dbd2
 fixture/conformance 通过、Skill 只保留意图与上层组合语义、execution binding 从同一
 候选/正式 CLI 包生成、旧重复 connector 逻辑已移除，并且两仓治理与 clean-container
 门禁通过。数量对上但任一条件缺失，仍不得宣称迁移完成。
+
+AirNow 复核以固定提交中的 Python 归一化行为为准，补回了源行时间无效时使用所属
+HourlyAQObs 文件小时的回退、空 AQSID 的保留，以及单个污染物数值无效时按缺失值处理而
+不丢弃同一记录的其他有效字段；这些边界已有 TypeScript 回归测试，binding 已从修正后的
+本地 CLI 候选重新生成。
 
 ## 2026-08-31 实现状态
 

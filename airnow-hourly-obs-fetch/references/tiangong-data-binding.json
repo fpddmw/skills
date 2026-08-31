@@ -5,7 +5,7 @@
   "capabilityId": "airnow.hourly-observations",
   "capabilityVersion": "1.0.0",
   "minimumCliVersion": "0.0.55",
-  "manifestDigest": "c07513e53903629ad56c38e5498a3575c29f00f7063dd8173506d78202561fa1",
+  "manifestDigest": "e548f8792c5dbe4818521db7c5fe8e6dbf70b8580a2eca42f1da3ae91b22d989",
   "operations": [
     {
       "operationId": "fetch-hourly",
@@ -13,7 +13,7 @@
       "inputSchemaId": "https://schemas.tiangong.ai/data/airnow/hourly-observations-input.v1.json",
       "inputSchemaDigest": "95bc5a56ac4bb62c6ca3c0299598dbf5dc75dae720dd57ae059ca9f2413b9e80",
       "outputSchemaId": "https://schemas.tiangong.ai/data/airnow/hourly-observations-output.v1.json",
-      "outputSchemaDigest": "ddb2f1c81ed24f894d8e80765286ad0711ec7331b25a11300fcb05201a5bfeec"
+      "outputSchemaDigest": "e1889763cc2884ca6e73421f9246cf54330220b4124593f77b66eea64e2318b4"
     }
   ]
 }
