@@ -14,7 +14,7 @@ checkPaths:
   - .claude-plugin/**
   - "*/SKILL.md"
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: 2998da54897f8f254a37e187ff64c62feae3dbd2
+lastReviewedCommit: f61170eb09f7b1a518f023bd80810ad36895f70d
 ---
 
 # Tiangong AI Skills
@@ -35,11 +35,15 @@ in `references/tiangong-data-binding.json`; the agent uses CLI `data describe`
 for current source facts and `data run` for the bound operation. These Skills
 contain no second provider connector runtime.
 
-This candidate set now has a target for every item in the authoritative
-EcoCouncil source baseline, `main@ac19289b4876d8a90595a0270721ef3f5ee7ced8`,
-which contains 21 `source-fetch` Skills. It is not yet a completed migration:
-the 17 earlier candidates still require source-semantic revalidation and the
-final unified install/cold gates must pass before a Skills PR.
+This candidate set covers every item in the authoritative EcoCouncil source
+baseline, `main@ac19289b4876d8a90595a0270721ef3f5ee7ced8`, which contains 21
+`source-fetch` Skills. All 21 have been revalidated against the source
+semantics, their bindings have been verified against the local CLI candidate,
+and the unified copy/symlink installation and data-specific gates pass. The
+repository-wide cold gate also passes with a separately scoped upstream
+filesystem-clock fix; that prerequisite is intentionally absent from this data
+migration branch. Before merge, regenerate the bindings once against the exact
+published CLI version that replaces the local `0.0.55` candidate.
 
 See `_docs/architecture/atomic-data-capabilities.md` and
 `_docs/runbooks/atomic-data-skill-migration.md` for the ownership boundary,

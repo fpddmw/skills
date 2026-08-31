@@ -18,7 +18,7 @@ checkPaths:
   - "*-download/**"
   - tiangong-auto-research/**
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: 2998da54897f8f254a37e187ff64c62feae3dbd2
+lastReviewedCommit: f61170eb09f7b1a518f023bd80810ad36895f70d
 ---
 
 # 原子数据 Skill 迁移实施计划
@@ -42,48 +42,45 @@ lastReviewedCommit: 2998da54897f8f254a37e187ff64c62feae3dbd2
 
 - 早期计划把 Skills 目标仓库中的 38 个 fetch/search/download 目录作为总候选清单，
   这是目标目录盘点，不是 EcoCouncil 迁移源清单，不能证明迁移完整性。
-- 当前 21 个薄 Skill 与 19 个 CLI capability 中，USBR RISE、USBR Project Records、
-  EPA EIS 与 Regulations.gov Attachments 已按 EcoCouncil 源完成本地迁移，其余 17 项
-  仍只能视为内部兼容候选；在按 EcoCouncil 21 项清单重建映射并完成源语义复核前，
-  不得描述为“EcoCouncil 已全部迁移”。
-- 21 项现均已有 CLI/Skill 目标，不再存在结构性缺项。
-  `fetch-usbr-rise`、`fetch-usbr-project-records`、`fetch-epa-eis-records` 与
-  `fetch-regulationsgov-attachments` 已完成本地 CLI/Skill 迁移；其余 17 项继续由下方
-  迁移矩阵跟踪源语义复核。
+- 当前 21 个薄 Skill 与 19 个 CLI capability 已逐项对照 EcoCouncil 权威源完成本地
+  迁移与源语义复核；21 项均有明确 CLI/Skill 目标，不再存在结构性缺项。
+- 下方矩阵保留逐项审计结论。所有本地 binding、统一安装与数据专项门禁已通过；仓库
+  全量 cold-container 门禁在叠加独立前置修复 `576a6cb` 后通过。正式 CLI 版本发布后
+  仍须把 21 个 binding 从本地 `0.0.55` 候选重生为该精确正式版本，才能合并 Skills PR。
 - EcoCouncil 功能分支已提交点 `32d38e5172ebe8703c61a7031b7055c766ac9028`
   与 `ac19289` 的 `skills/source-fetch` 内容一致；本次仍只引用远端可复现的
   `main@ac19289`，不引用未提交工作树状态。
 
 ### EcoCouncil 21 项迁移控制矩阵
 
-下表按 `ac19289:skills/source-fetch` 的字典序逐项列出迁移目标。状态中的“复核中”只
-表示目标仓已有本地候选，不表示已证明与 EcoCouncil 源语义等价；必须逐项完成源
+下表按 `ac19289:skills/source-fetch` 的字典序逐项列出迁移目标。21 项均已完成源
 `SKILL.md`、脚本外部行为、CLI Discovery/Execution contract、thin Skill 和 binding
-对照后才能改为“完成”。
+对照，并通过本地数据专项门禁及含独立前置修复的集成 cold gate；表中的“待正式重绑”
+只表示 CLI 正式版本尚未发布，不表示仍有业务实现缺口。
 
 | # | EcoCouncil 权威源 Skill | Skills 目标 | CLI capability / operation 或保留边界 | 当前状态 |
 | -: | ------------------------ | ----------- | ---------------------------------------- | -------- |
-| 1 | `fetch-airnow-hourly-observations` | `airnow-hourly-obs-fetch` | `airnow.hourly-observations/fetch-hourly` | 源语义复核完成；最终统一门禁待跑 |
-| 2 | `fetch-bluesky-cascade` | `bluesky-cascade-fetch` | `bluesky.public-posts/fetch-cascades` | 源语义复核完成；最终统一门禁待跑 |
-| 3 | `fetch-epa-eis-records` | `epa-eis-records-fetch` | `epa.eis-records/search`；只解析官方 EIS 结果表，不作法律或政策判断 | 本地实现完成；统一安装/冷门禁待最终树 |
-| 4 | `fetch-federal-register-documents` | `federal-register-doc-fetch` | `federal-register.documents/search` | 源语义复核完成；最终统一门禁待跑 |
-| 5 | `fetch-gdelt-doc-search` | `gdelt-doc-search` | `gdelt.doc-search/search` | 源语义复核完成；最终统一门禁待跑 |
-| 6 | `fetch-gdelt-events` | `gdelt-events-fetch` | `gdelt.events/fetch` | 源语义复核完成；最终统一门禁待跑 |
-| 7 | `fetch-gdelt-gkg` | `gdelt-gkg-fetch` | `gdelt.gkg/fetch` | 源语义复核完成；最终统一门禁待跑 |
-| 8 | `fetch-gdelt-mentions` | `gdelt-mentions-fetch` | `gdelt.mentions/fetch` | 源语义复核完成；最终统一门禁待跑 |
-| 9 | `fetch-nasa-firms-fire` | `nasa-firms-fire-fetch` | `nasa-firms.active-fire/fetch-area` | 源语义复核完成；最终统一门禁待跑 |
-| 10 | `fetch-open-meteo-air-quality` | `open-meteo-air-quality-fetch` | `open-meteo.air-quality/fetch-hourly` | 源语义复核完成；最终统一门禁待跑 |
-| 11 | `fetch-open-meteo-flood` | `open-meteo-flood-fetch` | `open-meteo.flood/fetch-daily` | 源语义复核完成；最终统一门禁待跑 |
-| 12 | `fetch-open-meteo-historical` | `open-meteo-historical-fetch` | `open-meteo.historical-weather/fetch` | 源语义复核完成；最终统一门禁待跑 |
-| 13 | `fetch-openaq` | `openaq-data-fetch` | `openaq.air-quality/search-locations` 与 `fetch-sensor-measurements`；S3 archive 明确移出该 atomic capability | 源语义复核完成；最终统一门禁待跑 |
-| 14 | `fetch-regulationsgov-attachments` | `regulationsgov-attachments-fetch` | `regulations-gov.attachments/download`；固定官方 origin、SHA-256、relative manifest 与事务型本地 artifact | 本地实现完成；统一安装/冷门禁待最终树 |
-| 15 | `fetch-regulationsgov-comment-detail` | `regulationsgov-comment-detail-fetch` | `regulations-gov.comments/fetch-details`，只含 attachment metadata | 逐项语义复核完成 |
-| 16 | `fetch-regulationsgov-comments` | `regulationsgov-comments-fetch` | `regulations-gov.comments/search` | 逐项语义复核完成 |
-| 17 | `fetch-usbr-project-records` | `usbr-project-records-fetch` | `usbr.project-records/fetch`；只取显式官方 URL 与同站链接清单 | 本地实现完成；统一安装/冷门禁待最终树 |
-| 18 | `fetch-usbr-rise` | `usbr-rise-fetch` | `usbr.rise/discover-items` 与 `fetch-results` | 本地迁移完成；正式 CLI binding 待发布版本 |
-| 19 | `fetch-usgs-water-iv` | `usgs-water-iv-fetch` | `usgs.water-instantaneous-values/fetch` | 源语义复核完成；最终统一门禁待跑 |
-| 20 | `fetch-youtube-comments` | `youtube-comments-fetch` | `youtube.public-content/fetch-comments` | 源语义复核完成；最终统一门禁待跑 |
-| 21 | `fetch-youtube-video-search` | `youtube-video-search` | `youtube.public-content/search-videos` | 源语义复核完成；最终统一门禁待跑 |
+| 1 | `fetch-airnow-hourly-observations` | `airnow-hourly-obs-fetch` | `airnow.hourly-observations/fetch-hourly` | 完成；本地门禁通过；待正式重绑 |
+| 2 | `fetch-bluesky-cascade` | `bluesky-cascade-fetch` | `bluesky.public-posts/fetch-cascades` | 完成；本地门禁通过；待正式重绑 |
+| 3 | `fetch-epa-eis-records` | `epa-eis-records-fetch` | `epa.eis-records/search`；只解析官方 EIS 结果表，不作法律或政策判断 | 完成；本地门禁通过；待正式重绑 |
+| 4 | `fetch-federal-register-documents` | `federal-register-doc-fetch` | `federal-register.documents/search` | 完成；本地门禁通过；待正式重绑 |
+| 5 | `fetch-gdelt-doc-search` | `gdelt-doc-search` | `gdelt.doc-search/search` | 完成；本地门禁通过；待正式重绑 |
+| 6 | `fetch-gdelt-events` | `gdelt-events-fetch` | `gdelt.events/fetch` | 完成；本地门禁通过；待正式重绑 |
+| 7 | `fetch-gdelt-gkg` | `gdelt-gkg-fetch` | `gdelt.gkg/fetch` | 完成；本地门禁通过；待正式重绑 |
+| 8 | `fetch-gdelt-mentions` | `gdelt-mentions-fetch` | `gdelt.mentions/fetch` | 完成；本地门禁通过；待正式重绑 |
+| 9 | `fetch-nasa-firms-fire` | `nasa-firms-fire-fetch` | `nasa-firms.active-fire/fetch-area` | 完成；本地门禁通过；待正式重绑 |
+| 10 | `fetch-open-meteo-air-quality` | `open-meteo-air-quality-fetch` | `open-meteo.air-quality/fetch-hourly` | 完成；本地门禁通过；待正式重绑 |
+| 11 | `fetch-open-meteo-flood` | `open-meteo-flood-fetch` | `open-meteo.flood/fetch-daily` | 完成；本地门禁通过；待正式重绑 |
+| 12 | `fetch-open-meteo-historical` | `open-meteo-historical-fetch` | `open-meteo.historical-weather/fetch` | 完成；本地门禁通过；待正式重绑 |
+| 13 | `fetch-openaq` | `openaq-data-fetch` | `openaq.air-quality/search-locations` 与 `fetch-sensor-measurements`；S3 archive 明确移出该 atomic capability | 完成；本地门禁通过；待正式重绑 |
+| 14 | `fetch-regulationsgov-attachments` | `regulationsgov-attachments-fetch` | `regulations-gov.attachments/download`；固定官方 origin、SHA-256、relative manifest 与事务型本地 artifact | 完成；本地门禁通过；待正式重绑 |
+| 15 | `fetch-regulationsgov-comment-detail` | `regulationsgov-comment-detail-fetch` | `regulations-gov.comments/fetch-details`，只含 attachment metadata | 完成；本地门禁通过；待正式重绑 |
+| 16 | `fetch-regulationsgov-comments` | `regulationsgov-comments-fetch` | `regulations-gov.comments/search` | 完成；本地门禁通过；待正式重绑 |
+| 17 | `fetch-usbr-project-records` | `usbr-project-records-fetch` | `usbr.project-records/fetch`；只取显式官方 URL 与同站链接清单 | 完成；本地门禁通过；待正式重绑 |
+| 18 | `fetch-usbr-rise` | `usbr-rise-fetch` | `usbr.rise/discover-items` 与 `fetch-results` | 完成；本地门禁通过；待正式重绑 |
+| 19 | `fetch-usgs-water-iv` | `usgs-water-iv-fetch` | `usgs.water-instantaneous-values/fetch` | 完成；本地门禁通过；待正式重绑 |
+| 20 | `fetch-youtube-comments` | `youtube-comments-fetch` | `youtube.public-content/fetch-comments` | 完成；本地门禁通过；待正式重绑 |
+| 21 | `fetch-youtube-video-search` | `youtube-video-search` | `youtube.public-content/search-videos` | 完成；本地门禁通过；待正式重绑 |
 
 矩阵完成定义同时要求：CLI connector 或明确保留边界已批准、TypeScript 7 业务实现与
 fixture/conformance 通过、Skill 只保留意图与上层组合语义、execution binding 从同一
@@ -198,19 +195,20 @@ Open-Meteo Historical Weather 复核确认了固定源的最多 10 个坐标、3
   已完成同样的独立验证；Regulations.gov Attachments 已完成本地 TypeScript artifact
   transaction、`quick_validate.py`、薄 Skill/binding contract 与 binding verify。正式 npm
   包可用后仍必须对全部 21 项重跑同一 smoke，且不访问真实 provider。
-- CLI 的 lint、typecheck、514 项全量测试、3 项 platform contract、coverage、npm pack、
+- CLI 的 lint、typecheck、543 项全量测试、3 项 platform contract、coverage、npm pack、
   immutable setup pin audit 和 docpact 均通过；21 个薄 Skill 与 21 个明确保留 Skill 的
   `quick_validate.py` 均通过，binding contract 与 docpact 也通过。
-- 上一版 15 capability/17 thin Skill 候选的两仓 cold gate 已通过。当前新增到 19
-  capability/21 thin Skill 后，CLI 已在新 clean container 中通过 514 项测试，statement
-  coverage 为 84.96%；Skills binding contract、新增项 `quick_validate.py`、精确 binding
-  verify 与全部 21 项 copy/symlink smoke 已通过。Skills 早期
-  cold gate 曾暴露 `academic-paper-download`
-  浏览器快照混用墙钟与 tmpfs `mtime` 的确定性缺陷；已在独立 clean container 中观察
-  RED，改为以下载文件系统内排他临时标记建立时间边界，并在另一个新容器中转 GREEN。
-  最终 `scripts/test-clean-container.sh --cold-build` 通过，其中论文下载完整 unittest
-  discovery 为 77 项通过、1 项显式网络安装 smoke 跳过。完整 21 项迁移结束、准备 PR 时
-  仍须对当前最终树重新运行两仓 cold gate，不能沿用旧候选结果。
+- 当前 19 capability/21 thin Skill 的最终候选已重跑门禁：CLI 在新 clean container 中
+  通过 543 项测试，statement coverage 为 85.13%；21 项精确 binding verify、独立
+  `quick_validate.py` 以及 copy/symlink 两种模式共 42 次 provider-offline 安装 smoke 均
+  通过。
+- Skills 数据分支相对 `upstream/main` 对 `academic-paper-download` 为零差异；其全量 cold
+  gate 与干净 `upstream/main@4104e52` 均可复现同一基线失败：browser snapshot 使用进程
+  墙钟，与容器文件系统 `mtime` 不可比较，导致论文下载 discovery 76 项中 1 failure、
+  4 errors。该问题已拆到独立本地前置分支 `codex/academic-paper-filesystem-clock@576a6cb`，
+  在另一新 cold container 中以 77 项通过、1 项显式网络 smoke 跳过转 GREEN；含该前置
+  修复的数据迁移集成态 `codex/atomic-data-integration@bb53a1b` 也已在第三个新 cold
+  container 中通过全部 Node、Python 与 shell suites。
 - CLI Research adapter/必要的 Auto Research 变更仍是下文明确分离的后续工作包，不被
   伪装为本次 21 个原子 Skill 迁移的完成证据。
 - 当前只有本地分支提交；在维护者统一审阅并明确确认前，不推送实现分支、不创建 PR。
@@ -446,7 +444,8 @@ runtime。CLI 已完成 `bluesky.public-posts/fetch-cascades` 以及
 候选包并进入统一安装 smoke。YouTube key 仅经 `X-Goog-Api-Key` header 注入；comments
 operation 使用 `comments.list` 展开 replies，不信任 embedded reply sample。固定 EcoCouncil
 提交的 17 个原有候选已全部完成逐项源语义复核；连同补齐的 4 个缺失能力，21 项迁移主体
-均已落到本地候选树，后续仅以最终统一安装、全仓和 cold-container 门禁结果判断是否可提 PR。
+均已落到本地候选树并通过最终统一安装、数据专项门禁及含独立前置修复的集成 cold gate。
+合并前仅剩正式 CLI 版本发布后的精确 binding 重生与复验。
 
 RSS/fulltext、Figshare 与 academic paper 的审计结论相反：它们分别拥有持久订阅/正文队列、
 浏览器文件 artifact 或 Research acquisition/provenance 核心，因此继续保持现有专用实现，
@@ -505,8 +504,8 @@ node --test scripts/tests/data-skill-install-smoke.test.mjs
 ```
 
 它会清除 provider 凭证，只运行 version、catalog、describe、static doctor 和本地
-结构化阻断请求，不访问 AirNow、Bluesky、FederalRegister.gov、GDELT、NASA FIRMS、
-OpenAQ、Open-Meteo、Regulations.gov、USGS WaterServices 或 YouTube。
+结构化阻断请求，不访问 AirNow、Bluesky、EPA EIS、FederalRegister.gov、GDELT、NASA
+FIRMS、OpenAQ、Open-Meteo、Regulations.gov、USBR、USGS WaterServices 或 YouTube。
 
 正式 CLI 版本发布后，先生成再用同一精确包复验；`X.Y.Z` 必须替换为实际可安装且
 包含 `data` 命令的版本：
@@ -516,6 +515,11 @@ node scripts/data-skill-binding.mjs generate \
   --skill airnow-hourly-obs-fetch \
   --capability airnow.hourly-observations \
   --operations fetch-hourly \
+  --cli-version X.Y.Z
+node scripts/data-skill-binding.mjs generate \
+  --skill epa-eis-records-fetch \
+  --capability epa.eis-records \
+  --operations search \
   --cli-version X.Y.Z
 node scripts/data-skill-binding.mjs generate \
   --skill federal-register-doc-fetch \
@@ -563,6 +567,21 @@ node scripts/data-skill-binding.mjs generate \
   --operations fetch-details \
   --cli-version X.Y.Z
 node scripts/data-skill-binding.mjs generate \
+  --skill regulationsgov-attachments-fetch \
+  --capability regulations-gov.attachments \
+  --operations download \
+  --cli-version X.Y.Z
+node scripts/data-skill-binding.mjs generate \
+  --skill usbr-project-records-fetch \
+  --capability usbr.project-records \
+  --operations fetch \
+  --cli-version X.Y.Z
+node scripts/data-skill-binding.mjs generate \
+  --skill usbr-rise-fetch \
+  --capability usbr.rise \
+  --operations discover-items,fetch-results \
+  --cli-version X.Y.Z
+node scripts/data-skill-binding.mjs generate \
   --skill gdelt-doc-search \
   --capability gdelt.doc-search \
   --operations search \
@@ -601,6 +620,9 @@ node scripts/data-skill-binding.mjs verify \
   --binding airnow-hourly-obs-fetch/references/tiangong-data-binding.json \
   --cli-version X.Y.Z
 node scripts/data-skill-binding.mjs verify \
+  --binding epa-eis-records-fetch/references/tiangong-data-binding.json \
+  --cli-version X.Y.Z
+node scripts/data-skill-binding.mjs verify \
   --binding federal-register-doc-fetch/references/tiangong-data-binding.json \
   --cli-version X.Y.Z
 node scripts/data-skill-binding.mjs verify \
@@ -626,6 +648,15 @@ node scripts/data-skill-binding.mjs verify \
   --cli-version X.Y.Z
 node scripts/data-skill-binding.mjs verify \
   --binding regulationsgov-comment-detail-fetch/references/tiangong-data-binding.json \
+  --cli-version X.Y.Z
+node scripts/data-skill-binding.mjs verify \
+  --binding regulationsgov-attachments-fetch/references/tiangong-data-binding.json \
+  --cli-version X.Y.Z
+node scripts/data-skill-binding.mjs verify \
+  --binding usbr-project-records-fetch/references/tiangong-data-binding.json \
+  --cli-version X.Y.Z
+node scripts/data-skill-binding.mjs verify \
+  --binding usbr-rise-fetch/references/tiangong-data-binding.json \
   --cli-version X.Y.Z
 node scripts/data-skill-binding.mjs verify \
   --binding gdelt-doc-search/references/tiangong-data-binding.json \

@@ -14,7 +14,7 @@ checkPaths:
   - .claude-plugin/**
   - "*/SKILL.md"
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: 2998da54897f8f254a37e187ff64c62feae3dbd2
+lastReviewedCommit: f61170eb09f7b1a518f023bd80810ad36895f70d
 ---
 
 # 天工 AI Skills
@@ -35,9 +35,10 @@ USBR Project Records、USBR RISE、USGS Water IV、三个 Open-Meteo 来源，�
 这些 Skills 不再保留第二份 provider connector 运行时。
 
 权威迁移源 `main@ac19289b4876d8a90595a0270721ef3f5ee7ced8` 共有 21 个
-`source-fetch` Skill，当前 21 项已经逐一建立目标，但仍不代表迁移完成：原有 17 项必须
-完成源语义复核，并且最终统一
-安装与 cold gate 通过后才能提交 Skills PR。
+`source-fetch` Skill，当前 21 项均已完成源语义复核、与本地 CLI 候选的精确 binding
+校验，以及统一 copy/symlink 安装和数据专项门禁。仓库全量 cold gate 在叠加独立范围的
+上游文件系统时钟修复后同样通过；该前置修复有意不进入本数据迁移分支。合并前仍须在
+替代本地 `0.0.55` 候选的 CLI 精确正式版本发布后重新生成一次 binding。
 
 所有权边界、候选清单、迁移源审计更正、分批迁移顺序和发布门槛见
 `_docs/architecture/atomic-data-capabilities.md` 与
