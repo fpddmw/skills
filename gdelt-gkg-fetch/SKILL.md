@@ -50,8 +50,12 @@ bounded range of source snapshots:
 ```
 
 Use the operation input schema returned by `data describe` when choosing
-`latest` or `range`. Do not round timestamps, widen a range, or increase a
-safety limit without the caller's approval.
+`latest` or `range`. Range bounds do not need to align to a 15-minute boundary:
+selection starts with the first published snapshot at or after the inclusive
+lower bound and stops at the inclusive upper bound. `maxFiles` selects the
+earliest bounded snapshots from a larger window and must be treated as
+truncation, not complete window coverage. Do not round timestamps, widen a
+range, or increase a safety limit without the caller's approval.
 
 ## Run
 
@@ -79,6 +83,9 @@ result to another workflow.
 - The capability returns normalized in-memory rows and execution metadata. It
   does not create a durable ZIP mirror, expose the master file list, or perform
   polling and incremental state management.
+- Preserve each file's SHA-256, ZIP/CRC validation metadata, row counts, and
+  capped validation issues. Invalid UTF-8 or non-27-column rows are omitted
+  locally while valid rows from the same snapshot remain usable.
 - Surface `partial`, truncation warnings, archive-validation failures, and empty
   results. Never reinterpret them as complete absence of coverage.
 - Use the dedicated Events or Mentions Skill for their row types; this Skill
