@@ -95,6 +95,11 @@ const PILOTS = [
     requiredCredential: true,
   },
   {
+    skill: "usbr-project-records-fetch",
+    capability: "usbr.project-records",
+    operations: ["fetch"],
+  },
+  {
     skill: "usbr-rise-fetch",
     capability: "usbr.rise",
     operations: ["discover-items", "fetch-results"],
@@ -233,7 +238,7 @@ test(
           env: environment,
         });
         assert.equal(catalog.status, 0, catalog.stderr);
-        assert.equal(JSON.parse(catalog.stdout).capabilities.length >= 17, true);
+        assert.equal(JSON.parse(catalog.stdout).capabilities.length >= 18, true);
 
         for (const pilot of PILOTS) {
           const describe = run(

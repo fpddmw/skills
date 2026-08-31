@@ -18,7 +18,7 @@ checkPaths:
   - "*-download/**"
   - tiangong-auto-research/**
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: c660e0a36a86623e90c122735437ea561de6cdd8
+lastReviewedCommit: ac184814a1f5a3f2c1c1387c6c9e24a6158caf8f
 ---
 
 # 原子数据 Skill 迁移实施计划
@@ -42,12 +42,12 @@ lastReviewedCommit: c660e0a36a86623e90c122735437ea561de6cdd8
 
 - 早期计划把 Skills 目标仓库中的 38 个 fetch/search/download 目录作为总候选清单，
   这是目标目录盘点，不是 EcoCouncil 迁移源清单，不能证明迁移完整性。
-- 当前 19 个薄 Skill 与 17 个 CLI capability 中，USBR RISE 与 EPA EIS 已按 EcoCouncil
-  源完成本地迁移，其余 17 项仍只能视为内部兼容候选；在按 EcoCouncil
+- 当前 20 个薄 Skill 与 18 个 CLI capability 中，USBR RISE、USBR Project Records 与
+  EPA EIS 已按 EcoCouncil 源完成本地迁移，其余 17 项仍只能视为内部兼容候选；在按 EcoCouncil
   21 项清单重建映射并完成源语义复核前，不得描述为“EcoCouncil 已全部迁移”。
-- 当前明确未覆盖 `fetch-regulationsgov-attachments` 和 `fetch-usbr-project-records`。
-  `fetch-usbr-rise` 与 `fetch-epa-eis-records` 已完成本地 CLI/Skill 迁移；两项缺口以及
-  其余 17 项都继续由下方 21 项迁移矩阵跟踪。
+- 当前明确未覆盖的只剩 `fetch-regulationsgov-attachments`。
+  `fetch-usbr-rise`、`fetch-usbr-project-records` 与 `fetch-epa-eis-records` 已完成本地
+  CLI/Skill 迁移；这一项缺口以及其余 17 项都继续由下方 21 项迁移矩阵跟踪。
 - EcoCouncil 功能分支已提交点 `32d38e5172ebe8703c61a7031b7055c766ac9028`
   与 `ac19289` 的 `skills/source-fetch` 内容一致；本次仍只引用远端可复现的
   `main@ac19289`，不引用未提交工作树状态。
@@ -77,7 +77,7 @@ lastReviewedCommit: c660e0a36a86623e90c122735437ea561de6cdd8
 | 14 | `fetch-regulationsgov-attachments` | `regulationsgov-attachments-fetch` | 文件下载、SHA-256 与本地 artifact 是专用 TypeScript artifact 边界，不伪装成纯 JSON connector | 未实现 |
 | 15 | `fetch-regulationsgov-comment-detail` | `regulationsgov-comment-detail-fetch` | `regulations-gov.comments/fetch-details`，只含 attachment metadata | 已有候选，复核中 |
 | 16 | `fetch-regulationsgov-comments` | `regulationsgov-comments-fetch` | `regulations-gov.comments/search` | 已有候选，复核中 |
-| 17 | `fetch-usbr-project-records` | `usbr-project-records-fetch` | 新建 `usbr.project-records/fetch`；只取显式官方 URL 与同站链接清单 | 未实现 |
+| 17 | `fetch-usbr-project-records` | `usbr-project-records-fetch` | `usbr.project-records/fetch`；只取显式官方 URL 与同站链接清单 | 本地实现完成；统一安装/冷门禁待最终树 |
 | 18 | `fetch-usbr-rise` | `usbr-rise-fetch` | `usbr.rise/discover-items` 与 `fetch-results` | 本地迁移完成；正式 CLI binding 待发布版本 |
 | 19 | `fetch-usgs-water-iv` | `usgs-water-iv-fetch` | `usgs.water-instantaneous-values/fetch` | 已有候选，复核中 |
 | 20 | `fetch-youtube-comments` | `youtube-comments-fetch` | `youtube.public-content/fetch-comments` | 已有候选，复核中 |
@@ -98,39 +98,40 @@ fixture/conformance 通过、Skill 只保留意图与上层组合语义、execut
 - Skills 仓库已增加 execution-only binding 生成/校验器及离线 stale-binding 测试。
   AirNow、EPA EIS、Federal Register、USGS Water IV、Open-Meteo Air Quality、Open-Meteo Flood、
   Open-Meteo Historical Weather、NASA FIRMS、OpenAQ、Regulations.gov Comments、
-  Regulations.gov Comment Details、USBR RISE，以及 GDELT DOC、Events、GKG、Mentions 已在本地
+  Regulations.gov Comment Details、USBR Project Records、USBR RISE，以及 GDELT DOC、Events、GKG、Mentions 已在本地
   候选分支薄化；Bluesky Cascades、YouTube Video Search 与 YouTube Comments 也已在
   完成逐项语义/许可/安全审计后薄化。两个 Regulations.gov Skill 分别绑定同一
   `regulations-gov.comments` capability 的 search 与 fetch-details operation；四个
   GDELT Skill 分别绑定独立 capability；两个 YouTube Skill 分别绑定同一
   `youtube.public-content` capability 的 search-videos 与 fetch-comments operation。
-  十九项旧 Python connector 与重复 provider references 已移出候选 Skill，并共同纳入
+  二十项旧 Python connector 与重复 provider references 已移出候选 Skill，并共同纳入
   copy/symlink 安装 smoke。
 - 当前本地候选包 `0.0.55` 只用于分支内兼容验证，不代表 npm 正式发布。PR 前必须用
-  实际包含全部十七个 capability 的正式版本重新生成十九个 binding，并用该 npm 包
+  实际包含全部十八个 capability 的正式版本重新生成二十个 binding，并用该 npm 包
   重跑全部门禁。
 
 ## 2026-08-31 本地候选自洽性审计（不代表 EcoCouncil 迁移完成）
 
-- Skills 目标仓库中实际存在 40 个 fetch/search/download 候选：19 个原子 provider
+- Skills 目标仓库中实际存在 41 个 fetch/search/download 候选：20 个原子 provider
   Skill 已薄化，其余 21 个落入下文记录的内容/文件、产品或私有账户保留边界。该统计
   只说明目标仓库目录已分类，不覆盖 EcoCouncil 独有 Skill，也不是迁移完成证据。
-- CLI 候选使用 Node 24、TypeScript 7.0.2 和版本 `0.0.55`，发布 17 个 capability；
-  19 个薄 Skill 的 `generatedWithCliVersion` 与 `minimumCliVersion` 均为 `0.0.55`。
+- CLI 候选使用 Node 24、TypeScript 7.0.2 和版本 `0.0.55`，发布 18 个 capability；
+  20 个薄 Skill 的 `generatedWithCliVersion` 与 `minimumCliVersion` 均为 `0.0.55`。
 - 每个薄 Skill 只含 `SKILL.md`、`agents/openai.yaml` 和
   `references/tiangong-data-binding.json`；原 Python connector、provider 配置、重复 API
   notes 和 OpenClaw 模板均不在生产 Skill 路径中。
-- 19 个 binding 已逐项对照当前候选的 execution manifest 与 operation 输入/输出 Schema
+- 20 个 binding 已逐项对照当前候选的 execution manifest 与 operation 输入/输出 Schema
   digest；copy/symlink 隔离安装 smoke 已对截至 USBR RISE 的 18 项通过，EPA EIS 已通过
-  独立 `quick_validate.py`、binding verify 和 thin-skill contract。当前 19 项及后续新增项
+  独立 `quick_validate.py`、binding verify 和 thin-skill contract；USBR Project Records
+  已完成同样的独立验证。当前 20 项
   必须在最终树统一重跑 copy/symlink smoke，且不访问真实 provider。
-- CLI 的 lint、typecheck、499 项全量测试、3 项 platform contract、coverage、npm pack、
-  immutable setup pin audit 和 docpact 均通过；19 个薄 Skill 与 21 个明确保留 Skill 的
+- CLI 的 lint、typecheck、505 项全量测试、3 项 platform contract、coverage、npm pack、
+  immutable setup pin audit 和 docpact 均通过；20 个薄 Skill 与 21 个明确保留 Skill 的
   `quick_validate.py` 均通过，binding contract 与 docpact 也通过。
-- 上一版 15 capability/17 thin Skill 候选的两仓 cold gate 已通过。新增 USBR RISE 后，
-  CLI 已在新 clean container 中通过 499 项测试，statement coverage 为 84.79%；Skills
-  binding contract 与新增项 `quick_validate.py` 已通过，最终 copy/symlink smoke 待全部
-  缺失项落地后统一执行。Skills 早期
+- 上一版 15 capability/17 thin Skill 候选的两仓 cold gate 已通过。当前新增到 18
+  capability/20 thin Skill 后，CLI 已在新 clean container 中通过 505 项测试，statement
+  coverage 为 84.89%；Skills binding contract 与新增项 `quick_validate.py` 已通过，最终
+  copy/symlink smoke 待全部缺失项落地后统一执行。Skills 早期
   cold gate 曾暴露 `academic-paper-download`
   浏览器快照混用墙钟与 tmpfs `mtime` 的确定性缺陷；已在独立 clean container 中观察
   RED，改为以下载文件系统内排他临时标记建立时间边界，并在另一个新容器中转 GREEN。
@@ -138,7 +139,7 @@ fixture/conformance 通过、Skill 只保留意图与上层组合语义、execut
   discovery 为 77 项通过、1 项显式网络安装 smoke 跳过。完整 21 项迁移结束、准备 PR 时
   仍须对当前最终树重新运行两仓 cold gate，不能沿用旧候选结果。
 - CLI Research adapter/必要的 Auto Research 变更仍是下文明确分离的后续工作包，不被
-  伪装为本次 19 个原子 Skill 迁移的完成证据。
+  伪装为本次 20 个原子 Skill 迁移的完成证据。
 - 当前只有本地分支提交；在维护者统一审阅并明确确认前，不推送实现分支、不创建 PR。
 
 ## 与 CLI 的同步顺序
@@ -170,6 +171,9 @@ fixture/conformance 通过、Skill 只保留意图与上层组合语义、execut
 - `openaq-data-fetch`
 - `regulationsgov-comments-fetch`
 - `regulationsgov-comment-detail-fetch`
+- `epa-eis-records-fetch`
+- `usbr-project-records-fetch`
+- `usbr-rise-fetch`
 - `gdelt-doc-search`
 - `gdelt-events-fetch`
 - `gdelt-gkg-fetch`
@@ -272,6 +276,7 @@ Skill。以下差异必须明确，不能被误写成无损命令替换：
 | OpenAQ Air Quality             | 有界 location discovery、provider/owner/sensor/parameter/license/coverage metadata，以及单 sensor、最长 366 天的 raw/hourly/daily measurements、稳定分页和 later-page partial          | 任意 v3 path/query、API/S3 自动路由、S3 prefix/list/download、Skill-local region/bucket/endpoint 配置和 Python client/router 被移除；`OPENAQ_API_KEY` 只由 CLI header 注入。批量 archive 文件转入单独 content/download 审计；输出不提供 AQI、健康/监管判断、跨 sensor 聚合、单位转换或来源归因                                                             |
 | Regulations.gov Comments       | posted 或 last-modified 二选一的最长 366 天窗口、agency/comment-on/search-term 收窄、稳定 JSON:API 分页、comment ID/日期/标题/withdrawal metadata 和 later-page partial                | `REGGOV_API_KEY` 只由 CLI header 注入；移除任意 endpoint、重试/节流/log/dry-run、JSONL 写入和 quarantine。结果明确不是代表性公众意见、投票或统计 sentiment，不提供 comment post/modify、detail body 或 attachment download                                                                                                                                 |
 | Regulations.gov Comment Detail | 最多 100 个显式 comment ID、caller 顺序、comment/docket/document linkage、日期、withdrawal/restriction、组织上下文、duplicate count、可选 attachment metadata 和 per-ID partial        | 删除本地文件 ID 解析、任意 endpoint、重试/节流/log/dry-run、raw/JSONL/quarantine 写入；CLI 以 allowlist 排除姓名、邮箱、电话、地址与 locality 等个人 profile 字段，只返回 attachment metadata/link，不下载 bytes，也不提供法律判断或代表性 sentiment                                                                                                       |
+| USBR Project Records            | 显式 `www.usbr.gov` 页面、title/meta description、响应 digest/bytes/safe headers、同 origin 链接去重、文档顺序/type 与 later-page partial                                      | 删除 URL 文件读取、任意/非 HTTPS/外部 host、重试/日志/dry-run/output 和 raw artifact 写入；CLI 不做站内搜索、递归 crawling 或链接下载，不把链接线索当作已审阅证据，也不推断法律、政策、运行、环境影响或治理责任                                                                                  |
 | USBR RISE                      | 有界 provider-page catalog discovery、client-side terms/location/parameter/source 过滤、显式 item ID result fetch、可选 UTC/location/parameter/order/item-metadata、item/page partial | 删除任意 endpoint、Skill-local env/retry/throttle/log/dry-run/output、operator-supplied metadata override 和 raw artifact 写入；CLI 返回统一 result/receipt，保留 unit/timestep/transformation/source/disclaimer，且不把 scan order 当排名、缺失行当物理不存在，或推断 shortage、compliance、causality 与 governance responsibility |
 | GDELT DOC                      | 有界 relative/absolute window、受控 article-list/timeline modes、GDELT query syntax、模式化 JSON 结果和 provider truncation/空结果语义                                               | 删除任意 DOC mode/format/额外 query 参数、endpoint/retry/throttle/log 配置和 raw artifact 写入；只返回文章 metadata/link 或聚合时间线，不下载正文，也不把自动 tone/count/ranking 解释为代表性、事实或因果证据                                                                                                                                                |
 | GDELT Events                   | latest 或精确 15 分钟 UTC range、最多 20 个 source files、ZIP/MD5/CRC/UTF-8/61-column 校验、机器编码 event rows 与来源 lineage                                                        | 删除 masterfilelist 下载、dry-run、任意 expected-columns、output/quarantine/log 路径和持久 ZIP；CLI 返回有界内存归一化 rows 与统一 receipt，不把 coded event 当作验证事实、唯一事件或正文                                                                                                                                                                      |
@@ -331,6 +336,12 @@ TypeScript HTML tokenizer 解析 result table，保留 CEQ/provider ID、类型�
 州、detail/download cues，明确区分 0-item 与 markup drift，并对 record cap 和后续搜索
 失败给出 truncation/partial。clean container 499 项全过；Skill 不复制 parser，只负责
 搜索选择、空结果解释、文档未下载边界和上层判断纪律。
+
+USBR Project Records 已完成 `usbr.project-records/fetch` 与
+`usbr-project-records-fetch`：只接受显式 `https://www.usbr.gov` 页面，保留页面响应
+provenance 和同 origin 链接清单，不跟随或下载链接；page/global record/per-page link cap
+与后续页面失败均显式报告。CLI clean container 505 项全过；Skill 只负责页面选择、链接
+线索解释、与 RISE 的能力分流及上层判断边界。
 
 ### 批次 3：GDELT 与内容/社交来源
 

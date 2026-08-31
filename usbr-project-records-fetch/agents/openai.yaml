@@ -1,0 +1,4 @@
+interface:
+  display_name: "USBR Project Records Fetch"
+  short_description: "Inventory bounded official USBR page records"
+  default_prompt: "Use $usbr-project-records-fetch to inventory a known official USBR page and its same-origin record links."

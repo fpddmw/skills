@@ -233,6 +233,16 @@ const PILOT_SKILLS = [
     ],
   },
   {
+    name: "usbr-project-records-fetch",
+    capabilityId: "usbr.project-records",
+    operations: [
+      {
+        operationId: "fetch",
+        inputKeys: ["maxLinkedRecordsPerPage", "urls"],
+      },
+    ],
+  },
+  {
     name: "usbr-rise-fetch",
     capabilityId: "usbr.rise",
     operations: [
