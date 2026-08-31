@@ -5,15 +5,15 @@
   "capabilityId": "gdelt.doc-search",
   "capabilityVersion": "1.0.0",
   "minimumCliVersion": "0.0.55",
-  "manifestDigest": "28b8d774738255f1adb3ddeac12f07d54c872fad2f886df12109a26dd8b2d4dc",
+  "manifestDigest": "752c31e2a61d7ccf917c36ef27634162fb39f98073d22604c5204e97f79051b6",
   "operations": [
     {
       "operationId": "search",
       "operationVersion": "1.0.0",
       "inputSchemaId": "https://schemas.tiangong.ai/data/gdelt/doc-search-input.v1.json",
-      "inputSchemaDigest": "a380e0577cca78073073eb2974e6ddaf94e68b54aea0123fa2a6762d4281ee22",
+      "inputSchemaDigest": "c7830eb70dc9b9b584030249468c5905babe59068d4924d8464c81c6922f6d10",
       "outputSchemaId": "https://schemas.tiangong.ai/data/gdelt/doc-search-output.v1.json",
-      "outputSchemaDigest": "b94ddeb22d1a34e9742b36d0471407d7a23af8b1f5ad15938f51a6767314e1dd"
+      "outputSchemaDigest": "cf68c5b4b77151722a8ba483ce75c66a66e30af1e0dffdba8dbaed0038e4e1bd"
     }
   ]
 }

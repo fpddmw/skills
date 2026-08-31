@@ -1,6 +1,6 @@
 ---
 name: gdelt-doc-search
-description: Search GDELT DOC 2.0 through the Tiangong CLI for bounded recent article metadata or timeline aggregates using GDELT query syntax. Use for news-source discovery and trend reconnaissance; do not use for article bodies, raw GDELT event/GKG/mention rows, representative media measurement, fact verification, sentiment ground truth, or causal inference.
+description: Search GDELT DOC 2.0 through the Tiangong CLI for bounded article metadata, timeline aggregates, or tone-distribution bins using linted GDELT query syntax and optional split domain filters. Use for news-source discovery and trend reconnaissance; do not use for article bodies, raw GDELT event/GKG/mention rows, representative media measurement, fact verification, sentiment ground truth, or causal inference.
 ---
 
 # GDELT DOC Search
@@ -54,9 +54,15 @@ article list for one bounded absolute UTC window:
 ```
 
 Use the operation input schema returned by `data describe` to select a
-supported mode and its mode-specific fields. Choose exactly one supported time
-window form. Do not silently widen the requested window or pass arbitrary DOC
-parameters that are absent from the schema.
+supported mode and its mode-specific fields. Use at most one time-window form;
+omitting both uses the provider default window. Never silently widen a supplied
+window or pass arbitrary DOC parameters absent from the schema.
+
+The CLI lints every effective query before network access. Wrap boolean `OR`
+groups in parentheses and use `exactDomains` (`domainis:`) or `domains`
+(`domain:`), never `site:` or `inurl:`. Repeated domains become separate
+bounded batches. Set `continueOnQueryError` only when a partial merged result is
+useful and retain `batchQueries` plus `queryErrors`.
 
 ## Run
 
@@ -77,6 +83,8 @@ result to another workflow.
 - Treat timelines, tone, language, and source-country outputs as automated
   aggregates whose meaning depends on the selected mode; do not compare unlike
   measures or infer causality from them.
+- In `tonechart`, `articleCount` is the count assigned to a tone bin, not the
+  tone score itself and not a public-sentiment estimate.
 - GDELT source coverage and automated extraction can be uneven. Do not treat
   counts, tone, or rankings as representative measurements of public opinion,
   media prevalence, event truth, or sentiment ground truth.

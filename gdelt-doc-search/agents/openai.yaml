@@ -1,4 +1,4 @@
 interface:
   display_name: "GDELT DOC Search"
-  short_description: "Search bounded GDELT article metadata and timelines"
-  default_prompt: "Use $gdelt-doc-search to search GDELT DOC for bounded article metadata or timeline aggregates."
+  short_description: "Search GDELT article, timeline, and tone metadata"
+  default_prompt: "Use -doc-search to run a linted GDELT DOC article, timeline, or tone-distribution query with explicit limits and optional split domain filters."

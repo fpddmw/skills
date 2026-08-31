@@ -67,7 +67,7 @@ lastReviewedCommit: 2998da54897f8f254a37e187ff64c62feae3dbd2
 | 2 | `fetch-bluesky-cascade` | `bluesky-cascade-fetch` | `bluesky.public-posts/fetch-cascades` | 源语义复核完成；最终统一门禁待跑 |
 | 3 | `fetch-epa-eis-records` | `epa-eis-records-fetch` | `epa.eis-records/search`；只解析官方 EIS 结果表，不作法律或政策判断 | 本地实现完成；统一安装/冷门禁待最终树 |
 | 4 | `fetch-federal-register-documents` | `federal-register-doc-fetch` | `federal-register.documents/search` | 源语义复核完成；最终统一门禁待跑 |
-| 5 | `fetch-gdelt-doc-search` | `gdelt-doc-search` | `gdelt.doc-search/search` | 已有候选，复核中 |
+| 5 | `fetch-gdelt-doc-search` | `gdelt-doc-search` | `gdelt.doc-search/search` | 源语义复核完成；最终统一门禁待跑 |
 | 6 | `fetch-gdelt-events` | `gdelt-events-fetch` | `gdelt.events/fetch` | 已有候选，复核中 |
 | 7 | `fetch-gdelt-gkg` | `gdelt-gkg-fetch` | `gdelt.gkg/fetch` | 已有候选，复核中 |
 | 8 | `fetch-gdelt-mentions` | `gdelt-mentions-fetch` | `gdelt.mentions/fetch` | 已有候选，复核中 |
@@ -105,6 +105,12 @@ Federal Register 复核移除了源实现不存在的“必须同时提供日期
 runtime 页数/记录数约束的 newest listing，并补回 citation、comments-close、raw-text、XML、
 JSON 与 Regulations.gov 等提供方链接字段。单条稀疏记录和可选 count/total-pages 元数据现在
 按源脚本的容错语义归一化，不再使整页结果失败；正文仍未被获取，法律解释边界不变。
+
+GDELT DOC 复核补回 query lint（拒绝 `site:`/`inurl:` 与未加括号的 `OR`）、重复
+`domain:`/`domainis:` 的有界拆分合并、可选失败批次保留、provider 默认时间窗、长绝对
+timeline 窗口与 `tonechart` 归一化；稀疏 article 字段不再使整批失败。CLI 继续只发布
+结构化 JSON 数据面，不迁入源脚本的 HTML/RSS/CSV 展示或任意 `--param` 透传，这些不是稳定
+机器执行契约；article body、图像和页面内容仍属于单独治理的内容获取边界。
 
 ## 2026-08-31 实现状态
 
