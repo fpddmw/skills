@@ -300,12 +300,14 @@ test(
                   capabilityVersion: binding.capabilityVersion,
                   operationId,
                   operationVersion: operation.operationVersion,
-                  input: {},
+                  input: { __offlineSmoke: true },
                 })}\n`,
               },
             );
             assert.notEqual(blocked.status, 0);
-            assert.equal(JSON.parse(blocked.stdout).status, "blocked");
+            const blockedResult = JSON.parse(blocked.stdout);
+            assert.equal(blockedResult.status, "blocked");
+            assert.equal(blockedResult.errors[0]?.code, "invalid-request");
           }
         }
       }
