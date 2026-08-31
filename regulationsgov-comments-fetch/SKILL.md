@@ -41,8 +41,16 @@ logical credential is unavailable; stop instead of bypassing the CLI.
 - Use an inclusive explicit window no longer than 366 days. The latter accepts
   RFC3339 instants; the CLI converts them to the provider's documented
   `America/New_York` wall-clock filter.
+- Regulations.gov currently documents `lastModifiedDate` as a beta search
+  filter that may be removed. Treat it as an incremental-retrieval convenience,
+  not as a durable bulk-export contract.
 - Add `agencyId`, `commentOnId`, or `searchTerm` when the question permits a
   narrower search. Do not silently widen or remove a user-specified filter.
+- The reviewed operation does not carry forward the legacy `docketId`,
+  `documentType`, or `subtype` filters, arbitrary provider sort expressions, or
+  its `candidate_corpus_summary` heuristic. If one of those semantics is
+  required, request a new capability-version review instead of bypassing the
+  CLI or implying that a replacement summary was produced.
 - Treat search results as discovery metadata. Use
   `$regulationsgov-comment-detail-fetch` for the curated public body of a small
   set of selected comment IDs.
@@ -98,6 +106,9 @@ handing the result to another workflow.
   relevant submissions exist outside the exact public provider result.
 - Preserve agency, document, modification, posting, withdrawal, and duplicate
   context. Field availability and publication practices differ by agency.
+- Search metadata can be `null` when the provider omits it. Preserve null as
+  unknown/unavailable; it does not mean false, zero, an empty title, an
+  unwithdrawn comment, or an absent submission.
 - Comments are self-selected submissions. Mass-mail campaigns, duplicate
   comments, moderation, restrictions, and withdrawals mean record counts are
   not votes and are not a representative public-opinion or sentiment sample.

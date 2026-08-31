@@ -41,9 +41,13 @@ directly.
 - Supply one to 100 exact public comment IDs in the caller's intended order.
   Obtain them from a reviewed source such as
   `$regulationsgov-comments-fetch`; do not invent IDs or crawl a range.
+- The reviewed CLI contract intentionally tightens the legacy script's
+  300-ID batch ceiling to 100. Split a larger reviewed set in the caller and
+  preserve its ordering and completeness plan across batches.
 - Set `includeAttachments` to `true` only when attachment title, author,
   abstract, restriction, format, size, and HTTPS link metadata are relevant.
-  The operation never retrieves linked bytes or full text.
+  Individual metadata members can be `null` when the provider omits them; the
+  operation never retrieves linked bytes or full text.
 - Split larger evidence sets in the caller under an explicit sampling and
   completeness plan. Do not silently discard IDs or expand the set.
 
@@ -98,6 +102,10 @@ handing the result to another workflow.
 - Preserve docket/document linkage, dates, withdrawal/restriction state,
   organization or government-agency context, and duplicate count when making
   downstream claims.
+- `modifiedDateTime` and individual attachment URL, format, or byte-size
+  members can be `null`. Preserve that provider non-availability explicitly;
+  do not reinterpret it as an unchanged record, an absent attachment, an empty
+  format, or a zero-byte file.
 - Comments are self-selected submissions, not votes or a representative sample
   of public opinion. Do not infer statistical sentiment, legal force, agency
   endorsement, or complete docket coverage from these details alone.
