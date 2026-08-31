@@ -18,7 +18,7 @@ checkPaths:
   - "*-download/**"
   - tiangong-auto-research/**
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: fe16c358d834fd0b8551365396d9eb4da52721c1
+lastReviewedCommit: c660e0a36a86623e90c122735437ea561de6cdd8
 ---
 
 # 原子数据 Skill 迁移实施计划
@@ -42,12 +42,12 @@ lastReviewedCommit: fe16c358d834fd0b8551365396d9eb4da52721c1
 
 - 早期计划把 Skills 目标仓库中的 38 个 fetch/search/download 目录作为总候选清单，
   这是目标目录盘点，不是 EcoCouncil 迁移源清单，不能证明迁移完整性。
-- 当前 18 个薄 Skill 与 16 个 CLI capability 中，USBR RISE 已按 EcoCouncil 源完成本地
-  迁移，其余 17 项仍只能视为内部兼容候选；在按 EcoCouncil
+- 当前 19 个薄 Skill 与 17 个 CLI capability 中，USBR RISE 与 EPA EIS 已按 EcoCouncil
+  源完成本地迁移，其余 17 项仍只能视为内部兼容候选；在按 EcoCouncil
   21 项清单重建映射并完成源语义复核前，不得描述为“EcoCouncil 已全部迁移”。
-- 当前明确未覆盖 `fetch-epa-eis-records`、`fetch-regulationsgov-attachments` 和
-  `fetch-usbr-project-records`。`fetch-usbr-rise` 已完成本地 CLI/Skill 迁移；三项缺口
-  以及其余 17 项都继续由下方 21 项迁移矩阵跟踪。
+- 当前明确未覆盖 `fetch-regulationsgov-attachments` 和 `fetch-usbr-project-records`。
+  `fetch-usbr-rise` 与 `fetch-epa-eis-records` 已完成本地 CLI/Skill 迁移；两项缺口以及
+  其余 17 项都继续由下方 21 项迁移矩阵跟踪。
 - EcoCouncil 功能分支已提交点 `32d38e5172ebe8703c61a7031b7055c766ac9028`
   与 `ac19289` 的 `skills/source-fetch` 内容一致；本次仍只引用远端可复现的
   `main@ac19289`，不引用未提交工作树状态。
@@ -63,7 +63,7 @@ lastReviewedCommit: fe16c358d834fd0b8551365396d9eb4da52721c1
 | -: | ------------------------ | ----------- | ---------------------------------------- | -------- |
 | 1 | `fetch-airnow-hourly-observations` | `airnow-hourly-obs-fetch` | `airnow.hourly-observations/fetch-hourly` | 已有候选，复核中 |
 | 2 | `fetch-bluesky-cascade` | `bluesky-cascade-fetch` | `bluesky.public-posts/fetch-cascades` | 已有候选，复核中 |
-| 3 | `fetch-epa-eis-records` | `epa-eis-records-fetch` | 新建 `epa.eis-records/search`；只解析官方 EIS 结果表，不作法律或政策判断 | 未实现 |
+| 3 | `fetch-epa-eis-records` | `epa-eis-records-fetch` | `epa.eis-records/search`；只解析官方 EIS 结果表，不作法律或政策判断 | 本地实现完成；统一安装/冷门禁待最终树 |
 | 4 | `fetch-federal-register-documents` | `federal-register-doc-fetch` | `federal-register.documents/search` | 已有候选，复核中 |
 | 5 | `fetch-gdelt-doc-search` | `gdelt-doc-search` | `gdelt.doc-search/search` | 已有候选，复核中 |
 | 6 | `fetch-gdelt-events` | `gdelt-events-fetch` | `gdelt.events/fetch` | 已有候选，复核中 |
@@ -96,7 +96,7 @@ fixture/conformance 通过、Skill 只保留意图与上层组合语义、execut
 - 当前公共 `@tiangong-ai/cli@0.0.54` 尚不包含 `data` 命令，因此仍未达到删除
   Skill 旧执行脚本和提交正式 binding 的门槛。
 - Skills 仓库已增加 execution-only binding 生成/校验器及离线 stale-binding 测试。
-  AirNow、Federal Register、USGS Water IV、Open-Meteo Air Quality、Open-Meteo Flood、
+  AirNow、EPA EIS、Federal Register、USGS Water IV、Open-Meteo Air Quality、Open-Meteo Flood、
   Open-Meteo Historical Weather、NASA FIRMS、OpenAQ、Regulations.gov Comments、
   Regulations.gov Comment Details、USBR RISE，以及 GDELT DOC、Events、GKG、Mentions 已在本地
   候选分支薄化；Bluesky Cascades、YouTube Video Search 与 YouTube Comments 也已在
@@ -104,30 +104,33 @@ fixture/conformance 通过、Skill 只保留意图与上层组合语义、execut
   `regulations-gov.comments` capability 的 search 与 fetch-details operation；四个
   GDELT Skill 分别绑定独立 capability；两个 YouTube Skill 分别绑定同一
   `youtube.public-content` capability 的 search-videos 与 fetch-comments operation。
-  十八项旧 Python connector 与重复 provider references 已移出候选 Skill，并共同纳入
+  十九项旧 Python connector 与重复 provider references 已移出候选 Skill，并共同纳入
   copy/symlink 安装 smoke。
 - 当前本地候选包 `0.0.55` 只用于分支内兼容验证，不代表 npm 正式发布。PR 前必须用
-  实际包含全部十六个 capability 的正式版本重新生成十八个 binding，并用该 npm 包
+  实际包含全部十七个 capability 的正式版本重新生成十九个 binding，并用该 npm 包
   重跑全部门禁。
 
 ## 2026-08-31 本地候选自洽性审计（不代表 EcoCouncil 迁移完成）
 
-- Skills 目标仓库中实际存在 39 个 fetch/search/download 候选：18 个原子 provider
+- Skills 目标仓库中实际存在 40 个 fetch/search/download 候选：19 个原子 provider
   Skill 已薄化，其余 21 个落入下文记录的内容/文件、产品或私有账户保留边界。该统计
   只说明目标仓库目录已分类，不覆盖 EcoCouncil 独有 Skill，也不是迁移完成证据。
-- CLI 候选使用 Node 24、TypeScript 7.0.2 和版本 `0.0.55`，发布 16 个 capability；
-  18 个薄 Skill 的 `generatedWithCliVersion` 与 `minimumCliVersion` 均为 `0.0.55`。
+- CLI 候选使用 Node 24、TypeScript 7.0.2 和版本 `0.0.55`，发布 17 个 capability；
+  19 个薄 Skill 的 `generatedWithCliVersion` 与 `minimumCliVersion` 均为 `0.0.55`。
 - 每个薄 Skill 只含 `SKILL.md`、`agents/openai.yaml` 和
   `references/tiangong-data-binding.json`；原 Python connector、provider 配置、重复 API
   notes 和 OpenClaw 模板均不在生产 Skill 路径中。
-- 18 个 binding 已逐项对照最终候选的 execution manifest 与 operation 输入/输出 Schema
-  digest；copy/symlink 隔离安装 smoke 使用最终 tarball 通过，且不访问真实 provider。
-- CLI 的 lint、typecheck、492 项全量测试、3 项 platform contract、coverage、npm pack、
-  immutable setup pin audit 和 docpact 均通过；18 个薄 Skill 与 21 个明确保留 Skill 的
+- 19 个 binding 已逐项对照当前候选的 execution manifest 与 operation 输入/输出 Schema
+  digest；copy/symlink 隔离安装 smoke 已对截至 USBR RISE 的 18 项通过，EPA EIS 已通过
+  独立 `quick_validate.py`、binding verify 和 thin-skill contract。当前 19 项及后续新增项
+  必须在最终树统一重跑 copy/symlink smoke，且不访问真实 provider。
+- CLI 的 lint、typecheck、499 项全量测试、3 项 platform contract、coverage、npm pack、
+  immutable setup pin audit 和 docpact 均通过；19 个薄 Skill 与 21 个明确保留 Skill 的
   `quick_validate.py` 均通过，binding contract 与 docpact 也通过。
 - 上一版 15 capability/17 thin Skill 候选的两仓 cold gate 已通过。新增 USBR RISE 后，
-  CLI 已在新 clean container 中通过 492 项测试，statement coverage 为 84.65%；Skills
-  binding contract、`quick_validate.py` 与 copy/symlink 安装 smoke 已通过。Skills 早期
+  CLI 已在新 clean container 中通过 499 项测试，statement coverage 为 84.79%；Skills
+  binding contract 与新增项 `quick_validate.py` 已通过，最终 copy/symlink smoke 待全部
+  缺失项落地后统一执行。Skills 早期
   cold gate 曾暴露 `academic-paper-download`
   浏览器快照混用墙钟与 tmpfs `mtime` 的确定性缺陷；已在独立 clean container 中观察
   RED，改为以下载文件系统内排他临时标记建立时间边界，并在另一个新容器中转 GREEN。
@@ -135,7 +138,7 @@ fixture/conformance 通过、Skill 只保留意图与上层组合语义、execut
   discovery 为 77 项通过、1 项显式网络安装 smoke 跳过。完整 21 项迁移结束、准备 PR 时
   仍须对当前最终树重新运行两仓 cold gate，不能沿用旧候选结果。
 - CLI Research adapter/必要的 Auto Research 变更仍是下文明确分离的后续工作包，不被
-  伪装为本次 18 个原子 Skill 迁移的完成证据。
+  伪装为本次 19 个原子 Skill 迁移的完成证据。
 - 当前只有本地分支提交；在维护者统一审阅并明确确认前，不推送实现分支、不创建 PR。
 
 ## 与 CLI 的同步顺序
@@ -259,6 +262,7 @@ Skill。以下差异必须明确，不能被误写成无损命令替换：
 | Skill                          | 保留到 CLI capability 的核心行为                                                                                                                                                       | 有意收敛或替代的旧行为                                                                                                                                                                                                                                                                                                                                     |
 | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | AirNow                         | UTC 小时文件规划、bbox/time/pollutant 过滤、站点小时记录、逐文件 lineage、缺失/坏文件 partial                                                                                          | 任意 endpoint/path/user-agent/重试调参、Skill `check-config`、dry-run、日志文件和 raw artifact 写入被 CLI manifest、`data doctor`、统一 limits、run-result/receipt 取代；非整点输入不再静默截断而是拒绝                                                                                                                                                    |
+| EPA EIS Records                 | 四种官方 common search、显式官方 UI search URL、`submissionsTable` 的 title/CEQ/unique ID/type/date/agency/state/detail/download cues、跨搜索去重和 later-search partial | 删除任意 base URL、http URL、重试/节流/user-agent/log/dry-run/output 与 raw artifact 写入；显式 URL 只允许官方 HTTPS origin/path，HTML 漂移 fail closed。CLI 不下载链接文件，也不判断 NEPA/EIS adequacy、legal sufficiency、environmental effects、compliance 或 policy responsibility |
 | Federal Register               | publication date、term、agency、type、topic、docket、RIN、稳定查询编码、有界分页/记录、空结果/截断/later-page partial                                                                  | `section`、`significant` 输入过滤、任意 `fields` 投影和 `executive_order_number` 排序不属于首个 capability v1；Skill 不再宣称支持。每次调用的 page/record 上限改用 run-request 顶层 `limits` 且只能降低 manifest 上限；dry-run、日志和 raw artifact 路径不再保留                                                                                           |
 | USGS Water IV                  | bbox 或最多 100 个 sites、period 或显式 window、参数/site type/status/agency 过滤、WaterML series/value 归一化、qualifier/provisional、no-data 过滤和坏 row/series partial             | 旧脚本允许本地 env/argv 覆盖 endpoint、重试、节流、上限、user-agent、日志和 `file://` fixture，并提供 `check-config`、dry-run、raw artifact 写入；这些改由 CLI endpoint policy、manifest limits、static doctor、fixture tests 和 run-result/receipt 取代。官方 legacy 上限把旧 Skill 的 200 sites 收紧为 100，且明确 2027-Q1 decommission 风险             |
 | Open-Meteo Air Quality         | 最多 10 个坐标、92 个闭合日期、16 个官方 hourly variables、domain/cell selection、单次多坐标响应、nullable aligned arrays 和坐标/变量 partial                                          | timezone 固定为 GMT，删除任意 timezone、endpoint、API key、重试、节流、user-agent、日志、dry-run 和 raw artifact 调参。公开 endpoint 明确为 non-commercial 且无凭证；商业 customer endpoint/API key 需要独立 capability 评审。输出改为 location-hour 列式结果和统一 run-result/receipt，不兼容旧 snake_case payload                                        |
@@ -320,6 +324,13 @@ keyless API scope，但拥有独立闭合 Schema。对应 `usbr-rise-fetch` 只�
 缺口解释和上层判断边界，不再携带 Python connector、artifact 输出或 endpoint 调参。
 CLI clean container 492 项全过，Skill binding、`quick_validate.py` 与 copy/symlink 安装
 smoke 已通过；正式 binding 仍须等待包含最终 21 项迁移结果的精确 CLI 发布版本。
+
+EPA EIS 已完成 `epa.eis-records/search` 与 `epa-eis-records-fetch`：保留四种官方
+common search 和 UI-created search URL，后者只接受官方 HTTPS origin/path。CLI 使用
+TypeScript HTML tokenizer 解析 result table，保留 CEQ/provider ID、类型、日期、机构、
+州、detail/download cues，明确区分 0-item 与 markup drift，并对 record cap 和后续搜索
+失败给出 truncation/partial。clean container 499 项全过；Skill 不复制 parser，只负责
+搜索选择、空结果解释、文档未下载边界和上层判断纪律。
 
 ### 批次 3：GDELT 与内容/社交来源
 

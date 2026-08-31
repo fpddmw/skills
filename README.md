@@ -14,7 +14,7 @@ checkPaths:
   - .claude-plugin/**
   - "*/SKILL.md"
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: fe16c358d834fd0b8551365396d9eb4da52721c1
+lastReviewedCommit: c660e0a36a86623e90c122735437ea561de6cdd8
 ---
 
 # Tiangong AI Skills
@@ -25,7 +25,7 @@ Use the `skills` CLI from https://github.com/vercel-labs/skills to install, upda
 
 ## Atomic data skills
 
-Eighteen local candidate Skills—AirNow Hourly Observations, Federal Register Documents, NASA
+Nineteen local candidate Skills—AirNow Hourly Observations, EPA EIS Records, Federal Register Documents, NASA
 FIRMS Active Fire, OpenAQ Air Quality, Regulations.gov Comments,
 Regulations.gov Comment Details, USBR RISE, USGS Water IV, three Open-Meteo sources, and
 GDELT DOC, Events, GKG, and Mentions, plus Bluesky Cascades, YouTube Video
@@ -37,10 +37,9 @@ contain no second provider connector runtime.
 
 This candidate set is not a complete EcoCouncil migration. The authoritative
 EcoCouncil source baseline, `main@ac19289b4876d8a90595a0270721ef3f5ee7ced8`,
-contains 21 `source-fetch` Skills. Three are not yet represented here—EPA EIS
-records, Regulations.gov attachments, and USBR project records—and the other
-17 existing candidates still require source-semantic revalidation before a
-Skills PR.
+contains 21 `source-fetch` Skills. Two are not yet represented here—
+Regulations.gov attachments and USBR project records—and the other 17 existing
+candidates still require source-semantic revalidation before a Skills PR.
 
 See `_docs/architecture/atomic-data-capabilities.md` and
 `_docs/runbooks/atomic-data-skill-migration.md` for the ownership boundary,

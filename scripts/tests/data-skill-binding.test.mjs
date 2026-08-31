@@ -51,6 +51,16 @@ const PILOT_SKILLS = [
     ],
   },
   {
+    name: "epa-eis-records-fetch",
+    capabilityId: "epa.eis-records",
+    operations: [
+      {
+        operationId: "search",
+        inputKeys: ["commonSearches", "searchUrls"],
+      },
+    ],
+  },
+  {
     name: "federal-register-doc-fetch",
     capabilityId: "federal-register.documents",
     operations: [

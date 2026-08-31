@@ -26,6 +26,11 @@ const PILOTS = [
     operations: ["fetch-cascades"],
   },
   {
+    skill: "epa-eis-records-fetch",
+    capability: "epa.eis-records",
+    operations: ["search"],
+  },
+  {
     skill: "federal-register-doc-fetch",
     capability: "federal-register.documents",
     operations: ["search"],
@@ -228,7 +233,7 @@ test(
           env: environment,
         });
         assert.equal(catalog.status, 0, catalog.stderr);
-        assert.equal(JSON.parse(catalog.stdout).capabilities.length >= 16, true);
+        assert.equal(JSON.parse(catalog.stdout).capabilities.length >= 17, true);
 
         for (const pilot of PILOTS) {
           const describe = run(
