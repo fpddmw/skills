@@ -70,7 +70,7 @@ lastReviewedCommit: 2998da54897f8f254a37e187ff64c62feae3dbd2
 | 5 | `fetch-gdelt-doc-search` | `gdelt-doc-search` | `gdelt.doc-search/search` | 源语义复核完成；最终统一门禁待跑 |
 | 6 | `fetch-gdelt-events` | `gdelt-events-fetch` | `gdelt.events/fetch` | 源语义复核完成；最终统一门禁待跑 |
 | 7 | `fetch-gdelt-gkg` | `gdelt-gkg-fetch` | `gdelt.gkg/fetch` | 源语义复核完成；最终统一门禁待跑 |
-| 8 | `fetch-gdelt-mentions` | `gdelt-mentions-fetch` | `gdelt.mentions/fetch` | 已有候选，复核中 |
+| 8 | `fetch-gdelt-mentions` | `gdelt-mentions-fetch` | `gdelt.mentions/fetch` | 源语义复核完成；最终统一门禁待跑 |
 | 9 | `fetch-nasa-firms-fire` | `nasa-firms-fire-fetch` | `nasa-firms.active-fire/fetch-area` | 已有候选，复核中 |
 | 10 | `fetch-open-meteo-air-quality` | `open-meteo-air-quality-fetch` | `open-meteo.air-quality/fetch-hourly` | 已有候选，复核中 |
 | 11 | `fetch-open-meteo-flood` | `open-meteo-flood-fetch` | `open-meteo.flood/fetch-daily` | 已有候选，复核中 |
@@ -123,6 +123,12 @@ GDELT GKG 复核确认了固定源的 `.gkg.csv.zip`、27 列、UTC 范围内按
 落入范围的 15 分钟快照开始，并在文件上限截断时显式报告。坏行按统一 runtime 规则局部
 隔离，SHA-256、CRC 和行级问题随结果保留；CLI 返回命名 GKG 字段而不创建源脚本式 ZIP
 归档、masterfilelist、preview 或 quarantine artifact，这一边界已写入 thin Skill。
+
+GDELT Mentions 复核确认了固定源的 `.mentions.CSV.zip`、16 列、UTC 范围内按时间升序取前
+`max-files` 和 ZIP/UTF-8/列数检查语义；它与 Events/GKG 共用同一有界实现，但保留独立
+capability、闭合字段 Schema 和 mention-level discovery。非对齐范围、截断、坏行隔离、
+SHA-256/CRC/行级问题处理与另外两个 feed 一致；CLI 不创建 ZIP 归档、masterfilelist、
+preview 或 quarantine artifact，也不把 mention row 解释为独立文章、认可或已验证事件。
 
 ## 2026-08-31 实现状态
 
@@ -322,7 +328,7 @@ Skill。以下差异必须明确，不能被误写成无损命令替换：
 | GDELT DOC                      | 有界 relative/absolute window、受控 article-list/timeline modes、GDELT query syntax、模式化 JSON 结果和 provider truncation/空结果语义                                               | 删除任意 DOC mode/format/额外 query 参数、endpoint/retry/throttle/log 配置和 raw artifact 写入；只返回文章 metadata/link 或聚合时间线，不下载正文，也不把自动 tone/count/ranking 解释为代表性、事实或因果证据                                                                                                                                                |
 | GDELT Events                   | latest 或任意秒级 inclusive UTC range（从首个落入窗口的 15 分钟快照开始）、最多 20 个 source files、ZIP/MD5/CRC/UTF-8/61-column 校验、机器编码 event rows 与来源 lineage                                                        | 删除 masterfilelist 下载、dry-run、任意 expected-columns、output/quarantine/log 路径和持久 ZIP；CLI 返回有界内存归一化 rows 与统一 receipt，不把 coded event 当作验证事实、唯一事件或正文                                                                                                                                                                      |
 | GDELT GKG                      | latest 或任意秒级 inclusive UTC range（从首个落入窗口的 15 分钟快照开始）、最多 20 个 source files、ZIP/MD5/CRC/UTF-8/27-column 校验、GKG annotations 与 document lineage                                                       | 删除 masterfilelist 下载、dry-run、任意 expected-columns、output/quarantine/log 路径和持久 ZIP；CLI 返回有界内存归一化 rows，不把 machine-extracted themes/entities/locations/tone 当作已验证知识、正文或 sentiment ground truth                                                                                                                              |
-| GDELT Mentions                 | latest 或精确 15 分钟 UTC range、最多 20 个 source files、ZIP/MD5/CRC/UTF-8/16-column 校验、mention-level provenance/confidence/source linkage                                       | 删除 masterfilelist 下载、dry-run、任意 expected-columns、output/quarantine/log 路径和持久 ZIP；CLI 返回有界内存归一化 rows，不把 mention 当作独立 endorsement、唯一文章、验证事件或正文                                                                                                                                                                    |
+| GDELT Mentions                 | latest 或任意秒级 inclusive UTC range（从首个落入窗口的 15 分钟快照开始）、最多 20 个 source files、ZIP/MD5/CRC/UTF-8/16-column 校验、mention-level provenance/confidence/source linkage                                       | 删除 masterfilelist 下载、dry-run、任意 expected-columns、output/quarantine/log 路径和持久 ZIP；CLI 返回有界内存归一化 rows，不把 mention 当作独立 endorsement、唯一文章、验证事件或正文                                                                                                                                                                    |
 | Bluesky Cascades               | public search/author/custom/list seed source、optional UTC window、seed post normalization、visible `getPostThread` reply topology、blocked/not-found node 与 per-thread partial                               | 删除 optional auth/base URL fallback、Skill-local env、retry/throttle/log/dry-run、JSON/JSONL artifact 和 OpenClaw 配置；CLI 统一 bounded HTTP/receipt，只开放 public AppView，把 ranking/feed/indexing/moderation/counters 明确为可变快照，不宣称 archive completeness、代表性、事实、身份、sentiment 或 causal diffusion evidence                              |
 | YouTube Video Search           | query/channel/published/order/region/language/safe-search、十种 video filter、search pagination、`videos.list` detail enrichment、public comment/view threshold                                  | `YOUTUBE_API_KEY` 只经 CLI `X-Goog-Api-Key` header 注入；删除 query-string key、endpoint/retry/throttle/log/dry-run、JSONL/quarantine/artifact 输出。CLI 始终执行 detail enrichment，不下载 media/caption/transcript/thumbnail，不把 search ranking 或统计当作代表性、endorsement、truth 或 sentiment                                                                  |
 | YouTube Comments               | 显式 video IDs、optional UTC window 与 published/updated 选择、thread order/search terms、top-level comments、`comments.list` 完整可见 replies 分页、per-video partial                         | 删除本地 txt/json/jsonl ID 文件解析、HTML text mode、endpoint/retry/throttle/log/dry-run、JSONL/quarantine/artifact 输出；plainText 固定，API key 只由 CLI header 注入。operation-wide 与 per-video/per-thread limits 取代多套脚本 cap；评论不被解释为代表性 opinion、身份、事实、人口属性或 sentiment ground truth                                                        |
