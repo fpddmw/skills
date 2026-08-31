@@ -1,4 +1,4 @@
 interface:
   display_name: "Federal Register Documents"
-  short_description: "Search official Federal Register metadata"
-  default_prompt: "Use $federal-register-doc-fetch to find official Federal Register document metadata within a bounded publication period."
+  short_description: "Retrieve bounded official Federal Register metadata"
+  default_prompt: "Use -register-doc-fetch to retrieve official Federal Register document metadata under explicit runtime limits and any user-supplied filters."

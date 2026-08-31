@@ -66,7 +66,7 @@ lastReviewedCommit: 2998da54897f8f254a37e187ff64c62feae3dbd2
 | 1 | `fetch-airnow-hourly-observations` | `airnow-hourly-obs-fetch` | `airnow.hourly-observations/fetch-hourly` | 源语义复核完成；最终统一门禁待跑 |
 | 2 | `fetch-bluesky-cascade` | `bluesky-cascade-fetch` | `bluesky.public-posts/fetch-cascades` | 源语义复核完成；最终统一门禁待跑 |
 | 3 | `fetch-epa-eis-records` | `epa-eis-records-fetch` | `epa.eis-records/search`；只解析官方 EIS 结果表，不作法律或政策判断 | 本地实现完成；统一安装/冷门禁待最终树 |
-| 4 | `fetch-federal-register-documents` | `federal-register-doc-fetch` | `federal-register.documents/search` | 已有候选，复核中 |
+| 4 | `fetch-federal-register-documents` | `federal-register-doc-fetch` | `federal-register.documents/search` | 源语义复核完成；最终统一门禁待跑 |
 | 5 | `fetch-gdelt-doc-search` | `gdelt-doc-search` | `gdelt.doc-search/search` | 已有候选，复核中 |
 | 6 | `fetch-gdelt-events` | `gdelt-events-fetch` | `gdelt.events/fetch` | 已有候选，复核中 |
 | 7 | `fetch-gdelt-gkg` | `gdelt-gkg-fetch` | `gdelt.gkg/fetch` | 已有候选，复核中 |
@@ -100,6 +100,11 @@ Bluesky 复核补回了固定源所声明的公共 AppView `403` 备用主机、
 `hitsTotal`、坏记录计数和级联拓扑校验。当前 capability 明确保持无凭证公共读取边界，
 不迁入源脚本可选的账号/app-password 会话创建、私有或 viewer-specific 状态；这属于认证
 账户能力而非本公共数据执行契约，若未来需要应单独设计短期会话凭据合同。
+
+Federal Register 复核移除了源实现不存在的“必须同时提供日期与过滤器”限制，恢复了受公共
+runtime 页数/记录数约束的 newest listing，并补回 citation、comments-close、raw-text、XML、
+JSON 与 Regulations.gov 等提供方链接字段。单条稀疏记录和可选 count/total-pages 元数据现在
+按源脚本的容错语义归一化，不再使整页结果失败；正文仍未被获取，法律解释边界不变。
 
 ## 2026-08-31 实现状态
 

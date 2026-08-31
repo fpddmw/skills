@@ -1,6 +1,6 @@
 ---
 name: federal-register-doc-fetch
-description: Search official FederalRegister.gov document metadata through the Tiangong CLI for a bounded publication date and explicit regulatory filters. Use to identify notices, proposed rules, final rules, or presidential documents; do not use for document bodies, docket comments, legal interpretation, current-force determinations, or compliance advice.
+description: Retrieve bounded official FederalRegister.gov document metadata through the Tiangong CLI, optionally filtered by publication date, term, agency, type, topic, docket, or RIN. Use to identify notices, proposed rules, final rules, or presidential documents; do not use for document bodies, docket comments, legal interpretation, current-force determinations, or compliance advice.
 ---
 
 # Federal Register Document Metadata
@@ -31,8 +31,9 @@ task needs full text, docket attachments, public comments, or legal analysis.
 ## Prepare the request
 
 Build a `tiangong.data.run-request.v1` envelope and replace the two version
-placeholders with the exact values in the binding. Under `input`, provide at
-least one publication-date bound and at least one narrowing filter:
+placeholders with the exact values in the binding. Prefer a publication date
+and a narrowing filter for evidence questions. An empty `input` is allowed only
+for a bounded newest-document listing under explicit runtime limits:
 
 ```json
 {
@@ -83,9 +84,10 @@ result to another workflow.
 - Treat `partial` and truncation stop reasons as incomplete coverage; report
   the page or record limit instead of implying an exhaustive search.
 - Treat `blocked` as no usable business result and surface the structured
-  errors instead of weakening the required bounds.
+  errors instead of silently changing filters or limits.
 - Returned URLs are metadata links, not proof that document bodies were
-  retrieved or reviewed.
+  retrieved or reviewed. Preserve citation, comment-close, raw-text, XML, and
+  Regulations.gov link fields when the provider supplies them.
 - Verify legally consequential claims against an official edition and qualified
   legal guidance. This Skill does not determine current legal force.
 - Cross-source comparison and research evidence admission belong to the caller

@@ -5,15 +5,15 @@
   "capabilityId": "federal-register.documents",
   "capabilityVersion": "1.0.0",
   "minimumCliVersion": "0.0.55",
-  "manifestDigest": "a72c236f2800f369331cea8490bf52b51d5a500f01e3e4fc089d27d50fe8717a",
+  "manifestDigest": "84592919898bf6b4cd8b7dc369bd9f7dcd2800e5cdb02b2c2bb86ff4aa1db853",
   "operations": [
     {
       "operationId": "search",
       "operationVersion": "1.0.0",
       "inputSchemaId": "https://schemas.tiangong.ai/data/federal-register/documents-input.v1.json",
-      "inputSchemaDigest": "3bf78166143a282544ffdaa22b7208fc395266133d0bfcbceb1337b9b946674b",
+      "inputSchemaDigest": "5d288288950dc896a38e9c24961f8757a5b3f29c9cb0cbc6be3c6fb3e22c6fd8",
       "outputSchemaId": "https://schemas.tiangong.ai/data/federal-register/documents-output.v1.json",
-      "outputSchemaDigest": "a406ff22827a60a2b8a784544096f01632d8f411aa61fdd20dbc4e67436fe1b9"
+      "outputSchemaDigest": "5da7ecd8e5961e691aa6f171ed5594a0a9232f60c9f93b05232ba1948090fa33"
     }
   ]
 }
