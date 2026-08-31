@@ -38,6 +38,10 @@ provider facts remembered from an older Skill revision.
   seed-only retrieval when discovery breadth matters more than cascades.
 - Preserve an explicit user time window and filters. Never widen or replace
   them silently.
+- When diagnosing an empty historical search, repeat the same bounded request
+  with `source.applyServerTimeFilter` set to `false`. Keep the client-side time
+  window unchanged and classify any still-empty result as provider coverage,
+  not proof that no discussion occurred.
 
 ## Prepare the request
 
@@ -58,7 +62,8 @@ with the exact values from the binding.
       "query": "climate policy",
       "sort": "latest",
       "language": "en",
-      "tags": ["climate"]
+      "tags": ["climate"],
+      "applyServerTimeFilter": true
     },
     "startDateTime": "2026-03-10T00:00:00Z",
     "endDateTime": "2026-03-11T00:00:00Z",
@@ -93,6 +98,9 @@ to another workflow.
   thread nodes as mutable provider snapshots, not exhaustive or verified facts.
 - Surface blocked/not-found nodes, failed threads, empty results, `partial`, and
   truncation. Never reinterpret them as complete absence or complete coverage.
+- Retain `hitsTotal`, per-page invalid-record counts, cascade validation, and
+  the fallback-host indicator; they are acquisition diagnostics, not evidence
+  quality scores.
 - Public posts can contain personal, sensitive, misleading, or unsafe content.
   Quote or retain only what the task requires and preserve provenance.
 - Reply topology is a visible snapshot. Do not infer causation, influence,

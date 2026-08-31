@@ -64,7 +64,7 @@ lastReviewedCommit: 2998da54897f8f254a37e187ff64c62feae3dbd2
 | # | EcoCouncil 权威源 Skill | Skills 目标 | CLI capability / operation 或保留边界 | 当前状态 |
 | -: | ------------------------ | ----------- | ---------------------------------------- | -------- |
 | 1 | `fetch-airnow-hourly-observations` | `airnow-hourly-obs-fetch` | `airnow.hourly-observations/fetch-hourly` | 源语义复核完成；最终统一门禁待跑 |
-| 2 | `fetch-bluesky-cascade` | `bluesky-cascade-fetch` | `bluesky.public-posts/fetch-cascades` | 已有候选，复核中 |
+| 2 | `fetch-bluesky-cascade` | `bluesky-cascade-fetch` | `bluesky.public-posts/fetch-cascades` | 源语义复核完成；最终统一门禁待跑 |
 | 3 | `fetch-epa-eis-records` | `epa-eis-records-fetch` | `epa.eis-records/search`；只解析官方 EIS 结果表，不作法律或政策判断 | 本地实现完成；统一安装/冷门禁待最终树 |
 | 4 | `fetch-federal-register-documents` | `federal-register-doc-fetch` | `federal-register.documents/search` | 已有候选，复核中 |
 | 5 | `fetch-gdelt-doc-search` | `gdelt-doc-search` | `gdelt.doc-search/search` | 已有候选，复核中 |
@@ -94,6 +94,12 @@ AirNow 复核以固定提交中的 Python 归一化行为为准，补回了源�
 HourlyAQObs 文件小时的回退、空 AQSID 的保留，以及单个污染物数值无效时按缺失值处理而
 不丢弃同一记录的其他有效字段；这些边界已有 TypeScript 回归测试，binding 已从修正后的
 本地 CLI 候选重新生成。
+
+Bluesky 复核补回了固定源所声明的公共 AppView `403` 备用主机、关闭服务端时间过滤但继续
+执行客户端 UTC 窗口的历史覆盖诊断，以及对坏 seed/feed/thread 节点的局部隔离；同时保留
+`hitsTotal`、坏记录计数和级联拓扑校验。当前 capability 明确保持无凭证公共读取边界，
+不迁入源脚本可选的账号/app-password 会话创建、私有或 viewer-specific 状态；这属于认证
+账户能力而非本公共数据执行契约，若未来需要应单独设计短期会话凭据合同。
 
 ## 2026-08-31 实现状态
 
