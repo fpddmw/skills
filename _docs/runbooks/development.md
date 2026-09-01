@@ -18,7 +18,7 @@ checkPaths:
   - .claude-plugin/**
   - "*/SKILL.md"
 lastReviewedAt: 2026-09-01
-lastReviewedCommit: 4104e527facd09ecc242dad7a1e9645adf9d21f0
+lastReviewedCommit: 4e22640981bca2c037dae31f47666400afefab5c
 ---
 
 # Skills Development Runbook
@@ -35,6 +35,44 @@ lastReviewedCommit: 4104e527facd09ecc242dad7a1e9645adf9d21f0
 Use the `skill-creator` workflow. Prefer the official initializer when creating
 new skills, then fill in `SKILL.md`, optional `scripts/`, `references/`,
 `assets/`, and generated `agents/**` files as required.
+
+## Atomic Data Skill Migration
+
+Before changing a fetch/search/download Skill as part of the atomic
+data refactor, read `_docs/architecture/atomic-data-capabilities.md` and follow
+`_docs/runbooks/atomic-data-skill-migration.md`. Do not remove a provider
+runtime until the CLI's TypeScript 7 connector is accepted, a compatible
+package is installable, the Skill's stable capability requirement passes, and
+the exact migration package/digests are recorded once in repository-level
+provenance. Planning changes alone do not authorize Skill rewrites or file
+deletion.
+
+Run the requirement/provenance contract with:
+
+```bash
+node --test scripts/tests/data-skill-binding.test.mjs
+```
+
+For migrated Skills, run the explicit copy/symlink install smoke against the
+same exact published CLI package whose version and contracts are recorded by
+the repository migration provenance:
+
+```bash
+TIANGONG_DATA_SKILLS_RUN_INSTALL_SMOKE=1 \
+TIANGONG_DATA_CLI_VERSION=X.Y.Z \
+TIANGONG_DATA_CLI_PACKAGE=@tiangong-ai/cli@X.Y.Z \
+node --test scripts/tests/data-skill-install-smoke.test.mjs
+```
+
+The smoke runs version, catalog, describe, static doctor, and an intentionally
+blocked local request with provider credentials removed. It must not contact a
+provider.
+
+Use `scripts/data-skill-binding.mjs generate` and `verify` for stable per-Skill
+requirements. These checks compare capability and operation contract majors and
+do not compare package versions or digests. Use `generate-provenance` and
+`verify-provenance` only to qualify the exact CLI release used by this migration;
+the resulting repository artifact is not installed with each Skill.
 
 ## Validation
 

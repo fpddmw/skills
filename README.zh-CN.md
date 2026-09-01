@@ -13,8 +13,8 @@ checkPaths:
   - README.md
   - .claude-plugin/**
   - "*/SKILL.md"
-lastReviewedAt: 2026-08-22
-lastReviewedCommit: 1c0e4b9aba85ebba7c60e760b22cdc6ebf2927f4
+lastReviewedAt: 2026-09-01
+lastReviewedCommit: 4e22640981bca2c037dae31f47666400afefab5c
 ---
 
 # 天工 AI Skills
@@ -22,6 +22,32 @@ lastReviewedCommit: 1c0e4b9aba85ebba7c60e760b22cdc6ebf2927f4
 仓库地址: https://github.com/tiangong-ai/skills
 
 请使用 https://github.com/vercel-labs/skills 提供的 `skills` CLI 来安装、更新和管理这些 skills。
+
+## 原子数据 Skills
+
+当前本地候选分支中的 AirNow Hourly Observations、EPA EIS Records、Federal Register Documents、NASA FIRMS Active Fire、
+OpenAQ Air Quality、Regulations.gov Comments、Regulations.gov Comment Details、Regulations.gov Attachments、
+USBR Project Records、USBR RISE、USGS Water IV、三个 Open-Meteo 来源，以及 GDELT DOC、Events、GKG、Mentions
+加上 Bluesky Cascades、YouTube Video Search 与 YouTube Comments，共二十一个 Skill 已
+收敛为 Tiangong CLI TypeScript 7 数据运行时之上的薄语义候选。每个候选只在
+`references/tiangong-data-requirement.json` 中记录稳定的 capability/operation
+contract major 要求；实际 CLI build 由调用方或 workspace runtime lock 选择。Agent
+使用同一已解析 CLI 运行 `data describe` 与 `data run`。这些 Skills 不再保留第二份
+provider connector 运行时，也不保存各自的 package lock。
+
+权威迁移源 `main@ac19289b4876d8a90595a0270721ef3f5ee7ced8` 共有 21 个
+`source-fetch` Skill，当前 21 项均已完成源语义复核、与本地 CLI 候选的 requirement
+校验，以及统一 copy/symlink 安装和数据专项门禁。本次迁移验收使用的 CLI 版本与精确
+manifest/Schema digest 只集中保存在
+`scripts/data-skill-migration-provenance.json`，它是发布证据而不是安装后的 Skill
+运行依赖。仓库全量 cold gate 在叠加独立范围的上游文件系统时钟修复后同样通过；该
+前置修复有意不进入本数据迁移分支。
+
+所有权边界、候选清单、迁移源审计更正、分批迁移顺序和发布门槛见
+`_docs/architecture/atomic-data-capabilities.md` 与
+`_docs/runbooks/atomic-data-skill-migration.md`。已经审计的 RSS/fulltext、Figshare 下载、
+论文下载、Tiangong/KB 和私有邮箱候选继续保持其内容、artifact、Research、产品或安全
+边界，不会为了数量对等而缩减为无状态 data connector。
 
 ## 安装 CLI
 
@@ -162,6 +188,11 @@ Anthropic 或 PPT Master 闭环后创作 Skills。workspace 可以是用户指�
 所有条目都是外生、独立授权、精确锁定且经用户明确确认或选择；研究 package
 不会捆绑或安装它们。完整流程见
 `tiangong-auto-research/references/setup.md` 和 `external-skills.md`。
+CLI 内置数据 connector 不属于上述外生 Skill：native discover packet 会动态投影当前
+data catalog，Auto Research 通过 Research evidence 命令进程内调用同一 TypeScript
+runtime。Skill 不复制 provider adapter，也不维护固定 connector 清单；Research 只在
+不改变核心结果的前提下增加预算、owner-only credential、不可变 receipt/ledger、artifact
+和 review 绑定。
 `tiangong-auto-research-workbuddy` 只负责沙箱 IDE 路由，会回到 canonical
 orchestrator 及其签名 reviewer bridge 流程，不维护第二套研究协议。
 创建 PPT 时首选 PPT Master；Anthropic PPTX 仍是兼容的按场景选项，需要时可在

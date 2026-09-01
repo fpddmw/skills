@@ -91,6 +91,29 @@ for (const marker of [
 }
 
 for (const marker of [
+  "runDataCapability",
+  "standalone `data run`",
+  "dynamic data catalog",
+]) {
+  assert.ok(
+    autoResearchSkill.includes(marker),
+    `Auto Research entry must explain native data evidence marker ${marker}`,
+  );
+}
+
+const managedDataGuidance = `${autoResearchSkill}\n${evidencePipelineReference}`;
+assert.match(
+  managedDataGuidance,
+  /node "\$AUTO_RESEARCH_CLI"[\s\S]*?--[\s\\\n]+data describe <capability-id> --json/,
+  "Managed Auto Research must inspect data capabilities through the locked resolver",
+);
+assert.doesNotMatch(
+  managedDataGuidance,
+  /`tiangong-ai data describe|^tiangong-ai data describe/m,
+  "Managed Auto Research must not expose a bare data describe command",
+);
+
+for (const marker of [
   "native-direct",
   "sandbox-bridge",
   "Default Permission",
@@ -162,6 +185,10 @@ for (const marker of [
   "inference-snapshot.json",
   "claim-evidence-graph.json",
   "evidencePipeline",
+  "structured data capabilities",
+  "research project evidence data run",
+  "core receipt digest",
+  "data-runtime receipt",
 ]) {
   assert.ok(
     evidencePipelineReference.includes(marker),

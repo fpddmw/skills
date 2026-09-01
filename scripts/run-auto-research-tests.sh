@@ -13,6 +13,7 @@ if command -v tiangong-ai >/dev/null 2>&1; then
 fi
 
 sh scripts/test-clean-container-entrypoint.sh
+node --test scripts/tests/*.test.mjs
 node tiangong-auto-research/scripts/test-research-cli.mjs
 node tiangong-auto-research/scripts/test-routing-contract.mjs
 node tiangong-auto-research/scripts/test-research-policy-pack.mjs

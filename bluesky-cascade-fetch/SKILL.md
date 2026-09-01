@@ -1,167 +1,114 @@
 ---
 name: bluesky-cascade-fetch
-description: Fetch Bluesky seed posts and expand reply-thread cascades in configurable UTC time windows with retries, throttling, transport checks, and structure validation. Use when tasks need social-opinion diffusion signals from Bluesky (query/feed/list/author sources) as JSON/JSONL artifacts for downstream sentiment or viral-cascade analysis.
+description: Fetch bounded public Bluesky post seeds and optional visible reply cascades through the Tiangong CLI. Use for topic, author, custom-feed, or list-feed discussion reconnaissance and reply-topology collection; do not use for private or exhaustive repository/firehose data, media downloads, representative opinion, identity or fact verification, sentiment ground truth, or causal inference.
 ---
 
 # Bluesky Cascade Fetch
 
-## Core Goal
-- Fetch seed posts from Bluesky using one of:
-  - `searchPosts`
-  - `getAuthorFeed`
-  - `getFeed`
-  - `getListFeed`
-- Expand each seed into a reply cascade with `getPostThread`.
-- Enforce UTC time-window filters (`start` inclusive, `end` exclusive).
-- Return machine-readable JSON and optional artifact files.
-- Keep execution observable with structured logs.
+Use the CLI-owned `bluesky.public-posts/fetch-cascades` operation. This Skill
+supplies intent routing and result-use boundaries only; the CLI TypeScript 7
+runtime owns source discovery, schemas, endpoint policy, pagination, retries,
+normalization, limits, partial results, and receipts.
 
-## Required Environment
-- Configure runtime via environment variables (see `references/env.md`).
-- Start from `assets/config.example.env`.
-- Load env values before running commands:
+## Before running
 
-```bash
-set -a
-source assets/config.example.env
-set +a
-```
-
-## Workflow
-1. Validate effective configuration.
+1. Read `references/tiangong-data-requirement.json`.
+2. Use the caller- or workspace-resolved stable CLI. The requirement declares
+   compatible capability and operation contract majors; it does not select a
+   package build.
+3. Run `data describe` with that same CLI. Continue only when the capability
+   ID and required contract majors match, and copy the exact current
+   capability/operation versions from that response into the run request.
 
 ```bash
-python3 scripts/bluesky_cascade_fetch.py check-config --pretty
+tiangong-ai data describe bluesky.public-posts --json
 ```
 
-2. Dry-run the fetch plan first.
+Use the current Discovery Metadata to confirm source coverage, freshness,
+restrictions, selection hints, `provides`, and `doesNotProvide`. Do not rely on
+provider facts remembered from an older Skill revision.
+
+## Choose the seed source
+
+- Use `search` when the user supplied a topic or query.
+- Use `author-feed` only for a named public actor view.
+- Use `feed` only when the caller supplied a known public feed-generator AT-URI.
+- Use `list-feed` only when the caller supplied a known public list AT-URI.
+- Enable thread expansion only when visible reply topology is needed. Prefer
+  seed-only retrieval when discovery breadth matters more than cascades.
+- Preserve an explicit user time window and filters. Never widen or replace
+  them silently.
+- When diagnosing an empty historical search, repeat the same bounded request
+  with `source.applyServerTimeFilter` set to `false`. Keep the client-side time
+  window unchanged and classify any still-empty result as provider coverage,
+  not proof that no discussion occurred.
+
+## Prepare the request
+
+Build one `tiangong.data.run-request.v1` envelope and validate it against the
+current input schema from `data describe`. Replace both version placeholders
+with the exact versions from the same `data describe` response.
+
+```json
+{
+  "schemaVersion": "tiangong.data.run-request.v1",
+  "capabilityId": "bluesky.public-posts",
+  "capabilityVersion": "<describe.manifest.capabilityVersion>",
+  "operationId": "fetch-cascades",
+  "operationVersion": "<describe.manifest.operations[0].operationVersion>",
+  "input": {
+    "source": {
+      "mode": "search",
+      "query": "climate policy",
+      "sort": "latest",
+      "language": "en",
+      "tags": ["climate"],
+      "applyServerTimeFilter": true
+    },
+    "startDateTime": "2026-03-10T00:00:00Z",
+    "endDateTime": "2026-03-11T00:00:00Z",
+    "pageSize": 50,
+    "expandThreads": true,
+    "maxThreads": 20,
+    "threadDepth": 8,
+    "threadParentHeight": 5
+  }
+}
+```
+
+Do not put an endpoint override, credential, output path, scheduler, or
+provider-specific field absent from the schema into the request. Persistence
+and recurring collection belong to the caller.
+
+## Run
 
 ```bash
-python3 scripts/bluesky_cascade_fetch.py fetch \
-  --source-mode search \
-  --query "environment policy" \
-  --start-datetime 2026-03-10T00:00:00Z \
-  --end-datetime 2026-03-11T00:00:00Z \
-  --max-pages 2 \
-  --max-posts 50 \
-  --max-threads 20 \
-  --dry-run \
-  --pretty
+tiangong-ai data run bluesky.public-posts fetch-cascades \
+  --input /absolute/path/to/request.json --json
 ```
 
-3. Run fetch with cascade expansion and output artifacts.
+Preserve the complete `tiangong.data.run-result.v1` envelope, including
+`contract`, `warnings`, `errors`, `summary`, and `receipt`, when handing results
+to another workflow.
 
-```bash
-python3 scripts/bluesky_cascade_fetch.py fetch \
-  --source-mode search \
-  --query "environment policy" \
-  --search-sort latest \
-  --start-datetime 2026-03-10T00:00:00Z \
-  --end-datetime 2026-03-11T00:00:00Z \
-  --max-pages 5 \
-  --max-posts 120 \
-  --max-threads 40 \
-  --thread-depth 8 \
-  --thread-parent-height 5 \
-  --output-dir ./data/bluesky-cascade \
-  --log-level INFO \
-  --log-file ./logs/bluesky-cascade-fetch.log \
-  --pretty
-```
+## Result boundaries
 
-## Built-in Robustness
-- Retry transient failures (`429/500/502/503/504`) with exponential backoff.
-- Respect `Retry-After` and fail fast when it exceeds configured cap.
-- Throttle request rate with minimum request interval.
-- Enforce run safety caps:
-  - max pages
-  - max posts
-  - max threads
-- Validate transport:
-  - JSON content-type
-  - UTF-8 decode
-  - JSON object parse
-- Validate structure:
-  - seed URI/timestamp checks
-  - duplicate/orphan thread-node checks
-  - cascade topology stats (`max_depth`, `max_branching_factor`)
+- Treat search ranking, feed selection, visibility, timestamps, counters, and
+  thread nodes as mutable provider snapshots, not exhaustive or verified facts.
+- Surface blocked/not-found nodes, failed threads, empty results, `partial`, and
+  truncation. Never reinterpret them as complete absence or complete coverage.
+- Retain `hitsTotal`, per-page invalid-record counts, cascade validation, and
+  the fallback-host indicator; they are acquisition diagnostics, not evidence
+  quality scores.
+- Public posts can contain personal, sensitive, misleading, or unsafe content.
+  Quote or retain only what the task requires and preserve provenance.
+- Reply topology is a visible snapshot. Do not infer causation, influence,
+  representativeness, identity, or sentiment labels from it alone.
+- Use a separately governed repository/firehose workflow for exhaustive AT
+  Protocol records and a content workflow for media or linked pages.
+- Cross-source comparison, evidence admission, persistence, polling, and
+  research conclusions belong to the caller or Auto Research.
 
-## Scope Decision
-- Keep the skill atomic and request-driven:
-  - one invocation = one configured windowed fetch task
-- No built-in scheduler/poller loops.
-- If periodic polling is needed, orchestrate repeated invocations externally.
-- If `public.api.bsky.app` returns route-level `403`, the script automatically retries with `--base-url https://api.bsky.app`. Manual override is still allowed.
+## Reference
 
-## References
-- `references/env.md`
-- `references/bluesky-api-notes.md`
-- `references/bluesky-limitations.md`
-- `references/openclaw-chaining-templates.md`
-
-## Script
-- `scripts/bluesky_cascade_fetch.py`
-
-## OpenClaw Invocation Compatibility
-- Keep trigger metadata in `name`, `description`, and `agents/openai.yaml`.
-- Invoke with `$bluesky-cascade-fetch`.
-- Keep calls atomic and parameterized by time window and source mode.
-- Use OpenClaw orchestration (not this script) for recurring jobs.
-
-## OpenClaw Prompt Templates
-
-Use these templates directly in OpenClaw and only replace bracketed placeholders.
-
-1. Recon (plan check)
-
-```text
-Use $bluesky-cascade-fetch.
-Run:
-python3 scripts/bluesky_cascade_fetch.py fetch \
-  --source-mode search \
-  --query "[QUERY]" \
-  --start-datetime [YYYY-MM-DDTHH:MM:SSZ] \
-  --end-datetime [YYYY-MM-DDTHH:MM:SSZ] \
-  --max-pages [N] \
-  --max-posts [M] \
-  --dry-run \
-  --pretty
-Return only the JSON result.
-```
-
-2. Fetch (windowed cascade data)
-
-```text
-Use $bluesky-cascade-fetch.
-Run:
-python3 scripts/bluesky_cascade_fetch.py fetch \
-  --source-mode search \
-  --query "[QUERY]" \
-  --search-sort latest \
-  --start-datetime [YYYY-MM-DDTHH:MM:SSZ] \
-  --end-datetime [YYYY-MM-DDTHH:MM:SSZ] \
-  --max-pages [N] \
-  --max-posts [M] \
-  --max-threads [K] \
-  --output-dir [OUTPUT_DIR] \
-  --pretty
-Return only the JSON result.
-```
-
-3. Validate (quality gate)
-
-```text
-Use $bluesky-cascade-fetch.
-Run:
-python3 scripts/bluesky_cascade_fetch.py fetch \
-  --source-mode author-feed \
-  --actor [HANDLE_OR_DID] \
-  --start-datetime [YYYY-MM-DDTHH:MM:SSZ] \
-  --end-datetime [YYYY-MM-DDTHH:MM:SSZ] \
-  --max-pages 1 \
-  --max-posts 30 \
-  --max-threads 10 \
-  --pretty
-Check validation_summary.total_issue_count and thread_fetch.success_count.
-Return JSON plus one-line pass/fail verdict.
-```
+- `references/tiangong-data-requirement.json`: stable capability requirement; it is not a package lock.

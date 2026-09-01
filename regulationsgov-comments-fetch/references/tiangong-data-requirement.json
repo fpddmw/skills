@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "tiangong.data.skill-capability-requirement.v1",
+  "skillName": "regulationsgov-comments-fetch",
+  "capabilityId": "regulations-gov.comments",
+  "capabilityContractVersion": "1",
+  "operations": {
+    "search": {
+      "contractVersion": "1"
+    }
+  }
+}

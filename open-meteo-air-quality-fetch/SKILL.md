@@ -1,170 +1,108 @@
 ---
 name: open-meteo-air-quality-fetch
-description: Fetch Open-Meteo Air Quality API hourly background fields for specified date windows and coordinates with retries, throttling, detailed logs, and transport/structure validation. Use when tasks need deterministic modeled air-quality context for ecology or environmental verification, such as checking PM, gases, dust, UV, pollen, or AQI background conditions beyond station coverage.
+description: Retrieve hourly modeled Open-Meteo air-quality, aerosol, pollen, UV, or AQI fields through the Tiangong CLI for up to ten known coordinates and one bounded date window. Use for spatially continuous CAMS model context beyond station coverage; do not use for monitoring-station observations, regulatory records, health or exposure advice, geocoding, commercial public-endpoint use, or causal interpretation.
 ---
 
-# Open-Meteo Air Quality Fetch
+# Open-Meteo Air Quality
 
-## Core Goal
-- Fetch Open-Meteo hourly air-quality background data for one or more coordinates in one invocation.
-- Support inclusive `start_date` and `end_date` windows.
-- Return machine-readable JSON with request metadata, transport info, validation summary, and normalized records.
-- Keep runtime observable with structured logs and optional log file output.
+Use the CLI-owned `open-meteo.air-quality` capability. This Skill supplies
+intent routing and result-use boundaries only; the CLI owns source discovery,
+input/output schemas, HTTP behavior, limits, validation, and receipts.
 
-## Required Environment
-- Configure runtime by environment variables (see `references/env.md`).
-- Start from `assets/config.example.env`.
-- Load env values before running commands:
+## Before running
 
-```bash
-set -a
-source assets/config.example.env
-set +a
-```
-
-## Workflow
-1. Validate effective configuration.
+1. Read `references/tiangong-data-requirement.json`.
+2. Use the caller- or workspace-resolved stable CLI. The requirement declares
+   compatible capability and operation contract majors; it does not select a
+   package build.
+3. Run `data describe` with that same CLI. Continue only when the capability
+   ID and required contract majors match, and copy the exact current
+   capability/operation versions from that response into the run request.
+4. Run the default static doctor. Do not add `--live` unless the user explicitly
+   asks for a provider probe.
 
 ```bash
-python3 scripts/open_meteo_air_quality_fetch.py check-config --pretty
+tiangong-ai data describe open-meteo.air-quality --json
+tiangong-ai data doctor open-meteo.air-quality --json
 ```
 
-2. Dry-run the request plan first.
+Use the returned Discovery Metadata to confirm current model coverage,
+variable availability, freshness, public-endpoint terms, attribution,
+`provides`, and `doesNotProvide`. Do not substitute facts remembered from an
+older Skill revision.
+
+## Prepare the request
+
+Build a `tiangong.data.run-request.v1` envelope and replace the two version
+placeholders with the exact versions from the same `data describe` response. Coordinates are WGS84
+decimal degrees. The CLI fixes timestamps to GMT, preserves coordinate order,
+and normalizes the variable order:
+
+```json
+{
+  "schemaVersion": "tiangong.data.run-request.v1",
+  "capabilityId": "open-meteo.air-quality",
+  "capabilityVersion": "<describe.manifest.capabilityVersion>",
+  "operationId": "fetch-hourly",
+  "operationVersion": "<describe.manifest.operations[0].operationVersion>",
+  "input": {
+    "locations": [
+      { "latitude": 52.52, "longitude": 13.41 },
+      { "latitude": 48.85, "longitude": 2.35 }
+    ],
+    "startDate": "2026-03-17",
+    "endDate": "2026-03-18",
+    "hourlyVariables": ["pm2_5", "pm10", "nitrogen_dioxide", "ozone", "us_aqi"],
+    "domain": "auto",
+    "cellSelection": "nearest"
+  }
+}
+```
+
+Use the operation input schema returned by the same `data describe` response for current variable
+codes, enum meanings, and limits. Do not add an API key: this capability uses
+the public non-commercial endpoint only. Commercial customer-endpoint access
+requires a separately reviewed capability. Do not silently geocode names,
+widen the date range, add locations or variables, or change model-domain
+selection beyond the user's intent.
+
+## Run
 
 ```bash
-python3 scripts/open_meteo_air_quality_fetch.py fetch \
-  --location 52.52,13.41 \
-  --start-date 2026-03-17 \
-  --end-date 2026-03-18 \
-  --hourly-var pm2_5 \
-  --hourly-var pm10 \
-  --timezone GMT \
-  --dry-run \
-  --pretty
+tiangong-ai data run open-meteo.air-quality fetch-hourly \
+  --input /absolute/path/to/request.json --json
 ```
 
-3. Run the fetch with validation and operational logs.
+The command emits a `tiangong.data.run-result.v1` envelope. Preserve its
+`contract`, `warnings`, `errors`, and `receipt` with `data` when handing the
+result to another workflow.
 
-```bash
-python3 scripts/open_meteo_air_quality_fetch.py fetch \
-  --location 52.52,13.41 \
-  --location 48.85,2.35 \
-  --start-date 2026-03-17 \
-  --end-date 2026-03-18 \
-  --hourly-var pm2_5 \
-  --hourly-var pm10 \
-  --hourly-var nitrogen_dioxide \
-  --hourly-var ozone \
-  --hourly-var us_aqi \
-  --domain auto \
-  --cell-selection nearest \
-  --timezone GMT \
-  --output ./data/open-meteo/open-meteo-air-quality-fetch.json \
-  --log-level INFO \
-  --log-file ./logs/open-meteo-air-quality-fetch.log \
-  --pretty
-```
+## Result boundaries
 
-## Built-in Robustness
-- Retry transient HTTP and network failures with exponential backoff.
-- Respect `Retry-After` when present and fail fast when it exceeds configured cap.
-- Throttle request rate with minimum request interval.
-- Enforce safety caps before remote calls:
-  - maximum locations
-  - maximum day range
-  - maximum hourly variables
-- Validate transport:
-  - HTTP status handling
-  - JSON content-type
-  - UTF-8 strict decode
-  - JSON parse
-- Validate structure:
-  - response object/list shape
-  - requested `hourly` section presence
-  - requested variable presence and aligned array lengths
-  - time axis parseability and range checks
+- Treat every value as a CAMS-derived model-grid estimate, not a measurement at
+  the requested coordinate. Preserve requested and returned grid coordinates.
+- Retain nulls as unavailable model values. Never convert them to zero.
+- Treat `partial` as incomplete coordinate, timestamp, or variable coverage and
+  report the affected paths with the usable columns.
+- In GMT mode, require exactly 24 strictly ascending hourly timestamps per
+  inclusive date and a zero provider UTC offset. Preserve time-count, ordering,
+  timezone, unit, array-alignment, and non-numeric-value issues instead of
+  treating a structurally short response as complete.
+- Treat `blocked` as no usable business result and surface the structured
+  errors instead of bypassing limits or switching endpoints.
+- Report record-limit truncation; all variable arrays are aligned to the
+  returned GMT time axis, but a truncated result is not an exhaustive window.
+- Attribute Open-Meteo and the underlying CAMS data provider. The public
+  endpoint is non-commercial; do not imply commercial-use permission.
+- Do not infer station conditions, regulatory compliance, health effects,
+  personal exposure, alerts, or causes from these modeled fields.
+- Cross-source comparison and research evidence admission belong to the caller
+  or Auto Research, not this atomic Skill.
+- The fixed public execution contract intentionally omits the source script's
+  arbitrary timezone, optional API-key/customer access, endpoint overrides, and
+  raw JSON/log artifacts. Those require separately reviewed contracts rather
+  than Skill-local parameters.
 
-## Scope Decision
-- Keep one atomic fetch implementation for the Open-Meteo air-quality endpoint only.
-- Do not embed geocoding, station merging, alert thresholds, or AQI interpretation logic.
-- Use OpenClaw orchestration, not this script, for recurring jobs or multi-step fusion with OpenAQ.
+## Reference
 
-## References
-- `references/env.md`
-- `references/open-meteo-air-quality-api-notes.md`
-- `references/open-meteo-air-quality-limitations.md`
-- `references/openclaw-chaining-templates.md`
-
-## Script
-- `scripts/open_meteo_air_quality_fetch.py`
-
-## OpenClaw Invocation Compatibility
-- Keep trigger metadata in `name`, `description`, and `agents/openai.yaml`.
-- Invoke with `$open-meteo-air-quality-fetch`.
-- Keep calls atomic and parameterized by:
-  - `--location`
-  - `--start-date`
-  - `--end-date`
-  - `--hourly-var`
-  - `--domain`
-  - `--cell-selection`
-- Use OpenClaw orchestration, not this script, for recurring jobs.
-
-## OpenClaw Prompt Templates
-
-Use these templates directly in OpenClaw and only replace bracketed placeholders.
-
-1. Recon (dry-run)
-
-```text
-Use $open-meteo-air-quality-fetch.
-Run:
-python3 scripts/open_meteo_air_quality_fetch.py fetch \
-  --location [LATITUDE,LONGITUDE] \
-  --start-date [YYYY-MM-DD] \
-  --end-date [YYYY-MM-DD] \
-  --hourly-var [HOURLY_VARIABLE] \
-  --timezone GMT \
-  --dry-run \
-  --pretty
-Return only the JSON result.
-```
-
-2. Fetch (air-quality background window)
-
-```text
-Use $open-meteo-air-quality-fetch.
-Run:
-python3 scripts/open_meteo_air_quality_fetch.py fetch \
-  --location [LATITUDE,LONGITUDE] \
-  --start-date [YYYY-MM-DD] \
-  --end-date [YYYY-MM-DD] \
-  --hourly-var pm2_5 \
-  --hourly-var pm10 \
-  --hourly-var nitrogen_dioxide \
-  --hourly-var ozone \
-  --hourly-var us_aqi \
-  --domain auto \
-  --cell-selection nearest \
-  --timezone GMT \
-  --pretty
-Return only the JSON result.
-```
-
-3. Validate (quality gate)
-
-```text
-Use $open-meteo-air-quality-fetch.
-Run:
-python3 scripts/open_meteo_air_quality_fetch.py fetch \
-  --location [LATITUDE,LONGITUDE] \
-  --start-date [YYYY-MM-DD] \
-  --end-date [YYYY-MM-DD] \
-  --hourly-var pm2_5 \
-  --hourly-var pm10 \
-  --hourly-var us_aqi \
-  --timezone GMT \
-  --pretty
-Check validation_summary.total_issue_count and validation_summary.ok.
-Return JSON plus one-line pass/fail verdict.
-```
+- `references/tiangong-data-requirement.json`: stable capability requirement; it is not a package lock.

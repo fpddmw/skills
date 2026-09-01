@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "tiangong.data.skill-capability-requirement.v1",
+  "skillName": "open-meteo-flood-fetch",
+  "capabilityId": "open-meteo.flood",
+  "capabilityContractVersion": "1",
+  "operations": {
+    "fetch-daily": {
+      "contractVersion": "1"
+    }
+  }
+}

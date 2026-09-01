@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "tiangong.data.skill-capability-requirement.v1",
+  "skillName": "usbr-project-records-fetch",
+  "capabilityId": "usbr.project-records",
+  "capabilityContractVersion": "1",
+  "operations": {
+    "fetch": {
+      "contractVersion": "1"
+    }
+  }
+}

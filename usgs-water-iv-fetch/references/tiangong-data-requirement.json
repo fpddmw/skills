@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "tiangong.data.skill-capability-requirement.v1",
+  "skillName": "usgs-water-iv-fetch",
+  "capabilityId": "usgs.water-instantaneous-values",
+  "capabilityContractVersion": "1",
+  "operations": {
+    "fetch": {
+      "contractVersion": "1"
+    }
+  }
+}

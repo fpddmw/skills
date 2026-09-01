@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "tiangong.data.skill-capability-requirement.v1",
+  "skillName": "gdelt-gkg-fetch",
+  "capabilityId": "gdelt.gkg",
+  "capabilityContractVersion": "1",
+  "operations": {
+    "fetch": {
+      "contractVersion": "1"
+    }
+  }
+}

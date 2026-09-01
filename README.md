@@ -13,8 +13,8 @@ checkPaths:
   - README.zh-CN.md
   - .claude-plugin/**
   - "*/SKILL.md"
-lastReviewedAt: 2026-08-22
-lastReviewedCommit: 1c0e4b9aba85ebba7c60e760b22cdc6ebf2927f4
+lastReviewedAt: 2026-09-01
+lastReviewedCommit: 4e22640981bca2c037dae31f47666400afefab5c
 ---
 
 # Tiangong AI Skills
@@ -22,6 +22,39 @@ lastReviewedCommit: 1c0e4b9aba85ebba7c60e760b22cdc6ebf2927f4
 Repository: https://github.com/tiangong-ai/skills
 
 Use the `skills` CLI from https://github.com/vercel-labs/skills to install, update, and manage these skills.
+
+## Atomic data skills
+
+Twenty-one local candidate Skills—AirNow Hourly Observations, EPA EIS Records, Federal Register Documents, NASA
+FIRMS Active Fire, OpenAQ Air Quality, Regulations.gov Comments,
+Regulations.gov Comment Details, Regulations.gov Attachments, USBR Project Records, USBR RISE, USGS Water IV, three Open-Meteo sources, and
+GDELT DOC, Events, GKG, and Mentions, plus Bluesky Cascades, YouTube Video
+Search, and YouTube Comments—are thin semantic Skills over the Tiangong CLI
+TypeScript 7 data runtime. Each candidate records only its stable capability and
+operation contract-major requirements in
+`references/tiangong-data-requirement.json`; the caller or workspace runtime
+lock chooses the actual CLI build. The agent uses that same resolved CLI for
+`data describe` and `data run`. These Skills contain no second provider
+connector runtime and no per-Skill package lock.
+
+This candidate set covers every item in the authoritative EcoCouncil source
+baseline, `main@ac19289b4876d8a90595a0270721ef3f5ee7ced8`, which contains 21
+`source-fetch` Skills. All 21 have been revalidated against the source
+semantics, their requirements have been verified against the local CLI
+candidate, and the unified copy/symlink installation and data-specific gates
+pass. The qualifying CLI version and exact manifest/Schema digests live once in
+`scripts/data-skill-migration-provenance.json`; they are release evidence, not
+an installed Skill runtime lock. The repository-wide cold
+gate also passes with a separately scoped upstream filesystem-clock fix; that
+prerequisite is intentionally absent from this data migration branch.
+
+See `_docs/architecture/atomic-data-capabilities.md` and
+`_docs/runbooks/atomic-data-skill-migration.md` for the ownership boundary,
+candidate inventory, source audit correction, staged migration order, and
+release gates. The audited
+RSS/full-text, Figshare-download, academic-paper, Tiangong/KB, and private-email
+candidates retain their existing content, artifact, product, research, or
+security boundaries instead of being narrowed into stateless data connectors.
 
 ## Install the CLI
 
@@ -176,6 +209,12 @@ The workspace can be any user-selected directory. Every entry is external,
 separately licensed, pinned, and explicitly confirmed/selected; nothing is
 bundled or installed by a research package. See
 `tiangong-auto-research/references/setup.md` and `external-skills.md`.
+Built-in CLI data connectors are different: the native discover packet projects
+their current catalog dynamically, and Auto Research invokes the shared
+TypeScript runtime through its Research evidence command. The Skill does not
+duplicate provider adapters or keep a fixed connector list; Research adds only
+budget, owner-only credential, immutable receipt/ledger, artifact, and review
+bindings around the unchanged core result.
 `tiangong-auto-research-workbuddy` is only a sandboxed-IDE adapter. It routes
 back to the canonical orchestrator and its signed reviewer-bridge reference;
 it does not define a second research workflow.

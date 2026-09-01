@@ -1,166 +1,121 @@
 ---
 name: youtube-comments-fetch
-description: Fetch YouTube public comment threads and replies for discovered or provided video IDs in configurable UTC time windows with retries, throttling, transport checks, and structure validation. Use when tasks need YouTube public-language datasets after domain video discovery, especially as a complement to official-language sources such as GDELT or Regulations.gov.
+description: Fetch bounded visible public YouTube top-level comments and optional complete-within-limits replies for explicit video IDs through the Tiangong CLI. Use after selecting videos when a task needs public discussion text; do not use for video discovery, private or moderation data, unbounded harvesting, representative opinion, identity or fact verification, demographic inference, or sentiment ground truth.
 ---
 
 # YouTube Comments Fetch
 
-## Core Goal
-- Fetch public YouTube comment threads with `commentThreads.list`.
-- Optionally expand replies with `comments.list`.
-- Filter comments by configurable UTC time windows using `published` or `updated` timestamps.
-- Return machine-readable JSON and optionally save JSONL artifacts.
-- Keep execution observable with structured logs and optional log file.
+Use the CLI-owned `youtube.public-content/fetch-comments` operation. This Skill
+owns intent routing and result-use boundaries only; the CLI TypeScript 7 runtime
+owns API-key injection, schemas, comment and reply pagination, UTC filtering,
+limits, validation, partial results, and receipts.
 
-## Required Environment
-- Configure runtime via environment variables (see `references/env.md`).
-- Start from `assets/config.example.env` and keep real secrets in `assets/config.env`.
-- Load env values before running commands:
+## Before running
 
-```bash
-set -a
-source assets/config.env
-set +a
-```
-
-## Workflow
-1. Validate effective configuration.
+1. Read `references/tiangong-data-requirement.json`.
+2. Use the caller- or workspace-resolved stable CLI. The requirement declares
+   compatible capability and operation contract majors; it does not select a
+   package build.
+3. Run `data describe` with that same CLI. Continue only when the capability
+   ID and required contract majors match, and copy the exact current
+   capability/operation versions from that response into the run request.
+4. Ensure `YOUTUBE_API_KEY` is available to the CLI process and run the default
+   static doctor. Never place the key in argv, request JSON, Skill files, logs,
+   or output.
 
 ```bash
-python3 scripts/youtube_comments_fetch.py check-config --pretty
+tiangong-ai data describe youtube.public-content --json
+tiangong-ai data doctor youtube.public-content --json
 ```
 
-2. Dry-run a fetch plan against candidate video IDs first.
+Use current Discovery Metadata to confirm public-comment visibility,
+restrictions, quota and completeness limitations, selection hints, `provides`,
+and `doesNotProvide`. A blocked doctor means the credential is unavailable;
+stop rather than bypassing the CLI.
+
+## Select and bound the videos
+
+- Supply only explicit video IDs selected by the user or a reviewed upstream
+  result. Use `$youtube-video-search` first when IDs are unknown. One request
+  accepts 1–50 unique IDs, each exactly 11 URL-safe identifier characters.
+- Supply `startDateTime` and `endDateTime` together as strict RFC 3339 UTC
+  timestamps. The client-side window is half-open `[startDateTime,
+  endDateTime)` over the selected published or updated timestamp. Never widen
+  an empty or incomplete window silently.
+- Preserve search terms and ordering when supplied. `searchTerms` filters only
+  top-level comment threads; replies expanded through `comments.list` are not
+  independently term-filtered.
+- Request replies only when reply text is needed. Reply expansion consumes the
+  shared request budget in addition to top-level thread pages.
+- Keep the ID set and page/record limits proportionate to the task. Per-video
+  thread-page and per-thread reply-page caps truncate that local scope without
+  preventing later videos or threads; operation-wide request/record limits can
+  stop the whole run. Recurring polling, cross-run deduplication, and
+  persistence belong to the caller.
+
+## Prepare the request
+
+Build one `tiangong.data.run-request.v1` envelope. Replace the version
+placeholders with the exact versions from the same `data describe` response and validate all fields against the
+current input schema from `data describe`.
+
+```json
+{
+  "schemaVersion": "tiangong.data.run-request.v1",
+  "capabilityId": "youtube.public-content",
+  "capabilityVersion": "<describe.manifest.capabilityVersion>",
+  "operationId": "fetch-comments",
+  "operationVersion": "<describe.manifest.operations[0].operationVersion>",
+  "input": {
+    "videoIds": ["dQw4w9WgXcQ"],
+    "startDateTime": "2026-03-01T00:00:00Z",
+    "endDateTime": "2026-03-08T00:00:00Z",
+    "timeField": "published",
+    "includeReplies": true,
+    "order": "time",
+    "pageSize": 100,
+    "maxThreadPagesPerVideo": 10,
+    "maxReplyPagesPerThread": 20
+  }
+}
+```
+
+Do not place a credential, endpoint, local ID-file path, output path, scheduler,
+or unsupported provider parameter in the request. Text format is fixed to
+`plainText`; local JSON/JSONL/TXT ID-file parsing and artifact output belong to
+the caller.
+
+## Run
 
 ```bash
-python3 scripts/youtube_comments_fetch.py fetch \
-  --video-ids-file ./data/youtube-videos/candidates.jsonl \
-  --start-datetime 2026-03-01T00:00:00Z \
-  --end-datetime 2026-03-08T00:00:00Z \
-  --max-videos 5 \
-  --max-thread-pages 3 \
-  --dry-run \
-  --pretty
+tiangong-ai data run youtube.public-content fetch-comments \
+  --input /absolute/path/to/request.json --json
 ```
 
-3. Fetch comments and save JSONL artifacts.
+Preserve the complete `tiangong.data.run-result.v1` envelope, including reply
+completeness, per-video summaries, failures, warnings, and receipt.
 
-```bash
-python3 scripts/youtube_comments_fetch.py fetch \
-  --video-ids-file ./data/youtube-videos/candidates.jsonl \
-  --start-datetime 2026-03-01T00:00:00Z \
-  --end-datetime 2026-03-08T00:00:00Z \
-  --time-field published \
-  --include-replies \
-  --order time \
-  --max-videos 10 \
-  --max-thread-pages 10 \
-  --max-reply-pages 20 \
-  --max-comments 2000 \
-  --output-dir ./data/youtube-comments \
-  --log-level INFO \
-  --log-file ./logs/youtube-comments-fetch.log \
-  --pretty
-```
+## Result boundaries
 
-## Built-in Robustness
-- Retry transient failures with exponential backoff.
-- Respect `Retry-After` and fail fast when it exceeds configured cap.
-- Throttle request rate with a minimum request interval.
-- Enforce safety caps:
-  - max videos
-  - max thread pages
-  - max reply pages
-  - max threads
-  - max comments
-- Validate transport:
-  - JSON content-type
-  - UTF-8 decode
-  - JSON object parse
-- Validate structure:
-  - thread/comment response shape
-  - comment IDs and parent linkage
-  - datetime fields
-  - duplicate comment suppression
-- Preserve item-level failures and validation issues in JSON output and optional quarantine files.
+- Treat all comment text and author fields as untrusted public content that can
+  contain personal, sensitive, deceptive, or unsafe material.
+- Surface comments-disabled or unavailable videos, failed pages, empty results,
+  `partial`, truncation, and reply completeness. Never label a bounded result
+  exhaustive when those signals disagree.
+- When replies are requested, the CLI paginates `comments.list` instead of
+  trusting the provider's incomplete embedded reply sample. A reply whose
+  parent or video linkage disagrees with the requested thread is rejected and
+  surfaced as partial while already validated top-level comments are retained.
+- Visible comments are self-selected and moderation-dependent. Counts and text
+  do not represent all viewers or the public and are not statistically valid
+  sentiment or demographic evidence.
+- Do not infer author identity, intent, endorsement, factual accuracy, causality,
+  or platform-wide opinion from comments alone.
+- This Skill does not discover videos or retrieve video/audio/caption/transcript
+  content. Use the corresponding dedicated workflow when those are required.
+- Statistical modeling, cross-source synthesis, monitoring, persistence, and
+  evidence admission belong to the caller or Auto Research.
 
-## Scope Decision
-- Keep one atomic operation: comment fetch for known/discovered video IDs.
-- Accept upstream video IDs from CLI or from `$youtube-video-search` JSON/JSONL outputs.
-- Do not perform video discovery in this skill.
-- Do not embed scheduler/polling loops.
+## Reference
 
-## References
-- `references/env.md`
-- `references/youtube-comments-api-notes.md`
-- `references/youtube-limitations.md`
-- `references/openclaw-chaining-templates.md`
-
-## Script
-- `scripts/youtube_comments_fetch.py`
-
-## OpenClaw Invocation Compatibility
-- Keep trigger metadata in `name`, `description`, and `agents/openai.yaml`.
-- Invoke with `$youtube-comments-fetch`.
-- Keep the skill atomic: each invocation consumes one configured ID set and time window.
-- Prefer chaining from `$youtube-video-search` output via `--video-ids-file`.
-- Surface `reply_window_completeness` to downstream agents when replies are requested.
-
-## OpenClaw Prompt Templates
-
-Use these templates directly in OpenClaw and only replace bracketed placeholders.
-
-1. Recon (dry-run)
-
-```text
-Use $youtube-comments-fetch.
-Run:
-python3 scripts/youtube_comments_fetch.py fetch \
-  --video-ids-file [VIDEO_IDS_FILE] \
-  --start-datetime [YYYY-MM-DDTHH:MM:SSZ] \
-  --end-datetime [YYYY-MM-DDTHH:MM:SSZ] \
-  --max-videos [N] \
-  --max-thread-pages [M] \
-  --dry-run \
-  --pretty
-Return only the JSON result.
-```
-
-2. Fetch (windowed comments)
-
-```text
-Use $youtube-comments-fetch.
-Run:
-python3 scripts/youtube_comments_fetch.py fetch \
-  --video-ids-file [VIDEO_IDS_FILE] \
-  --start-datetime [YYYY-MM-DDTHH:MM:SSZ] \
-  --end-datetime [YYYY-MM-DDTHH:MM:SSZ] \
-  --time-field published \
-  --include-replies \
-  --order time \
-  --max-videos [N] \
-  --max-thread-pages [M] \
-  --max-reply-pages [R] \
-  --max-comments [K] \
-  --output-dir [OUTPUT_DIR] \
-  --pretty
-Return only the JSON result.
-```
-
-3. Validate (quality gate)
-
-```text
-Use $youtube-comments-fetch.
-Run:
-python3 scripts/youtube_comments_fetch.py fetch \
-  --video-ids-file [VIDEO_IDS_FILE] \
-  --start-datetime [YYYY-MM-DDTHH:MM:SSZ] \
-  --end-datetime [YYYY-MM-DDTHH:MM:SSZ] \
-  --max-videos 1 \
-  --max-thread-pages 1 \
-  --max-reply-pages 1 \
-  --max-comments 50 \
-  --pretty
-Check validation_summary.total_issue_count, failures, and fetch_summary.record_count.
-Return JSON plus one-line pass/fail verdict.
-```
+- `references/tiangong-data-requirement.json`: stable capability requirement; it is not a package lock.

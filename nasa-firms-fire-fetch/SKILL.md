@@ -1,152 +1,119 @@
 ---
 name: nasa-firms-fire-fetch
-description: Fetch NASA FIRMS active fire detections from the area/csv endpoint for specified date windows, sources, and bounding boxes with retries, throttling, detailed logs, and transport/structure validation. Use when tasks need deterministic wildfire, open-burning, or smoke-source verification for ecology and environmental monitoring within a known coordinate window.
+description: Retrieve bounded NASA FIRMS satellite active-fire and thermal-anomaly point detections through the Tiangong CLI for one reviewed source, known bounding box, and short UTC date window. Use for hotspot screening or candidate fire-location context; do not use for fire perimeters, burned area, confirmed wildfire incidents, cause attribution, emergency alerts, recurring monitoring, or multi-source fusion.
 ---
 
-# NASA FIRMS Fire Fetch
+# NASA FIRMS Active Fire
 
-## Core Goal
-- Fetch NASA FIRMS active fire detections for one bounding box in one invocation.
-- Support inclusive `--start-date` and `--end-date` even though FIRMS only accepts up to 5 days per request.
-- Return machine-readable JSON with request metadata, chunk transport details, validation summary, and normalized fire records.
-- Keep runtime observable with structured stderr logs and optional file logs.
+Use the CLI-owned `nasa-firms.active-fire` capability. This Skill supplies
+intent routing and result-use boundaries only; the CLI owns source discovery,
+input/output schemas, MAP_KEY injection, chunking, limits, validation, and
+receipts.
 
-## Required Environment
-- `NASA_FIRMS_MAP_KEY` is required for remote requests.
-- Start from `assets/config.example.env` and keep the real key in `assets/config.env`.
-- Load env values before running commands:
+## Before running
 
-```bash
-set -a
-source assets/config.env
-set +a
-```
-
-## Workflow
-1. Validate effective configuration. Probe the key when needed.
+1. Read `references/tiangong-data-requirement.json`.
+2. Use the caller- or workspace-resolved stable CLI. The requirement declares
+   compatible capability and operation contract majors; it does not select a
+   package build.
+3. Run `data describe` with that same CLI. Continue only when the capability
+   ID and required contract majors match, and copy the exact current
+   capability/operation versions from that response into the run request.
+4. Ensure `NASA_FIRMS_MAP_KEY` is present in the CLI process environment, then
+   run the default static doctor. Never place the key in argv, the request JSON,
+   a Skill-local config file, logs, or output.
 
 ```bash
-python3 scripts/nasa_firms_fire_fetch.py check-config \
-  --probe-map-key \
-  --pretty
+tiangong-ai data describe nasa-firms.active-fire --json
+tiangong-ai data doctor nasa-firms.active-fire --json
 ```
 
-2. Dry-run the request plan first.
+Use the returned Discovery Metadata to confirm current source availability,
+coverage, granularity, NRT or Standard Processing semantics, citation guidance,
+quota, `provides`, and `doesNotProvide`. Do not substitute facts remembered
+from an older Skill revision. A blocked static doctor means the required
+logical credential is unavailable; stop instead of bypassing the CLI.
+
+## Prepare the request
+
+Build a `tiangong.data.run-request.v1` envelope and replace the two version
+placeholders with the exact versions from the same `data describe` response. Use one source and one known WGS84
+bounding box that does not cross the antimeridian. The inclusive UTC date
+window may contain at most 31 dates; the CLI performs provider-compliant
+five-day chunking and enforces transaction and record limits.
+
+```json
+{
+  "schemaVersion": "tiangong.data.run-request.v1",
+  "capabilityId": "nasa-firms.active-fire",
+  "capabilityVersion": "<describe.manifest.capabilityVersion>",
+  "operationId": "fetch-area",
+  "operationVersion": "<describe.manifest.operations[0].operationVersion>",
+  "input": {
+    "source": "VIIRS_NOAA20_NRT",
+    "boundingBox": {
+      "west": 115.8,
+      "south": -8.9,
+      "east": 116.3,
+      "north": -8.3
+    },
+    "startDate": "2026-03-01",
+    "endDate": "2026-03-07",
+    "checkAvailability": true
+  }
+}
+```
+
+Use the operation input schema returned by the same `data describe` response for the current
+source enum and limits. Select NRT only when timeliness is material and its
+provisional status can be retained; select the matching Standard Processing
+source for consistent historical work when available. Set
+`checkAvailability` when the source's historical window is uncertain, accepting
+the extra provider request. Do not silently widen the box, switch sources,
+geocode place names, cross the antimeridian, or fan out across areas.
+
+## Run
 
 ```bash
-python3 scripts/nasa_firms_fire_fetch.py fetch \
-  --source VIIRS_NOAA20_NRT \
-  --bbox 115.8,-8.9,116.3,-8.3 \
-  --start-date 2026-03-01 \
-  --end-date 2026-03-08 \
-  --dry-run \
-  --pretty
+tiangong-ai data run nasa-firms.active-fire fetch-area \
+  --input /absolute/path/to/request.json --json
 ```
 
-3. Run the fetch with validation and operational logs.
+The command emits a `tiangong.data.run-result.v1` envelope. Preserve its
+`contract`, `warnings`, `errors`, and `receipt` with `data` when handing the
+result to another workflow.
 
-```bash
-python3 scripts/nasa_firms_fire_fetch.py fetch \
-  --source VIIRS_NOAA20_NRT \
-  --bbox 115.8,-8.9,116.3,-8.3 \
-  --start-date 2026-03-01 \
-  --end-date 2026-03-08 \
-  --check-availability \
-  --output ./data/firms/nasa-firms-fire-fetch.json \
-  --log-level INFO \
-  --log-file ./logs/nasa-firms-fire-fetch.log \
-  --pretty
-```
+## Result boundaries
 
-## Built-in Robustness
-- Retry transient HTTP and network failures with exponential backoff.
-- Respect `Retry-After` when present and fail fast when it exceeds the configured cap.
-- Throttle request rate with a minimum request interval.
-- Enforce safety caps before remote calls:
-  - maximum inclusive day range per run
-  - maximum per-chunk day range
-  - maximum estimated transaction weight per run
-- Validate transport:
-  - HTTP status handling
-  - content-type checks
-  - UTF-8 strict decode
-  - CSV and JSON parse checks
-- Validate structure:
-  - required fire columns
-  - coordinate range and bbox inclusion
-  - acquisition date/time parseability
-  - returned dates remaining inside the requested window
-  - consistent chunk headers
+- Treat each record as a satellite thermal-anomaly or active-fire detection,
+  not a fire perimeter, burned-area estimate, incident identity, or proof of a
+  wildfire or ignition cause.
+- Preserve source, acquisition time, satellite/instrument, confidence,
+  day/night, version, and sensor measurements with every downstream use.
+- Preserve NRT provisional warnings and the exact selected dataset in citations.
+  Do not merge NRT and Standard Processing records without an explicit method.
+- Treat `partial` as incomplete chunk or row coverage. Report missing chunks
+  and invalid paths together with the usable detections.
+- Preserve duplicate/inconsistent-header and row-validation issues. Rows with
+  invalid required coordinates or acquisition timestamps are omitted, while a
+  duplicate optional header or malformed optional measurement does not discard
+  an otherwise usable detection.
+- Treat `blocked` as no usable business result. Surface credential, request,
+  availability, endpoint, quota, or provider errors instead of bypassing limits
+  or switching endpoints.
+- Report record-limit truncation and transaction estimates; a truncated result
+  is not exhaustive evidence of hotspot absence or presence.
+- Confirm operationally important detections with incident, perimeter, imagery,
+  or local-authority sources. This capability supplies no alert, evacuation,
+  severity, containment, smoke, emissions, weather, or hydrology decision.
+- Recurring monitoring, multi-area or multi-source fan-out, duplicate-event
+  resolution, statistical inference, and research evidence admission belong to
+  the caller or Auto Research, not this atomic Skill.
+- This execution contract does not expose the source script's standalone
+  MAP_KEY-status probe, arbitrary sensor-specific raw columns, or raw JSON/log
+  artifact output. Use the static doctor plus an explicit bounded operation;
+  add any future live quota diagnostic as a separately reviewed CLI contract.
 
-## Scope Decision
-- Keep one atomic fetch implementation for the FIRMS `area/csv` endpoint only.
-- Do not embed geocoding, world-scale scans, country queries, alert thresholds, or fire classification logic.
-- Use OpenClaw orchestration, not this script, for recurring jobs or multi-area fan-out.
+## Reference
 
-## References
-- `references/env.md`
-- `references/nasa-firms-api-notes.md`
-- `references/nasa-firms-limitations.md`
-- `references/openclaw-chaining-templates.md`
-
-## Script
-- `scripts/nasa_firms_fire_fetch.py`
-
-## OpenClaw Invocation Compatibility
-- Keep trigger metadata in `name`, `description`, and `agents/openai.yaml`.
-- Invoke with `$nasa-firms-fire-fetch`.
-- Keep calls atomic and parameterized by:
-  - `--source`
-  - `--bbox`
-  - `--start-date`
-  - `--end-date`
-- Use OpenClaw orchestration, not this script, for repeated areas or repeated sources.
-
-## OpenClaw Prompt Templates
-
-Use these templates directly in OpenClaw and only replace bracketed placeholders.
-
-1. Recon (dry-run)
-
-```text
-Use $nasa-firms-fire-fetch.
-Run:
-python3 scripts/nasa_firms_fire_fetch.py fetch \
-  --source [FIRMS_SOURCE] \
-  --bbox [WEST,SOUTH,EAST,NORTH] \
-  --start-date [YYYY-MM-DD] \
-  --end-date [YYYY-MM-DD] \
-  --dry-run \
-  --pretty
-Return only the JSON result.
-```
-
-2. Fetch (fire verification window)
-
-```text
-Use $nasa-firms-fire-fetch.
-Run:
-python3 scripts/nasa_firms_fire_fetch.py fetch \
-  --source [FIRMS_SOURCE] \
-  --bbox [WEST,SOUTH,EAST,NORTH] \
-  --start-date [YYYY-MM-DD] \
-  --end-date [YYYY-MM-DD] \
-  --check-availability \
-  --pretty
-Return only the JSON result.
-```
-
-3. Validate (quality gate)
-
-```text
-Use $nasa-firms-fire-fetch.
-Run:
-python3 scripts/nasa_firms_fire_fetch.py fetch \
-  --source [FIRMS_SOURCE] \
-  --bbox [WEST,SOUTH,EAST,NORTH] \
-  --start-date [YYYY-MM-DD] \
-  --end-date [YYYY-MM-DD] \
-  --pretty
-Check validation_summary.total_issue_count and validation_summary.ok.
-Return JSON plus one-line pass/fail verdict.
-```
+- `references/tiangong-data-requirement.json`: stable capability requirement; it is not a package lock.

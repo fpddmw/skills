@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "tiangong.data.skill-capability-requirement.v1",
+  "skillName": "airnow-hourly-obs-fetch",
+  "capabilityId": "airnow.hourly-observations",
+  "capabilityContractVersion": "1",
+  "operations": {
+    "fetch-hourly": {
+      "contractVersion": "1"
+    }
+  }
+}

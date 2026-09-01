@@ -1,89 +1,87 @@
 ---
 name: airnow-hourly-obs-fetch
-description: Fetch AirNow Hourly AQ Obs file products from official AirNow file endpoints and return structured site-hour-parameter records filtered by UTC time window, bounding box, and pollutant parameter list. Use when tasks need deterministic AirNow monitoring-site observations at hourly cadence, especially for broad geography/time extraction where AirNow file products are preferred over per-request web-service loops.
+description: Retrieve preliminary U.S. EPA AirNow HourlyAQObs monitoring-site records through the Tiangong CLI for an inclusive UTC-hour window, WGS84 bounding box, and pollutant list. Use for site-hour observations with source-file lineage; do not use for regulatory AQS compliance data, forecasts, health guidance, exposure estimates, or place-name geocoding.
 ---
 
-# AirNow Hourly Obs Fetch
+# AirNow Hourly Observations
 
-## Core Goal
-- Fetch AirNow Hourly AQ Obs data files for one UTC window.
-- Filter rows by mission bounding box and requested pollutant parameters.
-- Return one normalized JSON record per site-hour-parameter for downstream processing.
-- Keep execution deterministic with retries, throttling, and local safety caps.
+Use the CLI-owned `airnow.hourly-observations` capability. This Skill supplies
+intent routing and result-use boundaries only; the CLI owns source discovery,
+input/output schemas, HTTP behavior, limits, validation, and receipts.
 
-## Repository Policy
-- This is the canonical AirNow station-observation skill in this repository.
-- When eco-council or OpenClaw assigns a raw artifact path, write this skill's full JSON payload to that exact path with `--output`.
-- Do not treat dry-run output as collected evidence.
+## Before running
 
-## Required Environment
-- Configure runtime by environment variables (see `references/env.md`).
-- Start from `assets/config.example.env`.
-- Load env values before running commands:
+1. Read `references/tiangong-data-requirement.json`.
+2. Use the caller- or workspace-resolved stable CLI. The requirement declares
+   compatible capability and operation contract majors; it does not select a
+   package build.
+3. Run `data describe` with that same CLI. Continue only when the capability
+   ID and required contract majors match, and copy the exact current
+   capability/operation versions from that response into the run request.
 
 ```bash
-set -a
-source assets/config.example.env
-set +a
+tiangong-ai data describe airnow.hourly-observations --json
 ```
 
-## Workflow
-1. Validate effective configuration.
+Use the returned Discovery Metadata to confirm current source coverage,
+freshness, restrictions, `provides`, and `doesNotProvide`. Do not substitute
+facts remembered from an older Skill revision.
+
+## Prepare the request
+
+Build a `tiangong.data.run-request.v1` envelope. Replace the two version
+placeholders with the exact versions from the same `data describe` response. The operation input requires
+hour-aligned UTC timestamps, a WGS84 bounding box, and one or more supported
+pollutant identifiers:
+
+```json
+{
+  "schemaVersion": "tiangong.data.run-request.v1",
+  "capabilityId": "airnow.hourly-observations",
+  "capabilityVersion": "<describe.manifest.capabilityVersion>",
+  "operationId": "fetch-hourly",
+  "operationVersion": "<describe.manifest.operations[0].operationVersion>",
+  "input": {
+    "startDateTimeUtc": "2026-03-22T00:00:00Z",
+    "endDateTimeUtc": "2026-03-22T06:00:00Z",
+    "boundingBox": {
+      "minLongitude": -123.5,
+      "minLatitude": 37.0,
+      "maxLongitude": -121.5,
+      "maxLatitude": 38.8
+    },
+    "parameters": ["PM25", "OZONE"]
+  }
+}
+```
+
+Use the operation input schema returned by the same `data describe` response when selecting
+fields or values under `input`. Do not infer unsupported aliases or silently
+widen the requested time or geographic range.
+
+## Run
 
 ```bash
-python3 scripts/airnow_hourly_obs_fetch.py check-config --pretty
+tiangong-ai data run airnow.hourly-observations fetch-hourly \
+  --input /absolute/path/to/request.json --json
 ```
 
-2. Dry-run to inspect target hour files and filters.
+The command emits a `tiangong.data.run-result.v1` envelope. Preserve its
+`contract`, `warnings`, `errors`, and `receipt` with `data` when handing the
+result to another workflow.
 
-```bash
-python3 scripts/airnow_hourly_obs_fetch.py fetch \
-  --bbox=-123.5,37.0,-121.5,38.8 \
-  --start-datetime 2026-03-22T00:00:00Z \
-  --end-datetime 2026-03-22T02:00:00Z \
-  --parameter PM25 \
-  --parameter OZONE \
-  --dry-run \
-  --pretty
-```
+## Result boundaries
 
-3. Run the fetch and write output payload.
+- Treat `partial` as incomplete coverage and report missing or invalid hourly
+  files; never convert missing observations to zero.
+- Treat `blocked` as no usable business result and surface the structured
+  errors instead of retrying with broader inputs.
+- Do not interpret AQI as health advice, estimate exposure, interpolate between
+  sites, combine other sources, or use preliminary AirNow records for
+  regulatory compliance.
+- Cross-source comparison and research evidence admission belong to the caller
+  or Auto Research, not this atomic Skill.
 
-```bash
-python3 scripts/airnow_hourly_obs_fetch.py fetch \
-  --bbox=-123.5,37.0,-121.5,38.8 \
-  --start-datetime 2026-03-22T00:00:00Z \
-  --end-datetime 2026-03-22T02:00:00Z \
-  --parameter PM25 \
-  --parameter OZONE \
-  --parameter NO2 \
-  --output ./data/airnow-hourly-obs.json \
-  --pretty
-```
+## Reference
 
-## Output Record Shape
-Each output item in `records` is one site-hour-parameter observation with fields:
-- `aqsid`, `site_name`, `status`, `epa_region`
-- `latitude`, `longitude`, `country_code`, `state_name`
-- `observed_at_utc`, `data_source`, `reporting_areas`
-- `parameter_name`, `aqi_value`, `aqi_kind`
-- `raw_concentration`, `unit`, `measured`
-- `source_file_url`
-
-The full raw payload also keeps request metadata, transport stats, validation output, and file-level failure details for downstream auditing.
-
-## Scope Boundaries
-- This skill consumes AirNow hourly file products only.
-- This skill does not geocode place names.
-- This skill does not do AQI health interpretation or policy judgment.
-- This skill treats file data as preliminary and for analysis support, not regulatory decisions.
-- This skill is the canonical AirNow fetch interface for this repository.
-
-## References
-- `references/env.md`
-- `references/airnow-hourly-obs-api-notes.md`
-- `references/airnow-hourly-obs-limitations.md`
-- `references/openclaw-chaining-templates.md`
-
-## Script
-- `scripts/airnow_hourly_obs_fetch.py`
+- `references/tiangong-data-requirement.json`: stable capability requirement; it is not a package lock.

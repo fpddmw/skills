@@ -1,0 +1,4 @@
+interface:
+  display_name: "EPA EIS Records Fetch"
+  short_description: "Retrieve bounded official EPA EIS metadata"
+  default_prompt: "Use $epa-eis-records-fetch to retrieve bounded official EPA EIS Database metadata for this task."

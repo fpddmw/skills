@@ -1,0 +1,379 @@
+{
+  "schemaVersion": "tiangong.data.skill-migration-provenance.v1",
+  "generatedWithCliVersion": "0.0.55",
+  "skills": [
+    {
+      "skillName": "airnow-hourly-obs-fetch",
+      "capabilityId": "airnow.hourly-observations",
+      "capabilityVersion": "1.0.0",
+      "minimumCliVersion": "0.0.55",
+      "manifestDigest": "e548f8792c5dbe4818521db7c5fe8e6dbf70b8580a2eca42f1da3ae91b22d989",
+      "operations": [
+        {
+          "operationId": "fetch-hourly",
+          "operationVersion": "1.0.0",
+          "inputSchemaId": "https://schemas.tiangong.ai/data/airnow/hourly-observations-input.v1.json",
+          "inputSchemaDigest": "95bc5a56ac4bb62c6ca3c0299598dbf5dc75dae720dd57ae059ca9f2413b9e80",
+          "outputSchemaId": "https://schemas.tiangong.ai/data/airnow/hourly-observations-output.v1.json",
+          "outputSchemaDigest": "e1889763cc2884ca6e73421f9246cf54330220b4124593f77b66eea64e2318b4"
+        }
+      ]
+    },
+    {
+      "skillName": "bluesky-cascade-fetch",
+      "capabilityId": "bluesky.public-posts",
+      "capabilityVersion": "1.0.0",
+      "minimumCliVersion": "0.0.55",
+      "manifestDigest": "49656ecc08cacde30f4b24d9847b86b20375a497fcd81229daeb055c7b263e71",
+      "operations": [
+        {
+          "operationId": "fetch-cascades",
+          "operationVersion": "1.0.0",
+          "inputSchemaId": "https://schemas.tiangong.ai/data/bluesky/public-post-cascades-input.v1.json",
+          "inputSchemaDigest": "1e0e07cfd12507e2a5543323e95a07c86afd4ae277a1311b93aefad0830896bd",
+          "outputSchemaId": "https://schemas.tiangong.ai/data/bluesky/public-post-cascades-output.v1.json",
+          "outputSchemaDigest": "3f375711d1a68250c6e24afb0a636158356e9772ed46de963b8b08c033a2e838"
+        }
+      ]
+    },
+    {
+      "skillName": "epa-eis-records-fetch",
+      "capabilityId": "epa.eis-records",
+      "capabilityVersion": "1.0.0",
+      "minimumCliVersion": "0.0.55",
+      "manifestDigest": "deebd74fc66c50b8f82d650d3cb8834d32aacb24bf590bcd3ea28cbce1bd2832",
+      "operations": [
+        {
+          "operationId": "search",
+          "operationVersion": "1.0.0",
+          "inputSchemaId": "https://schemas.tiangong.ai/data/epa/eis-records-search-input.v1.json",
+          "inputSchemaDigest": "e1b83058c0e6ddd75b43f3c6b5839e396db22060a6e9fb626e266ccd5a085794",
+          "outputSchemaId": "https://schemas.tiangong.ai/data/epa/eis-records-search-output.v1.json",
+          "outputSchemaDigest": "558274f50a266386c494a703733f7a442a8852ccc3c265740dcdf89a65b7c47f"
+        }
+      ]
+    },
+    {
+      "skillName": "federal-register-doc-fetch",
+      "capabilityId": "federal-register.documents",
+      "capabilityVersion": "1.0.0",
+      "minimumCliVersion": "0.0.55",
+      "manifestDigest": "84592919898bf6b4cd8b7dc369bd9f7dcd2800e5cdb02b2c2bb86ff4aa1db853",
+      "operations": [
+        {
+          "operationId": "search",
+          "operationVersion": "1.0.0",
+          "inputSchemaId": "https://schemas.tiangong.ai/data/federal-register/documents-input.v1.json",
+          "inputSchemaDigest": "5d288288950dc896a38e9c24961f8757a5b3f29c9cb0cbc6be3c6fb3e22c6fd8",
+          "outputSchemaId": "https://schemas.tiangong.ai/data/federal-register/documents-output.v1.json",
+          "outputSchemaDigest": "5da7ecd8e5961e691aa6f171ed5594a0a9232f60c9f93b05232ba1948090fa33"
+        }
+      ]
+    },
+    {
+      "skillName": "gdelt-doc-search",
+      "capabilityId": "gdelt.doc-search",
+      "capabilityVersion": "1.0.0",
+      "minimumCliVersion": "0.0.55",
+      "manifestDigest": "752c31e2a61d7ccf917c36ef27634162fb39f98073d22604c5204e97f79051b6",
+      "operations": [
+        {
+          "operationId": "search",
+          "operationVersion": "1.0.0",
+          "inputSchemaId": "https://schemas.tiangong.ai/data/gdelt/doc-search-input.v1.json",
+          "inputSchemaDigest": "c7830eb70dc9b9b584030249468c5905babe59068d4924d8464c81c6922f6d10",
+          "outputSchemaId": "https://schemas.tiangong.ai/data/gdelt/doc-search-output.v1.json",
+          "outputSchemaDigest": "cf68c5b4b77151722a8ba483ce75c66a66e30af1e0dffdba8dbaed0038e4e1bd"
+        }
+      ]
+    },
+    {
+      "skillName": "gdelt-events-fetch",
+      "capabilityId": "gdelt.events",
+      "capabilityVersion": "1.0.0",
+      "minimumCliVersion": "0.0.55",
+      "manifestDigest": "18cd1b6024d342b46f41cdc33d326635afd5e9acac64e5c1c920023e517577a4",
+      "operations": [
+        {
+          "operationId": "fetch",
+          "operationVersion": "1.0.0",
+          "inputSchemaId": "https://schemas.tiangong.ai/data/gdelt/file-feed-input.v1.json",
+          "inputSchemaDigest": "00c98f96359fd1fa5a2216644eb0396af259f54c3f8204ed7a0be486b8da9e8c",
+          "outputSchemaId": "https://schemas.tiangong.ai/data/gdelt/events-output.v1.json",
+          "outputSchemaDigest": "145cd990ae078492efa9decba4f22747e1c7666e72dbc4dfb10288128b196d8c"
+        }
+      ]
+    },
+    {
+      "skillName": "gdelt-gkg-fetch",
+      "capabilityId": "gdelt.gkg",
+      "capabilityVersion": "1.0.0",
+      "minimumCliVersion": "0.0.55",
+      "manifestDigest": "ed6fb968737e7abe354ad2646cdf28dcae98c6ab61b61d731de328c743fa42be",
+      "operations": [
+        {
+          "operationId": "fetch",
+          "operationVersion": "1.0.0",
+          "inputSchemaId": "https://schemas.tiangong.ai/data/gdelt/file-feed-input.v1.json",
+          "inputSchemaDigest": "00c98f96359fd1fa5a2216644eb0396af259f54c3f8204ed7a0be486b8da9e8c",
+          "outputSchemaId": "https://schemas.tiangong.ai/data/gdelt/gkg-output.v1.json",
+          "outputSchemaDigest": "ece9992a723a29456918bf6da57cf881ada4850eb796c721004088df409301c1"
+        }
+      ]
+    },
+    {
+      "skillName": "gdelt-mentions-fetch",
+      "capabilityId": "gdelt.mentions",
+      "capabilityVersion": "1.0.0",
+      "minimumCliVersion": "0.0.55",
+      "manifestDigest": "6393b124c832ffb88dc25e975ee78e3a757b4ac722550da8473d51b377fe88f0",
+      "operations": [
+        {
+          "operationId": "fetch",
+          "operationVersion": "1.0.0",
+          "inputSchemaId": "https://schemas.tiangong.ai/data/gdelt/file-feed-input.v1.json",
+          "inputSchemaDigest": "00c98f96359fd1fa5a2216644eb0396af259f54c3f8204ed7a0be486b8da9e8c",
+          "outputSchemaId": "https://schemas.tiangong.ai/data/gdelt/mentions-output.v1.json",
+          "outputSchemaDigest": "10a1946daa4a90620cf6e10fb3217d2679af84f8699b57654599ae0317c6c572"
+        }
+      ]
+    },
+    {
+      "skillName": "nasa-firms-fire-fetch",
+      "capabilityId": "nasa-firms.active-fire",
+      "capabilityVersion": "1.0.0",
+      "minimumCliVersion": "0.0.55",
+      "manifestDigest": "958d88b2aba435b9f5e23aa741c8c78f672eb9fe4ff2eb3fd0924a5f4455f167",
+      "operations": [
+        {
+          "operationId": "fetch-area",
+          "operationVersion": "1.0.0",
+          "inputSchemaId": "https://schemas.tiangong.ai/data/nasa-firms/active-fire-input.v1.json",
+          "inputSchemaDigest": "51118014cff5f24fc61d65b16c02fef0997dd06f421c17137e7427356b0ef15d",
+          "outputSchemaId": "https://schemas.tiangong.ai/data/nasa-firms/active-fire-output.v1.json",
+          "outputSchemaDigest": "41738190007eebc6851ede221dd848455e701985eeeee2de8b85ff96227bb901"
+        }
+      ]
+    },
+    {
+      "skillName": "open-meteo-air-quality-fetch",
+      "capabilityId": "open-meteo.air-quality",
+      "capabilityVersion": "1.0.0",
+      "minimumCliVersion": "0.0.55",
+      "manifestDigest": "17ef09e5f73321b133469b0481417b3d1d0639fe17636ce1de1f9f9569ab98dd",
+      "operations": [
+        {
+          "operationId": "fetch-hourly",
+          "operationVersion": "1.0.0",
+          "inputSchemaId": "https://schemas.tiangong.ai/data/open-meteo/air-quality-input.v1.json",
+          "inputSchemaDigest": "e797278a9fde68f42c4a0cca5340db25d3e638dd005b4d949ced2577c626186a",
+          "outputSchemaId": "https://schemas.tiangong.ai/data/open-meteo/air-quality-output.v1.json",
+          "outputSchemaDigest": "88285b8be03066a2c79131238d708bd1a10a2cf13c52b925d4e19cfd1e3cc88f"
+        }
+      ]
+    },
+    {
+      "skillName": "open-meteo-flood-fetch",
+      "capabilityId": "open-meteo.flood",
+      "capabilityVersion": "1.0.0",
+      "minimumCliVersion": "0.0.55",
+      "manifestDigest": "340060a3b6043eeb3ff22a480b5ec8d629b7163b47b761f05adef6aa4fb1404d",
+      "operations": [
+        {
+          "operationId": "fetch-daily",
+          "operationVersion": "1.0.0",
+          "inputSchemaId": "https://schemas.tiangong.ai/data/open-meteo/flood-input.v1.json",
+          "inputSchemaDigest": "2aa16a8dd843307993dc5193bdb0a131beb53649bffc54ed461ab4b972e6936e",
+          "outputSchemaId": "https://schemas.tiangong.ai/data/open-meteo/flood-output.v1.json",
+          "outputSchemaDigest": "dbcf20321de45f6804a6285098d97d98280a3e5497af7fb47b1a146c6a161156"
+        }
+      ]
+    },
+    {
+      "skillName": "open-meteo-historical-fetch",
+      "capabilityId": "open-meteo.historical-weather",
+      "capabilityVersion": "1.0.0",
+      "minimumCliVersion": "0.0.55",
+      "manifestDigest": "6e10294987353b7db0fe00159589eeb97086694a71db23009c0faa4275c889e9",
+      "operations": [
+        {
+          "operationId": "fetch",
+          "operationVersion": "1.0.0",
+          "inputSchemaId": "https://schemas.tiangong.ai/data/open-meteo/historical-weather-input.v1.json",
+          "inputSchemaDigest": "42a4789f057de489d8e93cce7d1cbf0e6acc0fde6361ea26e07c65d263dfab57",
+          "outputSchemaId": "https://schemas.tiangong.ai/data/open-meteo/historical-weather-output.v1.json",
+          "outputSchemaDigest": "fa90035b9f6bd25511329bbad53ec39b424483a39dd997f67398a0374c89843b"
+        }
+      ]
+    },
+    {
+      "skillName": "openaq-data-fetch",
+      "capabilityId": "openaq.air-quality",
+      "capabilityVersion": "1.0.0",
+      "minimumCliVersion": "0.0.55",
+      "manifestDigest": "9b5cca3dd7d3214e960ab054e8e81a4f552305124400cb10a5fbe396674a32a9",
+      "operations": [
+        {
+          "operationId": "fetch-sensor-measurements",
+          "operationVersion": "1.0.0",
+          "inputSchemaId": "https://schemas.tiangong.ai/data/openaq/sensor-measurements-input.v1.json",
+          "inputSchemaDigest": "f1459d69625ee894636401861cd324960d9c340d19ce3ee993a8da900ae76b51",
+          "outputSchemaId": "https://schemas.tiangong.ai/data/openaq/sensor-measurements-output.v1.json",
+          "outputSchemaDigest": "4a0bea268fa2716dd65ca9159ea60ba7eba9c0e86e6cfa55f140b178ca0d4eae"
+        },
+        {
+          "operationId": "search-locations",
+          "operationVersion": "1.0.0",
+          "inputSchemaId": "https://schemas.tiangong.ai/data/openaq/location-search-input.v1.json",
+          "inputSchemaDigest": "406062ebcacf4ff208ce0cf1fc0e4216673b68dc21e8efe5f8233e01f5d7ecb7",
+          "outputSchemaId": "https://schemas.tiangong.ai/data/openaq/location-search-output.v1.json",
+          "outputSchemaDigest": "91cbd42b96926bcfcd0a380ecbb252d37361464191767fabf7a054321cb04366"
+        }
+      ]
+    },
+    {
+      "skillName": "regulationsgov-attachments-fetch",
+      "capabilityId": "regulations-gov.attachments",
+      "capabilityVersion": "1.0.0",
+      "minimumCliVersion": "0.0.55",
+      "manifestDigest": "a6c254b3181436503f2c741c4f2777e69f097387e844fcfc9b9b4dff1c060d19",
+      "operations": [
+        {
+          "operationId": "download",
+          "operationVersion": "1.0.0",
+          "inputSchemaId": "https://schemas.tiangong.ai/data/regulations-gov/attachment-download-input.v1.json",
+          "inputSchemaDigest": "69d8f7246910b0ac800ed150f5879272a1b6ab9ce5097b172259445e0b176340",
+          "outputSchemaId": "https://schemas.tiangong.ai/data/regulations-gov/attachment-download-output.v1.json",
+          "outputSchemaDigest": "3e9e350110997a02f042ba76606f17782259a6d038893e03a7d3cfba521ab4cf"
+        }
+      ]
+    },
+    {
+      "skillName": "regulationsgov-comment-detail-fetch",
+      "capabilityId": "regulations-gov.comments",
+      "capabilityVersion": "1.0.0",
+      "minimumCliVersion": "0.0.55",
+      "manifestDigest": "c60028e70f0352363d326a63214ec1b2cc7962d7e22a7a76799f959edd46301e",
+      "operations": [
+        {
+          "operationId": "fetch-details",
+          "operationVersion": "1.0.0",
+          "inputSchemaId": "https://schemas.tiangong.ai/data/regulations-gov/comment-detail-input.v1.json",
+          "inputSchemaDigest": "e8ecc93f7123a0a06696a2fc4e84f342c98513f3ff8927dc7a916ac21bef2399",
+          "outputSchemaId": "https://schemas.tiangong.ai/data/regulations-gov/comment-detail-output.v1.json",
+          "outputSchemaDigest": "5d9b3289cb949d4ae090af75202f5b275c396269d6fa821e9d67d0a500012fe0"
+        }
+      ]
+    },
+    {
+      "skillName": "regulationsgov-comments-fetch",
+      "capabilityId": "regulations-gov.comments",
+      "capabilityVersion": "1.0.0",
+      "minimumCliVersion": "0.0.55",
+      "manifestDigest": "c60028e70f0352363d326a63214ec1b2cc7962d7e22a7a76799f959edd46301e",
+      "operations": [
+        {
+          "operationId": "search",
+          "operationVersion": "1.0.0",
+          "inputSchemaId": "https://schemas.tiangong.ai/data/regulations-gov/comment-search-input.v1.json",
+          "inputSchemaDigest": "262b4f469b10297c6a089a098b725b2185c5df59f544be188229aec84c6c9d12",
+          "outputSchemaId": "https://schemas.tiangong.ai/data/regulations-gov/comment-search-output.v1.json",
+          "outputSchemaDigest": "0c7988ef123a869e0b273cc3c919e70ca6a6c6dc80005d01a5ff888102eb9e55"
+        }
+      ]
+    },
+    {
+      "skillName": "usbr-project-records-fetch",
+      "capabilityId": "usbr.project-records",
+      "capabilityVersion": "1.0.0",
+      "minimumCliVersion": "0.0.55",
+      "manifestDigest": "f8a58c85e4b32bfa0b52c2b2f048eb79f817e7e6d093fbbd55448876853c9eef",
+      "operations": [
+        {
+          "operationId": "fetch",
+          "operationVersion": "1.0.0",
+          "inputSchemaId": "https://schemas.tiangong.ai/data/usbr/project-records-fetch-input.v1.json",
+          "inputSchemaDigest": "dac97aa701c196c0cf20bb51d923d8772192fd29bba242782d7881e6b7f51b23",
+          "outputSchemaId": "https://schemas.tiangong.ai/data/usbr/project-records-fetch-output.v1.json",
+          "outputSchemaDigest": "54c66318d4fd7bdf6717291a50520e2fafaffbdc5512db18d3b2e4a556a594e9"
+        }
+      ]
+    },
+    {
+      "skillName": "usbr-rise-fetch",
+      "capabilityId": "usbr.rise",
+      "capabilityVersion": "1.0.0",
+      "minimumCliVersion": "0.0.55",
+      "manifestDigest": "cc7f156526b249ddb5211b811d32d48c4a506c58441f07a0b9520631b35d949a",
+      "operations": [
+        {
+          "operationId": "discover-items",
+          "operationVersion": "1.0.0",
+          "inputSchemaId": "https://schemas.tiangong.ai/data/usbr/rise-discover-items-input.v1.json",
+          "inputSchemaDigest": "d6041c08aa4887ca6df1b1ddf588f9fedb0e93db54d38d645e51f39dea2c1f18",
+          "outputSchemaId": "https://schemas.tiangong.ai/data/usbr/rise-discover-items-output.v1.json",
+          "outputSchemaDigest": "6cc210756e950f2f06cdef22a11133ed0f3698c6be4ecc31a52a6e1bbfc1ba89"
+        },
+        {
+          "operationId": "fetch-results",
+          "operationVersion": "1.0.0",
+          "inputSchemaId": "https://schemas.tiangong.ai/data/usbr/rise-fetch-results-input.v1.json",
+          "inputSchemaDigest": "0a3b3200b70ef4e1753d1d1267153d60b65fcab51cdb064c4a89a33258e81e71",
+          "outputSchemaId": "https://schemas.tiangong.ai/data/usbr/rise-fetch-results-output.v1.json",
+          "outputSchemaDigest": "4c5e40cbbae6d34d3b8babd5594ca880951736d012ff04d6c364136de0b70b19"
+        }
+      ]
+    },
+    {
+      "skillName": "usgs-water-iv-fetch",
+      "capabilityId": "usgs.water-instantaneous-values",
+      "capabilityVersion": "1.0.0",
+      "minimumCliVersion": "0.0.55",
+      "manifestDigest": "275f1f9adc4e058520434593e5c38f0de4d9e865709e421922e915d4a3239da7",
+      "operations": [
+        {
+          "operationId": "fetch",
+          "operationVersion": "1.0.0",
+          "inputSchemaId": "https://schemas.tiangong.ai/data/usgs/water-instantaneous-values-input.v1.json",
+          "inputSchemaDigest": "4cac0a1b9344b0f2d43103f150ee1d811fdb238961539441e2fdb62acb6b14f0",
+          "outputSchemaId": "https://schemas.tiangong.ai/data/usgs/water-instantaneous-values-output.v1.json",
+          "outputSchemaDigest": "16a67b3a99050556e902bac0c13911a8b96a361aac4a832e5dee893681dd6974"
+        }
+      ]
+    },
+    {
+      "skillName": "youtube-comments-fetch",
+      "capabilityId": "youtube.public-content",
+      "capabilityVersion": "1.0.0",
+      "minimumCliVersion": "0.0.55",
+      "manifestDigest": "7faeedb0b5f66e70e4d0e8464f8a179fb0c4c7ac3226ff9264eb8e6974bd1edf",
+      "operations": [
+        {
+          "operationId": "fetch-comments",
+          "operationVersion": "1.0.0",
+          "inputSchemaId": "https://schemas.tiangong.ai/data/youtube/comments-input.v1.json",
+          "inputSchemaDigest": "e34ef2e7557e17d20d48e6d1e45fb5b05ef1aad59142552ae8f3751a828a1a70",
+          "outputSchemaId": "https://schemas.tiangong.ai/data/youtube/comments-output.v1.json",
+          "outputSchemaDigest": "d4327b1457416611ab959a47e9f1ef3ea561a63e79b2a1736406e5d86820eb21"
+        }
+      ]
+    },
+    {
+      "skillName": "youtube-video-search",
+      "capabilityId": "youtube.public-content",
+      "capabilityVersion": "1.0.0",
+      "minimumCliVersion": "0.0.55",
+      "manifestDigest": "7faeedb0b5f66e70e4d0e8464f8a179fb0c4c7ac3226ff9264eb8e6974bd1edf",
+      "operations": [
+        {
+          "operationId": "search-videos",
+          "operationVersion": "1.0.0",
+          "inputSchemaId": "https://schemas.tiangong.ai/data/youtube/video-search-input.v1.json",
+          "inputSchemaDigest": "a1e82209c1eed69646432e2039602961a12ce8f938c449f9376935c900e76f53",
+          "outputSchemaId": "https://schemas.tiangong.ai/data/youtube/video-search-output.v1.json",
+          "outputSchemaDigest": "18e825ad7bbd681951f17008c5581ac5930053e7c946607eef5a26dda2e0b826"
+        }
+      ]
+    }
+  ]
+}

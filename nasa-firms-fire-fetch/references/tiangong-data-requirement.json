@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "tiangong.data.skill-capability-requirement.v1",
+  "skillName": "nasa-firms-fire-fetch",
+  "capabilityId": "nasa-firms.active-fire",
+  "capabilityContractVersion": "1",
+  "operations": {
+    "fetch-area": {
+      "contractVersion": "1"
+    }
+  }
+}

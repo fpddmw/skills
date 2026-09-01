@@ -13,8 +13,8 @@ checkPaths:
   - README.zh-CN.md
   - .claude-plugin/**
   - "*/SKILL.md"
-lastReviewedAt: 2026-08-22
-lastReviewedCommit: 1c0e4b9aba85ebba7c60e760b22cdc6ebf2927f4
+lastReviewedAt: 2026-09-01
+lastReviewedCommit: 4e22640981bca2c037dae31f47666400afefab5c
 ---
 
 # Skills Repository Architecture
@@ -98,6 +98,41 @@ Poppler language-pack/font failures even when the child process exits zero, and
 may fall through to another explicit or discovered `pdftoppm` candidate. Its
 clean-container suite uses a privacy-safe embedded CID Type 0C Adobe-GB1 PDF and
 a real fault-injected Poppler library; it does not mock renderer stderr.
+
+## Atomic Data Skills
+
+The architecture and staged inventory are documented in
+`_docs/architecture/atomic-data-capabilities.md` and
+`_docs/runbooks/atomic-data-skill-migration.md`.
+
+An atomic data Skill is a thin semantic entrypoint over a compatible published
+Tiangong CLI capability. It keeps source guidance, limitations, agent
+instructions, and a machine-checkable contract-major requirement. The caller or
+workspace runtime lock owns the exact package; connector logic, schemas,
+credentials, retries, and core receipts live only in the CLI's
+TypeScript 7 runtime. Auto Research reuses its workspace-locked runtime and adds
+its own evidence admission and persistence instead of executing a second Skill
+script.
+
+Twenty-one local candidate Skills now use this shape: AirNow, Federal Register,
+USGS Water IV, three Open-Meteo sources, NASA FIRMS, OpenAQ, EPA EIS, USBR RISE,
+USBR Project Records, three Regulations.gov semantic entrypoints, separate
+GDELT DOC, Events, GKG, and Mentions entrypoints, Bluesky Cascades, and separate
+YouTube video-search/comment entrypoints. Regulations.gov search and detail
+bind different operations of one capability, while attachments uses its own
+capability; the two YouTube Skills likewise bind different operations of one
+capability; the GDELT Skills bind four independent capabilities with one
+operation each. Each directory has only
+`SKILL.md`, generated agent metadata, and a package-independent capability
+requirement; its
+former Python connector and duplicate provider references are absent. These
+become production migrations only after a compatible CLI package is published
+and the repository-level migration provenance/install smoke qualify that
+release. Ordinary compatible CLI releases do not rewrite every Skill. RSS/full-text,
+Figshare, academic-paper, Tiangong/KB, and private-email
+candidates have completed their boundary audit and retain their specialized
+runtimes rather than losing core content, artifact, product, research, or
+account-security semantics.
 
 ## Integration Points
 

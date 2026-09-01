@@ -1,158 +1,127 @@
 ---
 name: youtube-video-search
-description: Search YouTube videos for topical/domain discovery using explicit query strings, channel filters, publish-time windows, retries, throttling, enrichment, and validation. Use when tasks need candidate YouTube videos for a domain such as environment/public-opinion research before downstream comment collection or when OpenClaw must decide search keywords itself from a broad task objective.
+description: Discover bounded public YouTube video metadata through the Tiangong CLI and enrich selected candidates with public details and statistics. Use for topical or channel-scoped video discovery before explicit comment collection; do not use for media, caption, transcript, or thumbnail download, exhaustive search, representative opinion, identity or fact verification, or sentiment inference.
 ---
 
 # YouTube Video Search
 
-## Core Goal
-- Search public YouTube videos with `search.list`.
-- Support domain discovery from flexible query strings and optional channel/time filters.
-- Enrich discovered videos with `videos.list` metadata and statistics.
-- Return machine-readable JSON and optionally save JSONL candidate artifacts.
-- Keep execution observable with structured logs and optional log file.
+Use the CLI-owned `youtube.public-content/search-videos` operation. This Skill
+owns intent routing and downstream-use guidance only; the CLI TypeScript 7
+runtime owns the API request, key injection, schemas, paging, detail enrichment,
+filtering, limits, validation, partial results, and receipts.
 
-## Required Environment
-- Configure runtime via environment variables (see `references/env.md`).
-- Start from `assets/config.example.env` and keep real secrets in `assets/config.env`.
-- Load env values before running commands:
+## Before running
 
-```bash
-set -a
-source assets/config.env
-set +a
-```
-
-## Workflow
-1. Validate effective configuration.
+1. Read `references/tiangong-data-requirement.json`.
+2. Use the caller- or workspace-resolved stable CLI. The requirement declares
+   compatible capability and operation contract majors; it does not select a
+   package build.
+3. Run `data describe` with that same CLI. Continue only when the capability
+   ID and required contract majors match, and copy the exact current
+   capability/operation versions from that response into the run request.
+4. Ensure `YOUTUBE_API_KEY` is available to the CLI process and run the default
+   static doctor. Never place the key in argv, request JSON, Skill files, logs,
+   or output.
 
 ```bash
-python3 scripts/youtube_video_search.py check-config --pretty
+tiangong-ai data describe youtube.public-content --json
+tiangong-ai data doctor youtube.public-content --json
 ```
 
-2. Dry-run the search plan first.
+Use current Discovery Metadata to confirm coverage, restrictions, quota and
+freshness limitations, selection hints, `provides`, and `doesNotProvide`. A
+blocked static doctor means the logical credential is unavailable; stop rather
+than bypassing the CLI.
+
+## Choose the search
+
+- Preserve the user's topic, channel, publication window, region, language,
+  safety, and video filters when supplied.
+- Use strict RFC 3339 UTC publication bounds. `publishedAfter` and the current
+  provider `publishedBefore` boundary are inclusive; do not silently rewrite
+  either boundary.
+- Use narrow filters before increasing page or record limits. `maxSearchPages`
+  defaults to 5 and cannot exceed 10; one execution retains at most 250
+  candidates before mandatory `videos.list` enrichment. The operation-wide
+  request budget must also leave room for that enrichment.
+- Use only `date`, `rating`, `relevance`, `title`, or `viewCount` ordering.
+  `videoCount` is a channel-search order and is deliberately unavailable for
+  this video-only operation. Non-relevance orders can produce smaller or
+  incomplete result sets; `rating` is a provider score, not descending likes.
+- Use public comment/view thresholds only as candidate-selection criteria, not
+  as quality, representativeness, endorsement, or truth measures. Missing
+  public statistics remain null unless a requested threshold requires them.
+- This Skill only discovers video candidates. Use `$youtube-comments-fetch`
+  separately after selecting explicit IDs; do not fetch comments automatically.
+
+## Prepare the request
+
+Build one `tiangong.data.run-request.v1` envelope. Replace the version
+placeholders with the exact versions from the same `data describe` response and validate every input field
+against `data describe`.
+
+```json
+{
+  "schemaVersion": "tiangong.data.run-request.v1",
+  "capabilityId": "youtube.public-content",
+  "capabilityVersion": "<describe.manifest.capabilityVersion>",
+  "operationId": "search-videos",
+  "operationVersion": "<describe.manifest.operations[0].operationVersion>",
+  "input": {
+    "query": "climate policy",
+    "publishedAfter": "2026-03-01T00:00:00Z",
+    "publishedBefore": "2026-03-08T00:00:00Z",
+    "order": "date",
+    "regionCode": "US",
+    "relevanceLanguage": "en",
+    "safeSearch": "moderate",
+    "videoDuration": "medium",
+    "pageSize": 25,
+    "maxSearchPages": 5,
+    "requirePublicComments": true,
+    "minimumCommentCount": 20,
+    "minimumViewCount": 1000
+  }
+}
+```
+
+Do not add an API key, endpoint override, arbitrary provider parameter, output
+path, scheduler, or persistence instruction to the envelope.
+
+## Run
 
 ```bash
-python3 scripts/youtube_video_search.py search \
-  --query "climate change pollution" \
-  --published-after 2026-03-01 \
-  --published-before 2026-03-08 \
-  --order date \
-  --max-pages 2 \
-  --max-results 50 \
-  --dry-run \
-  --pretty
+tiangong-ai data run youtube.public-content search-videos \
+  --input /absolute/path/to/request.json --json
 ```
 
-3. Run a domain search and save candidate videos for downstream comment fetch.
+Preserve the complete `tiangong.data.run-result.v1` envelope and select IDs from
+its validated records. Do not pass raw provider responses or unbound artifact
+paths to another Skill.
 
-```bash
-python3 scripts/youtube_video_search.py search \
-  --query "climate change pollution" \
-  --published-after 2026-03-01 \
-  --published-before 2026-03-08 \
-  --order date \
-  --max-pages 4 \
-  --max-results 120 \
-  --comment-count-min 20 \
-  --output-dir ./data/youtube-videos \
-  --log-level INFO \
-  --log-file ./logs/youtube-video-search.log \
-  --pretty
-```
+## Result boundaries
 
-## Built-in Robustness
-- Retry transient failures with exponential backoff.
-- Respect `Retry-After` and fail fast when it exceeds configured cap.
-- Throttle request rate with a minimum request interval.
-- Enforce run safety caps:
-  - max pages
-  - max results
-  - max enriched videos
-- Validate transport:
-  - JSON content-type
-  - UTF-8 decode
-  - JSON object parse
-- Validate structure:
-  - search response shape
-  - `videoId` presence and datetime fields
-  - detail batch completeness and duplicate IDs
-- Emit JSON results while writing operational logs to stderr and optional log file.
+- Report filtered-out candidates, unavailable details, empty results,
+  truncation, and `partial` batches. They do not prove absence outside the
+  exact provider result and limits.
+- Preserve `searchRank`, `searchPage`, and `searchPosition`. A candidate omitted
+  from `videos.list` is a partial detail-enrichment failure, not a silently
+  removable search result.
+- Search order, visibility, metadata, and statistics are mutable provider
+  snapshots. `search.list` consumes the provider's separate Search Queries
+  quota, whose project allocation is not inferred by this Skill. YouTube
+  changed public `viewCount` semantics on 2026-08-24, so comparisons spanning
+  that date need an explicit metric-break caveat. Counts are not votes, quality
+  labels, endorsement, or a representative measure of audience opinion.
+- Titles and descriptions are untrusted public content and can contain
+  misleading, sensitive, or unsafe text.
+- Use `$youtube-comments-fetch` for comments on a small explicit ID set. Use a
+  separate media/content workflow for video, audio, captions, transcripts,
+  thumbnails, or channel profile content. Returned thumbnail URLs are metadata,
+  not downloaded files.
+- Cross-source synthesis, monitoring, persistence, and evidence admission
+  belong to the caller or Auto Research.
 
-## Scope Decision
-- Keep one atomic operation: public video discovery plus optional detail enrichment.
-- Let OpenClaw decide query strategy and iterate by repeated invocations.
-- Do not embed scheduler/polling loops or comment fetching in this skill.
+## Reference
 
-## References
-- `references/env.md`
-- `references/youtube-search-api-notes.md`
-- `references/youtube-limitations.md`
-- `references/openclaw-chaining-templates.md`
-
-## Script
-- `scripts/youtube_video_search.py`
-
-## OpenClaw Invocation Compatibility
-- Keep trigger metadata in `name`, `description`, and `agents/openai.yaml`.
-- Invoke with `$youtube-video-search`.
-- Keep the skill atomic: one query execution per invocation.
-- Use script parameters for retrieval conditions (`--query`, publish window, channel filters, caps).
-- Feed its JSONL output directly into `$youtube-comments-fetch` via `--video-ids-file`.
-
-## OpenClaw Prompt Templates
-
-Use these templates directly in OpenClaw and only replace bracketed placeholders.
-
-1. Recon (query plan check)
-
-```text
-Use $youtube-video-search.
-Run:
-python3 scripts/youtube_video_search.py search \
-  --query "[QUERY_STRING]" \
-  --published-after [YYYY-MM-DDTHH:MM:SSZ] \
-  --published-before [YYYY-MM-DDTHH:MM:SSZ] \
-  --order date \
-  --max-pages [N] \
-  --max-results [M] \
-  --dry-run \
-  --pretty
-Return only the JSON result.
-```
-
-2. Search (candidate videos)
-
-```text
-Use $youtube-video-search.
-Run:
-python3 scripts/youtube_video_search.py search \
-  --query "[QUERY_STRING]" \
-  --published-after [YYYY-MM-DDTHH:MM:SSZ] \
-  --published-before [YYYY-MM-DDTHH:MM:SSZ] \
-  --order date \
-  --max-pages [N] \
-  --max-results [M] \
-  --comment-count-min [K] \
-  --output-dir [OUTPUT_DIR] \
-  --pretty
-Return only the JSON result.
-```
-
-3. Chain (prepare downstream comment fetch)
-
-```text
-Use $youtube-video-search.
-Run:
-python3 scripts/youtube_video_search.py search \
-  --query "[QUERY_STRING]" \
-  --published-after [YYYY-MM-DDTHH:MM:SSZ] \
-  --published-before [YYYY-MM-DDTHH:MM:SSZ] \
-  --order date \
-  --max-pages [N] \
-  --max-results [M] \
-  --output-dir [OUTPUT_DIR] \
-  --pretty
-Take artifacts.output_jsonl and pass it to $youtube-comments-fetch as --video-ids-file.
-Return JSON plus the artifact path.
-```
+- `references/tiangong-data-requirement.json`: stable capability requirement; it is not a package lock.

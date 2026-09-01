@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "tiangong.data.skill-capability-requirement.v1",
+  "skillName": "openaq-data-fetch",
+  "capabilityId": "openaq.air-quality",
+  "capabilityContractVersion": "1",
+  "operations": {
+    "fetch-sensor-measurements": {
+      "contractVersion": "1"
+    },
+    "search-locations": {
+      "contractVersion": "1"
+    }
+  }
+}

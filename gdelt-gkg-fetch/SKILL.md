@@ -1,150 +1,97 @@
 ---
 name: gdelt-gkg-fetch
-description: Fetch GDELT 2.0 GKG export snapshots from lastupdate/masterfilelist with retry, throttling, transport validation, and structure validation. Use when tasks need latest or time-range GKG files (*.gkg.csv.zip) for deterministic ingestion and machine-readable manifests.
+description: Retrieve bounded GDELT 2.0 Global Knowledge Graph rows through the Tiangong CLI from the latest snapshot or an exact UTC range. Use for machine-extracted themes, entities, locations, tone, and document linkage; do not use for article bodies, verified knowledge, event rows, polling, bulk archival mirroring, or causal claims.
 ---
 
 # GDELT GKG Fetch
 
-## Core Goal
-- Fetch GDELT 2.0 `GKG` table exports (`*.gkg.csv.zip`) from official public endpoints.
-- Resolve latest available snapshot via `lastupdate.txt`.
-- Resolve historical snapshots in a UTC range via `masterfilelist.txt`.
-- Persist downloaded files and return machine-readable JSON manifest.
-- Keep runtime observable with structured logs and optional log file.
+Use the CLI-owned `gdelt.gkg` capability. This Skill supplies intent routing and
+result-use boundaries only; the CLI owns source discovery, input/output schemas,
+HTTP and archive handling, limits, validation, and receipts.
 
-## Required Environment
-- Configure runtime by environment variables (see `references/env.md`).
-- Start from `assets/config.example.env`.
-- Load env values before running commands:
+## Before running
 
-```bash
-set -a
-source assets/config.example.env
-set +a
-```
-
-## Workflow
-1. Validate effective configuration.
+1. Read `references/tiangong-data-requirement.json`.
+2. Use the caller- or workspace-resolved stable CLI. The requirement declares
+   compatible capability and operation contract majors; it does not select a
+   package build.
+3. Run `data describe` with that same CLI. Continue only when the capability
+   ID and required contract majors match, and copy the exact current
+   capability/operation versions from that response into the run request.
 
 ```bash
-python3 scripts/gdelt_gkg_fetch.py check-config --pretty
+tiangong-ai data describe gdelt.gkg --json
 ```
 
-2. Inspect the latest available GKG snapshot.
+Use the returned Discovery Metadata to confirm current source coverage,
+freshness, restrictions, `provides`, and `doesNotProvide`. Do not substitute
+facts remembered from an older Skill revision.
+
+## Prepare the request
+
+Build a `tiangong.data.run-request.v1` envelope. Replace the two version
+placeholders with the exact versions from the same `data describe` response. This example selects a
+bounded range of source snapshots:
+
+```json
+{
+  "schemaVersion": "tiangong.data.run-request.v1",
+  "capabilityId": "gdelt.gkg",
+  "capabilityVersion": "<describe.manifest.capabilityVersion>",
+  "operationId": "fetch",
+  "operationVersion": "<describe.manifest.operations[0].operationVersion>",
+  "input": {
+    "mode": "range",
+    "startDateTime": "2026-03-01T12:00:00Z",
+    "endDateTime": "2026-03-01T12:45:00Z",
+    "maxFiles": 4
+  }
+}
+```
+
+Use the operation input schema returned by the same `data describe` response when choosing
+`latest` or `range`. Range bounds do not need to align to a 15-minute boundary:
+selection starts with the first published snapshot at or after the inclusive
+lower bound and stops at the inclusive upper bound. `maxFiles` selects the
+earliest bounded snapshots from a larger window and must be treated as
+truncation, not complete window coverage. Do not round timestamps, widen a
+range, or increase a safety limit without the caller's approval.
+
+## Run
 
 ```bash
-python3 scripts/gdelt_gkg_fetch.py resolve-latest --pretty
+tiangong-ai data run gdelt.gkg fetch \
+  --input /absolute/path/to/request.json --json
 ```
 
-3. Dry-run a historical range selection before downloading.
+The command emits a `tiangong.data.run-result.v1` envelope. Preserve its
+`contract`, `warnings`, `errors`, and `receipt` with `data` when handing the
+result to another workflow.
 
-```bash
-python3 scripts/gdelt_gkg_fetch.py fetch \
-  --mode range \
-  --start-datetime 20260301000000 \
-  --end-datetime 20260301120000 \
-  --max-files 3 \
-  --dry-run \
-  --pretty
-```
+## Result boundaries
 
-4. Fetch files with transport and structure validation.
+- Treat themes, entities, locations, quotations, and tone as machine-extracted
+  annotations, not verified knowledge, endorsement, sentiment ground truth, or
+  causal evidence.
+- A document identifier or source URL is lineage metadata, not an article body
+  or proof that every extracted field is correct. Do not claim full-text
+  acquisition.
+- Preserve source timestamps and record identifiers when joining or
+  deduplicating downstream; do not flatten multi-valued annotations without
+  documenting the transformation.
+- The capability returns normalized in-memory rows and execution metadata. It
+  does not create a durable ZIP mirror, expose the master file list, or perform
+  polling and incremental state management.
+- Preserve each file's SHA-256, ZIP/CRC validation metadata, row counts, and
+  capped validation issues. Invalid UTF-8 or non-27-column rows are omitted
+  locally while valid rows from the same snapshot remain usable.
+- Surface `partial`, truncation warnings, archive-validation failures, and empty
+  results. Never reinterpret them as complete absence of coverage.
+- Use the dedicated Events or Mentions Skill for their row types; this Skill
+  must not invoke or combine other feeds automatically.
+- Cross-source comparison, persistence, scheduling, and research evidence
+  admission belong to the caller or Auto Research.
 
-```bash
-python3 scripts/gdelt_gkg_fetch.py fetch \
-  --mode latest \
-  --max-files 1 \
-  --output-dir ./data/gdelt-gkg \
-  --preview-lines 2 \
-  --validate-structure \
-  --expected-columns 27 \
-  --quarantine-dir ./data/gdelt-gkg-quarantine \
-  --log-level INFO \
-  --log-file ./logs/gdelt-gkg-fetch.log \
-  --pretty
-```
+## Reference
 
-## Built-in Robustness
-- Apply retry with exponential backoff on transient HTTP/network failures.
-- Respect `Retry-After` when present on retriable responses.
-- Throttle request frequency with a minimum interval between requests.
-- Enforce `--max-files` safety cap (`GDELT_MAX_FILES_PER_RUN`) to prevent accidental bulk pulls.
-- Validate datetime format and range boundaries before remote calls.
-- Validate transport and structure after download:
-  - ZIP CRC/integrity check
-  - UTF-8 strict decoding check
-  - Tab column-count check (default 27)
-  - Optional bad-line issue quarantine (`--quarantine-dir`)
-- Emit JSON results while writing operational logs to stderr and optional log file.
-
-## Scope Decision
-- Keep one concrete file-table fetch implementation: `GKG` (`*.gkg.csv.zip`).
-- Keep atomic operations only; do not add internal scheduler/polling loops.
-
-## References
-- `references/gdelt-data-sources.md`
-- `references/gdelt-limitations.md`
-- `references/gdelt-schema.md`
-- `references/env.md`
-- `references/openclaw-chaining-templates.md`
-
-## Script
-- `scripts/gdelt_gkg_fetch.py`
-
-## OpenClaw Invocation Compatibility
-- Keep skill trigger metadata in `name`, `description`, and `agents/openai.yaml`.
-- Invoke in prompts with `$gdelt-gkg-fetch`.
-- Keep the skill atomic: only resolve/fetch on demand.
-- Use script parameters for fetch conditions (`--mode range --start-datetime --end-datetime`).
-- If you need polling, let OpenClaw orchestrate repeated invocations externally, not inside this skill.
-
-## OpenClaw Prompt Templates
-
-Use these templates directly in OpenClaw and only replace bracketed placeholders.
-
-1. Recon (latest availability)
-
-```text
-Use $gdelt-gkg-fetch.
-Run:
-python3 scripts/gdelt_gkg_fetch.py resolve-latest --pretty
-Return only the JSON result.
-```
-
-2. Fetch (historical window, dry-run first)
-
-```text
-Use $gdelt-gkg-fetch.
-Run:
-python3 scripts/gdelt_gkg_fetch.py fetch \
-  --mode range \
-  --start-datetime [YYYYMMDDHHMMSS] \
-  --end-datetime [YYYYMMDDHHMMSS] \
-  --max-files [N] \
-  --dry-run \
-  --pretty
-
-Then run without --dry-run using:
-  --output-dir [OUTPUT_DIR]
-  --validate-structure
-  --expected-columns 27
-  --quarantine-dir [QUARANTINE_DIR]
-Return only the JSON result.
-```
-
-3. Validate (download quality gate)
-
-```text
-Use $gdelt-gkg-fetch.
-Run:
-python3 scripts/gdelt_gkg_fetch.py fetch \
-  --mode latest \
-  --max-files 1 \
-  --output-dir [OUTPUT_DIR] \
-  --validate-structure \
-  --expected-columns 27 \
-  --quarantine-dir [QUARANTINE_DIR] \
-  --pretty
-Check validation.issue_count, decode_error_count, column_mismatch_count.
-Return JSON plus one-line pass/fail verdict.
-```
+- `references/tiangong-data-requirement.json`: stable capability requirement; it is not a package lock.
