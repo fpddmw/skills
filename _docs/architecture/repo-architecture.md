@@ -59,6 +59,12 @@ interactive fallback after a declaration error, and complete-readiness gating.
 The Skill does not duplicate the closed YAML schema or parse configuration; the
 CLI-generated template and validator remain authoritative.
 
+The canonical Skill also owns the native-host research-question gate. It runs
+before setup or tool use, pauses conclusion-presupposing or
+counterevidence-excluding requests with one testable rewrite, and waits for the
+user. The CLI may install and verify host routing instructions, but it does not
+implement a model-driven bias classifier.
+
 `tiangong-auto-research/assets/research-policy/defaults/**` is the versioned,
 generic source pack for top-journal Policy initialization. It is immutable
 source material, not a user Policy or journal endorsement. The CLI copies a

@@ -151,6 +151,11 @@ bootstrap 版本是新 workspace 的显式选择，不得使用 `latest`、tag �
 apply 创建 `runtime-lock.json` 后，已安装 orchestrator 的内置 resolver 会让
 所有 workspace 操作只运行该锁定版本。
 
+orchestrator 会在 setup 或任何工具调用之前先检查研究问题。预设结论或排除反证的
+请求会被暂停，并给出一个可检验的改写版本；只有用户明确确认后才继续。争议性主题和
+方向性假设只要仍允许零结果、替代解释和反面证据，就不会因为“有立场”而被拒绝；
+伪造或隐瞒证据的请求会被拒绝。
+
 目录还提供 `tiangong-auto-research` 工作流 orchestrator、默认基线 Brave
 互联网证据能力、可选的 Tiangong SCI/文档解析/论文获取 companion，以及可选的
 Anthropic 或 PPT Master 闭环后创作 Skills。workspace 可以是用户指定的任意目录。
