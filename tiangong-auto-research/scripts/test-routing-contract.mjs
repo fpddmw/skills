@@ -50,6 +50,37 @@ const sandboxedIdeReference = await readFile(
   "utf8",
 );
 
+const questionGateHeading = "## Gate the research question before acting";
+const questionGateIndex = autoResearchSkill.indexOf(questionGateHeading);
+const firstManagedCommandIndex = autoResearchSkill.indexOf(
+  "For an existing managed directory",
+);
+assert.ok(questionGateIndex > 0, "Auto Research must define the research-question gate");
+assert.ok(
+  questionGateIndex < firstManagedCommandIndex,
+  "The research-question gate must run before setup, resolver, or other tool instructions",
+);
+const normalizedQuestionGate = autoResearchSkill
+  .slice(questionGateIndex, firstManagedCommandIndex)
+  .toLowerCase()
+  .replace(/\s+/g, " ");
+for (const marker of [
+  "before any cli, browser, search, database, or file operation",
+  "do not call tools or begin setup",
+  "one testable rewrite",
+  "explicit confirmation",
+  "directional hypothesis",
+  "null results",
+  "alternative explanations",
+  "counterevidence",
+  "fabricate, conceal, or misrepresent evidence",
+]) {
+  assert.ok(
+    normalizedQuestionGate.includes(marker),
+    `Research-question gate must preserve the observable behavior: ${marker}`,
+  );
+}
+
 for (const marker of [
   ".tiangong-research/setup.yaml",
   "research setup init",

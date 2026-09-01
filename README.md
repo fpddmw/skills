@@ -162,6 +162,13 @@ tag, or a range. After apply creates `runtime-lock.json`, the installed
 orchestrator's bundled resolver runs exactly that locked version for all
 workspace operations.
 
+The orchestrator gates a research question before setup or any tool call. A
+request that presupposes its conclusion or excludes contrary evidence is
+paused with one testable rewrite and resumes only after explicit user
+confirmation. Controversial topics and directional hypotheses remain allowed
+when null results, alternatives, and counterevidence are testable; evidence
+fabrication or concealment is refused.
+
 The catalog also offers the `tiangong-auto-research` workflow orchestrator,
 default-baseline Brave internet evidence, optional Tiangong SCI/document/paper
 companions, and optional Anthropic or PPT Master post-closure authoring Skills.

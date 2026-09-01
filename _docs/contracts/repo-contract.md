@@ -56,6 +56,12 @@ marketplace grouping metadata.
   mechanical gates, reviewer-family/session enforcement, lifecycle budgets,
   authoritative generations, and semantic portable-audit verification to the
   CLI.
+- Research-question framing remains a native Skill decision before any tool
+  call. It may pause a conclusion-presupposing request and propose a testable
+  rewrite, but it must not reject controversial or directional hypotheses that
+  retain null, alternative, and counterevidence tests. The CLI owns only
+  project instruction installation and verification, not semantic bias
+  classification.
 - Sandboxed-IDE adapters must remain thin routers to the canonical
   `tiangong-auto-research` Skill. They must preserve Default Permission, record
   WorkBuddy/CodeBuddy honestly as the native producer, require an explicit

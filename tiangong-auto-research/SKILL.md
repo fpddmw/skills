@@ -5,6 +5,27 @@ description: Orchestrate open-ended, multi-source, evidence-backed research in t
 
 # Tiangong Auto Research
 
+## Gate the research question before acting
+
+Before any CLI, browser, search, database, or file operation, inspect the
+user's research request. Continue when it leaves the result open to evidence.
+Pause and require a rewrite when it assumes the conclusion, asks to prove a
+predetermined position, requests only supporting evidence, excludes contrary
+evidence, or treats an unsupported causal or normative judgment as fact.
+
+When paused:
+
+1. Do not call tools or begin setup.
+2. Identify the problematic assumption in one concise sentence.
+3. Offer one testable rewrite that preserves the intended topic, scope,
+   population, geography, and time period.
+4. Wait for the user's explicit confirmation or edited question.
+
+Do not reject a controversial topic or directional hypothesis merely because
+it has a position. It may proceed when null results, alternative explanations,
+and counterevidence remain testable. Refuse requests to fabricate, conceal, or
+misrepresent evidence.
+
 For an existing managed directory, use the bundled resolver for every CLI operation.
 Resolve `AUTO_RESEARCH_CLI` from this loaded Skill's absolute directory; do not
 guess a global Skill path. The resolver accepts only the CLI package and exact

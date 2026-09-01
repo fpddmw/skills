@@ -175,6 +175,9 @@ The Wizard then guides the user through:
   media profiles are visibly marked subscription-dependent;
 - explicit project-local installation of the `tiangong-auto-research`
   orchestrator (recommended) so normal research requests enter this workflow;
+- project-scoped host routing bound into the reviewed plan: one managed Codex
+  block in the workspace-root `AGENTS.md` and one dedicated Claude rule under
+  `.claude/rules/`, without replacing owner instructions;
 - optional Tiangong companions and post-closure authoring Skills; for PPT
   creation it presents PPT Master as preferred while keeping Anthropic PPTX as
   a compatible situational choice;
@@ -188,6 +191,15 @@ The Wizard then guides the user through:
   and separately authorized paid agent smoke checks;
 - a full plan preview, network confirmation, immutable plan creation, and
   optional apply.
+
+Project instruction routing is installed only when the orchestrator and
+project scope are selected. Conflicting, modified, linked, or otherwise unsafe
+targets stop before mutation. A replacement plan removes only bytes still
+proven to be setup-owned. Global Skill scope does not write project instruction
+files. After apply, start a new native-host session: Codex and Claude Code load
+project instructions at session startup, while WorkBuddy/CodeBuddy continue to
+use the separately installed thin adapter Skill rather than an assumed private
+instruction filename.
 
 Apply defaults to yes after all required values are available. Secure/stdin
 values live only for that apply, are persisted to the existing owner-only store
@@ -274,7 +286,9 @@ node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/research-workspace -- \
 
 Static doctor checks installed tree hashes, required settings, owner-only
 credential stores, Node/git/npx, the reviewer sandbox/CLI, Python, and pinned
-Python requirements. `--live` uses provider network/quota. A synthetic document
+Python requirements. It also verifies each planned project instruction target;
+structural success is reported separately from the required new-session
+activation. `--live` uses provider network/quota. A synthetic document
 upload also requires `--allow-synthetic-unstructure-upload`; reviewer smoke
 requires `--agent-smoke --confirm-agent-smoke-cost`. Doctor does not launch the
 native producer. It probes a required capability only once and skips the paid
