@@ -136,6 +136,29 @@ node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
   --workspace /absolute/path/to/workspace --json
 ```
 
+When the project owner supplies the exact file for a network source that is
+already admitted, preserve that source identity. Do not fabricate a browser
+download event and do not admit the file again as a duplicate publication.
+First register the file through `research project input add`, then register its
+artifact against the existing candidate without `--source-url`. Append the
+exact owner-input proof with the IDs returned by those commands:
+
+```bash
+node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
+  research project evidence artifact adopt-input PROJECT \
+  --candidate CANDIDATE_ID --artifact ARTIFACT_ID \
+  --input PROJECT_INPUT_ID \
+  --workspace /absolute/path/to/workspace --json
+```
+
+The command accepts only an active acquisition stage. It verifies that the
+registered input and immutable artifact have identical size and SHA-256, then
+records the relationship in the append-only evidence ledger. Repeating the
+same command is safe; a different file or conflicting prior adoption stops.
+Refresh the active acquisition packet after all new input/adoption records are
+complete. A provenance-only adopted input does not need separate candidate
+admission and does not create a second source in the frozen acquisition audit.
+
 The registry verifies size, SHA-256, exact event/file binding, and structure. PDF
 registration requires a parseable non-empty document with an EOF marker. ZIP
 and Office Open XML registration verifies the central directory, safe paths,
@@ -208,6 +231,15 @@ node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
   --record /absolute/path/to/evidence-atom.json \
   --workspace /absolute/path/to/workspace --json
 ```
+
+When a formally appended local source has `publicationDate=null` even though
+its exact readable artifact states the date, do not hand-edit an acquisition
+snapshot or infer a year from a filename. Add optional `sourcePublicationDate`
+to an atom whose exact excerpt contains the asserted year. Use a separate date
+atom when the strongest scientific excerpt is elsewhere in the source. Content
+freeze resolves compatible precision (for example `2022` and `2022-12-08`),
+stops on conflicting dates, and binds the resolved value into evidence-role,
+scientific-review, and inference contexts.
 
 Do not paste an invented excerpt or cite only a source-level ID when an exact
 atom is required. Freeze the typed universe only after all acquired artifacts

@@ -78,7 +78,37 @@ journal, evidence store, or admitted outputs.
 
 Preparation is idempotent while its exact session remains active. If the wrong
 host, stage, model, project state, or hash is observed, stop on the structured
-error.
+error. The sole exception is an intentional append-only evidence addition
+during an active acquisition session; use the explicit refresh path below.
+
+## Refresh an active acquisition packet
+
+When lawful supplemental evidence is registered and formally admitted after
+the acquisition packet was prepared, `research status` reports
+`binding-drift` and returns the exact refresh command. Run it with the existing
+session ID before submission:
+
+```bash
+node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
+  research project stage refresh PROJECT \
+  --session SESSION_ID \
+  --workspace /absolute/path/to/workspace --json
+```
+
+Refresh is restricted to a running `acquire` package. It requires every
+previously bound input to remain unchanged. Each appended input must either
+complete formal candidate admission or be the byte-identical owner input in an
+`artifact adopt-input` ledger binding for an already admitted source. Refresh
+then rechecks configuration, capability locks, package identity, and prior
+outputs. It regenerates the admitted discovery record, source-to-candidate
+bindings, capsule, and packet without changing the session start time or
+consuming another attempt. Use the returned packet for the remaining
+acquisition work and submission.
+
+A non-append-only input change or unrelated binding drift still fails closed.
+Stop on that structured error; do not edit the active session, packet,
+`project.json`, evidence output, or attempt counter, and do not substitute
+abort/retry merely to bypass an exhausted attempt limit.
 
 ## Fetch discovery evidence
 
@@ -124,6 +154,14 @@ failed download must be recorded as such and cannot be promoted. Then follow
 `registerArtifact`, passing the candidate, exact absolute path, and returned
 download binding. The registry accepts no directory and performs no “latest
 download” selection.
+
+If the owner supplies the exact file for an already admitted network candidate,
+register it first with `research project input add`, register the artifact
+against that existing candidate, and run the packet's `adoptOwnerInput` argv.
+This records byte-identical owner provenance without inventing a download event
+or admitting a duplicate source. The subsequent acquisition refresh recognizes
+that adopted input as provenance-only. Do not omit the adoption and wait for
+submission to discover the missing binding.
 
 For a producer-readable derivative, register the exact output with
 `--derived-from-artifact` naming its same-candidate parent instead of claiming a

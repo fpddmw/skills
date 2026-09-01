@@ -45,6 +45,10 @@ const publicationReference = await readFile(
   join(skillsRoot, "tiangong-auto-research", "references", "publication-policy.md"),
   "utf8",
 );
+const nativeExecutionReference = await readFile(
+  join(skillsRoot, "tiangong-auto-research", "references", "native-execution.md"),
+  "utf8",
+);
 const sandboxedIdeReference = await readFile(
   join(skillsRoot, "tiangong-auto-research", "references", "sandboxed-ide.md"),
   "utf8",
@@ -131,6 +135,8 @@ for (const marker of [
   "inference-snapshot.json",
   "claim-evidence-graph.json",
   "evidencePipeline",
+  "research project evidence artifact adopt-input",
+  "does not create a second source",
 ]) {
   assert.ok(
     evidencePipelineReference.includes(marker),
@@ -148,6 +154,20 @@ for (const marker of [
   assert.ok(
     publicationReference.includes(marker),
     `Publication reference must explain ${marker}`,
+  );
+}
+
+for (const marker of [
+  "research project stage refresh",
+  "running `acquire` package",
+  "without changing the session start time or consuming another attempt",
+  "non-append-only input change",
+  "adoptOwnerInput",
+  "provenance-only",
+]) {
+  assert.ok(
+    nativeExecutionReference.includes(marker),
+    `Native execution reference must explain ${marker}`,
   );
 }
 
