@@ -13,8 +13,8 @@ checkPaths:
   - README.zh-CN.md
   - .claude-plugin/**
   - "*/SKILL.md"
-lastReviewedAt: 2026-08-31
-lastReviewedCommit: f61170eb09f7b1a518f023bd80810ad36895f70d
+lastReviewedAt: 2026-09-01
+lastReviewedCommit: 4e22640981bca2c037dae31f47666400afefab5c
 ---
 
 # Tiangong AI Skills
@@ -194,6 +194,13 @@ The bootstrap version is an explicit new-workspace choice, never `latest`, a
 tag, or a range. After apply creates `runtime-lock.json`, the installed
 orchestrator's bundled resolver runs exactly that locked version for all
 workspace operations.
+
+The orchestrator gates a research question before setup or any tool call. A
+request that presupposes its conclusion or excludes contrary evidence is
+paused with one testable rewrite and resumes only after explicit user
+confirmation. Controversial topics and directional hypotheses remain allowed
+when null results, alternatives, and counterevidence are testable; evidence
+fabrication or concealment is refused.
 
 The catalog also offers the `tiangong-auto-research` workflow orchestrator,
 default-baseline Brave internet evidence, optional Tiangong SCI/document/paper

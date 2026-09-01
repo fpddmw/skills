@@ -14,7 +14,7 @@ checkPaths:
   - .claude-plugin/**
   - "*/SKILL.md"
 lastReviewedAt: 2026-09-01
-lastReviewedCommit: 5bb2c2c229c95ae4431aabc152d8e9d34762f0b2
+lastReviewedCommit: 4e22640981bca2c037dae31f47666400afefab5c
 ---
 
 # Skills Repository Architecture
@@ -58,6 +58,12 @@ credential, and setting, owner-only env input with empty disabled options, no
 interactive fallback after a declaration error, and complete-readiness gating.
 The Skill does not duplicate the closed YAML schema or parse configuration; the
 CLI-generated template and validator remain authoritative.
+
+The canonical Skill also owns the native-host research-question gate. It runs
+before setup or tool use, pauses conclusion-presupposing or
+counterevidence-excluding requests with one testable rewrite, and waits for the
+user. The CLI may install and verify host routing instructions, but it does not
+implement a model-driven bias classifier.
 
 `tiangong-auto-research/assets/research-policy/defaults/**` is the versioned,
 generic source pack for top-journal Policy initialization. It is immutable
