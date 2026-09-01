@@ -11,16 +11,16 @@ HTTP and archive handling, limits, validation, and receipts.
 
 ## Before running
 
-1. Read `references/tiangong-data-binding.json`.
-2. Use its exact `generatedWithCliVersion` in the package spec below. Never use
-   `latest`, a tag, or a version range.
-3. Run `data describe` and compare the returned capability version, execution
-   manifest digest, operation version, and input/output schema digests with the
-   binding. Stop on any mismatch.
+1. Read `references/tiangong-data-requirement.json`.
+2. Use the caller- or workspace-resolved stable CLI. The requirement declares
+   compatible capability and operation contract majors; it does not select a
+   package build.
+3. Run `data describe` with that same CLI. Continue only when the capability
+   ID and required contract majors match, and copy the exact current
+   capability/operation versions from that response into the run request.
 
 ```bash
-npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
-  tiangong-ai data describe gdelt.gkg --json
+tiangong-ai data describe gdelt.gkg --json
 ```
 
 Use the returned Discovery Metadata to confirm current source coverage,
@@ -30,16 +30,16 @@ facts remembered from an older Skill revision.
 ## Prepare the request
 
 Build a `tiangong.data.run-request.v1` envelope. Replace the two version
-placeholders with the exact values in the binding. This example selects a
+placeholders with the exact versions from the same `data describe` response. This example selects a
 bounded range of source snapshots:
 
 ```json
 {
   "schemaVersion": "tiangong.data.run-request.v1",
   "capabilityId": "gdelt.gkg",
-  "capabilityVersion": "<binding.capabilityVersion>",
+  "capabilityVersion": "<describe.manifest.capabilityVersion>",
   "operationId": "fetch",
-  "operationVersion": "<binding.operations[0].operationVersion>",
+  "operationVersion": "<describe.manifest.operations[0].operationVersion>",
   "input": {
     "mode": "range",
     "startDateTime": "2026-03-01T12:00:00Z",
@@ -49,7 +49,7 @@ bounded range of source snapshots:
 }
 ```
 
-Use the operation input schema returned by `data describe` when choosing
+Use the operation input schema returned by the same `data describe` response when choosing
 `latest` or `range`. Range bounds do not need to align to a 15-minute boundary:
 selection starts with the first published snapshot at or after the inclusive
 lower bound and stops at the inclusive upper bound. `maxFiles` selects the
@@ -60,8 +60,7 @@ range, or increase a safety limit without the caller's approval.
 ## Run
 
 ```bash
-npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
-  tiangong-ai data run gdelt.gkg fetch \
+tiangong-ai data run gdelt.gkg fetch \
   --input /absolute/path/to/request.json --json
 ```
 
@@ -95,5 +94,4 @@ result to another workflow.
 
 ## Reference
 
-- `references/tiangong-data-binding.json`: exact execution compatibility
-  binding for the reviewed CLI release.
+- `references/tiangong-data-requirement.json`: stable capability requirement; it is not a package lock.

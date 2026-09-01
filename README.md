@@ -30,20 +30,23 @@ FIRMS Active Fire, OpenAQ Air Quality, Regulations.gov Comments,
 Regulations.gov Comment Details, Regulations.gov Attachments, USBR Project Records, USBR RISE, USGS Water IV, three Open-Meteo sources, and
 GDELT DOC, Events, GKG, and Mentions, plus Bluesky Cascades, YouTube Video
 Search, and YouTube Comments—are thin semantic Skills over the Tiangong CLI
-TypeScript 7 data runtime. Each candidate records one exact CLI package binding
-in `references/tiangong-data-binding.json`; the agent uses CLI `data describe`
-for current source facts and `data run` for the bound operation. These Skills
-contain no second provider connector runtime.
+TypeScript 7 data runtime. Each candidate records only its stable capability and
+operation contract-major requirements in
+`references/tiangong-data-requirement.json`; the caller or workspace runtime
+lock chooses the actual CLI build. The agent uses that same resolved CLI for
+`data describe` and `data run`. These Skills contain no second provider
+connector runtime and no per-Skill package lock.
 
 This candidate set covers every item in the authoritative EcoCouncil source
 baseline, `main@ac19289b4876d8a90595a0270721ef3f5ee7ced8`, which contains 21
 `source-fetch` Skills. All 21 have been revalidated against the source
-semantics, their bindings have been verified against the local CLI candidate,
-and the unified copy/symlink installation and data-specific gates pass. The
-repository-wide cold gate also passes with a separately scoped upstream
-filesystem-clock fix; that prerequisite is intentionally absent from this data
-migration branch. Before merge, regenerate the bindings once against the exact
-published CLI version that replaces the local `0.0.55` candidate.
+semantics, their requirements have been verified against the local CLI
+candidate, and the unified copy/symlink installation and data-specific gates
+pass. The qualifying CLI version and exact manifest/Schema digests live once in
+`scripts/data-skill-migration-provenance.json`; they are release evidence, not
+an installed Skill runtime lock. The repository-wide cold
+gate also passes with a separately scoped upstream filesystem-clock fix; that
+prerequisite is intentionally absent from this data migration branch.
 
 See `_docs/architecture/atomic-data-capabilities.md` and
 `_docs/runbooks/atomic-data-skill-migration.md` for the ownership boundary,

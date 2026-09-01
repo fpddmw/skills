@@ -144,14 +144,14 @@ function run(command, args, options = {}) {
   return result;
 }
 
-function readInstalledBinding(consumer, pilot) {
+function readInstalledRequirement(consumer, pilot) {
   return JSON.parse(
     readFileSync(
       resolve(
         consumer,
         ".agents/skills",
         pilot.skill,
-        "references/tiangong-data-binding.json",
+        "references/tiangong-data-requirement.json",
       ),
       "utf8",
     ),
@@ -159,7 +159,7 @@ function readInstalledBinding(consumer, pilot) {
 }
 
 test(
-  "copy and symlink installs use one exact CLI without provider network access",
+  "copy and symlink installs keep requirements separate from the exact smoke CLI",
   { skip: !RUN_INSTALL_SMOKE },
   () => {
     assert.match(CLI_VERSION ?? "", /^\d+\.\d+\.\d+$/);
@@ -217,7 +217,7 @@ test(
           for (const relative of [
             "SKILL.md",
             "agents/openai.yaml",
-            "references/tiangong-data-binding.json",
+            "references/tiangong-data-requirement.json",
           ]) {
             assert.equal(
               existsSync(resolve(installed, relative)),
@@ -227,8 +227,10 @@ test(
           }
           assert.equal(existsSync(resolve(installed, "scripts")), false);
           assert.equal(existsSync(resolve(installed, "assets")), false);
-          const binding = readInstalledBinding(consumer, pilot);
-          assert.equal(binding.generatedWithCliVersion, CLI_VERSION);
+          const requirement = readInstalledRequirement(consumer, pilot);
+          assert.equal(requirement.capabilityId, pilot.capability);
+          assert.deepEqual(Object.keys(requirement.operations), pilot.operations);
+          assert.equal("generatedWithCliVersion" in requirement, false);
         }
 
         const cli = ["--yes", "--package", CLI_PACKAGE, "--", "tiangong-ai"];
@@ -253,10 +255,8 @@ test(
             { cwd: consumer, env: environment },
           );
           assert.equal(describe.status, 0, describe.stderr);
-          assert.equal(
-            JSON.parse(describe.stdout).manifest.capabilityId,
-            pilot.capability,
-          );
+          const manifest = JSON.parse(describe.stdout).manifest;
+          assert.equal(manifest.capabilityId, pilot.capability);
 
           const doctor = run(
             "npx",
@@ -273,9 +273,8 @@ test(
             pilot.requiredCredential ? "blocked" : "ready",
           );
 
-          const binding = readInstalledBinding(consumer, pilot);
           for (const operationId of pilot.operations) {
-            const operation = binding.operations.find(
+            const operation = manifest.operations.find(
               (candidate) => candidate.operationId === operationId,
             );
             assert.ok(operation, operationId);
@@ -297,7 +296,7 @@ test(
                 input: `${JSON.stringify({
                   schemaVersion: "tiangong.data.run-request.v1",
                   capabilityId: pilot.capability,
-                  capabilityVersion: binding.capabilityVersion,
+                  capabilityVersion: manifest.capabilityVersion,
                   operationId,
                   operationVersion: operation.operationVersion,
                   input: { __offlineSmoke: true },

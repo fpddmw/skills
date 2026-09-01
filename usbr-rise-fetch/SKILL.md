@@ -12,16 +12,16 @@ results, and receipts.
 
 ## Before running
 
-1. Read `references/tiangong-data-binding.json`.
-2. Use its exact `generatedWithCliVersion` in every package spec below. Never
-   use `latest`, a tag, or a version range.
-3. Run `data describe` and compare the capability version, execution manifest
-   digest, operation version, and input/output schema digests with the binding.
-   Stop on any mismatch.
+1. Read `references/tiangong-data-requirement.json`.
+2. Use the caller- or workspace-resolved stable CLI. The requirement declares
+   compatible capability and operation contract majors; it does not select a
+   package build.
+3. Run `data describe` with that same CLI. Continue only when the capability
+   ID and required contract majors match, and copy the exact current
+   capability/operation versions from that response into the run request.
 
 ```bash
-npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
-  tiangong-ai data describe usbr.rise --json
+tiangong-ai data describe usbr.rise --json
 ```
 
 Use the returned Discovery Metadata to confirm current source coverage,
@@ -45,16 +45,16 @@ Do not rely on source facts remembered from an older Skill revision.
 ## Discover item IDs
 
 Build a `tiangong.data.run-request.v1` envelope. Replace both version
-placeholders with the exact binding values and validate `input` against the
+placeholders with the exact versions from the same `data describe` response and validate `input` against the
 current operation schema returned by `data describe`.
 
 ```json
 {
   "schemaVersion": "tiangong.data.run-request.v1",
   "capabilityId": "usbr.rise",
-  "capabilityVersion": "<binding.capabilityVersion>",
+  "capabilityVersion": "<describe.manifest.capabilityVersion>",
   "operationId": "discover-items",
-  "operationVersion": "<binding.operations[0].operationVersion>",
+  "operationVersion": "<describe.manifest.operations[0].operationVersion>",
   "input": {
     "queryTerms": ["Lake Powell", "release"],
     "locationNameContains": "Glen Canyon",
@@ -64,8 +64,7 @@ current operation schema returned by `data describe`.
 ```
 
 ```bash
-npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
-  tiangong-ai data run usbr.rise discover-items \
+tiangong-ai data run usbr.rise discover-items \
   --input /absolute/path/to/discovery-request.json --json
 ```
 
@@ -80,9 +79,9 @@ downstream fetch.
 {
   "schemaVersion": "tiangong.data.run-request.v1",
   "capabilityId": "usbr.rise",
-  "capabilityVersion": "<binding.capabilityVersion>",
+  "capabilityVersion": "<describe.manifest.capabilityVersion>",
   "operationId": "fetch-results",
-  "operationVersion": "<binding.operations[1].operationVersion>",
+  "operationVersion": "<describe.manifest.operations[1].operationVersion>",
   "input": {
     "itemIds": ["10835"],
     "afterUtc": "2025-01-01T00:00:00Z",
@@ -95,8 +94,7 @@ downstream fetch.
 ```
 
 ```bash
-npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
-  tiangong-ai data run usbr.rise fetch-results \
+tiangong-ai data run usbr.rise fetch-results \
   --input /absolute/path/to/results-request.json --json
 ```
 
@@ -122,5 +120,4 @@ Preserve the complete `tiangong.data.run-result.v1` envelope, including
 
 ## Reference
 
-- `references/tiangong-data-binding.json`: exact execution compatibility
-  binding for the reviewed CLI package.
+- `references/tiangong-data-requirement.json`: stable capability requirement; it is not a package lock.

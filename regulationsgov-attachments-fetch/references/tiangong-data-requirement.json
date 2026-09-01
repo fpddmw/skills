@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "tiangong.data.skill-capability-requirement.v1",
+  "skillName": "regulationsgov-attachments-fetch",
+  "capabilityId": "regulations-gov.attachments",
+  "capabilityContractVersion": "1",
+  "operations": {
+    "download": {
+      "contractVersion": "1"
+    }
+  }
+}

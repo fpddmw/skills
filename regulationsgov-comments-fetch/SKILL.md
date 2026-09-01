@@ -12,21 +12,20 @@ conversion, pagination, limits, validation, partial results, and receipts.
 
 ## Before running
 
-1. Read `references/tiangong-data-binding.json`.
-2. Use its exact `generatedWithCliVersion` in every package spec below. Never
-   use `latest`, a tag, or a version range.
-3. Run `data describe` and compare the returned capability version, execution
-   manifest digest, operation version, and input/output schema digests with the
-   binding. Stop on any mismatch.
+1. Read `references/tiangong-data-requirement.json`.
+2. Use the caller- or workspace-resolved stable CLI. The requirement declares
+   compatible capability and operation contract majors; it does not select a
+   package build.
+3. Run `data describe` with that same CLI. Continue only when the capability
+   ID and required contract majors match, and copy the exact current
+   capability/operation versions from that response into the run request.
 4. Ensure `REGGOV_API_KEY` is present in the CLI process environment, then run
    the default static doctor. Never place the key in argv, request JSON, a
    Skill-local file, logs, or output.
 
 ```bash
-npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
-  tiangong-ai data describe regulations-gov.comments --json
-npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
-  tiangong-ai data doctor regulations-gov.comments --json
+tiangong-ai data describe regulations-gov.comments --json
+tiangong-ai data doctor regulations-gov.comments --json
 ```
 
 Use current Discovery Metadata from `data describe` to confirm source
@@ -58,16 +57,16 @@ logical credential is unavailable; stop instead of bypassing the CLI.
 ## Prepare the request
 
 Build one `tiangong.data.run-request.v1` envelope. Replace version placeholders
-with the exact matching binding values, and validate all fields against the
+with the exact versions from the same `data describe` response, and validate all fields against the
 current input schema returned by `data describe`.
 
 ```json
 {
   "schemaVersion": "tiangong.data.run-request.v1",
   "capabilityId": "regulations-gov.comments",
-  "capabilityVersion": "<binding.capabilityVersion>",
+  "capabilityVersion": "<describe.manifest.capabilityVersion>",
   "operationId": "search",
-  "operationVersion": "<binding.operations[0].operationVersion>",
+  "operationVersion": "<describe.manifest.operations[0].operationVersion>",
   "input": {
     "postedDate": {
       "from": "2026-03-01",
@@ -88,8 +87,7 @@ request. Recurring polling and persistence belong to the caller.
 ## Run
 
 ```bash
-npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
-  tiangong-ai data run regulations-gov.comments search \
+tiangong-ai data run regulations-gov.comments search \
   --input /absolute/path/to/request.json --json
 ```
 
@@ -122,5 +120,4 @@ handing the result to another workflow.
 
 ## Reference
 
-- `references/tiangong-data-binding.json`: exact execution compatibility
-  binding for the reviewed CLI package.
+- `references/tiangong-data-requirement.json`: stable capability requirement; it is not a package lock.

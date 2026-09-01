@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "tiangong.data.skill-capability-requirement.v1",
+  "skillName": "gdelt-doc-search",
+  "capabilityId": "gdelt.doc-search",
+  "capabilityContractVersion": "1",
+  "operations": {
+    "search": {
+      "contractVersion": "1"
+    }
+  }
+}

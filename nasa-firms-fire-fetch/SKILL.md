@@ -12,21 +12,20 @@ receipts.
 
 ## Before running
 
-1. Read `references/tiangong-data-binding.json`.
-2. Use its exact `generatedWithCliVersion` in the package spec below. Never use
-   `latest`, a tag, or a version range.
-3. Run `data describe` and compare the returned capability version, execution
-   manifest digest, operation version, and input/output schema digests with the
-   binding. Stop on any mismatch.
+1. Read `references/tiangong-data-requirement.json`.
+2. Use the caller- or workspace-resolved stable CLI. The requirement declares
+   compatible capability and operation contract majors; it does not select a
+   package build.
+3. Run `data describe` with that same CLI. Continue only when the capability
+   ID and required contract majors match, and copy the exact current
+   capability/operation versions from that response into the run request.
 4. Ensure `NASA_FIRMS_MAP_KEY` is present in the CLI process environment, then
    run the default static doctor. Never place the key in argv, the request JSON,
    a Skill-local config file, logs, or output.
 
 ```bash
-npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
-  tiangong-ai data describe nasa-firms.active-fire --json
-npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
-  tiangong-ai data doctor nasa-firms.active-fire --json
+tiangong-ai data describe nasa-firms.active-fire --json
+tiangong-ai data doctor nasa-firms.active-fire --json
 ```
 
 Use the returned Discovery Metadata to confirm current source availability,
@@ -38,7 +37,7 @@ logical credential is unavailable; stop instead of bypassing the CLI.
 ## Prepare the request
 
 Build a `tiangong.data.run-request.v1` envelope and replace the two version
-placeholders with the exact binding values. Use one source and one known WGS84
+placeholders with the exact versions from the same `data describe` response. Use one source and one known WGS84
 bounding box that does not cross the antimeridian. The inclusive UTC date
 window may contain at most 31 dates; the CLI performs provider-compliant
 five-day chunking and enforces transaction and record limits.
@@ -47,9 +46,9 @@ five-day chunking and enforces transaction and record limits.
 {
   "schemaVersion": "tiangong.data.run-request.v1",
   "capabilityId": "nasa-firms.active-fire",
-  "capabilityVersion": "<binding.capabilityVersion>",
+  "capabilityVersion": "<describe.manifest.capabilityVersion>",
   "operationId": "fetch-area",
-  "operationVersion": "<binding.operations[0].operationVersion>",
+  "operationVersion": "<describe.manifest.operations[0].operationVersion>",
   "input": {
     "source": "VIIRS_NOAA20_NRT",
     "boundingBox": {
@@ -65,7 +64,7 @@ five-day chunking and enforces transaction and record limits.
 }
 ```
 
-Use the operation input schema returned by `data describe` for the current
+Use the operation input schema returned by the same `data describe` response for the current
 source enum and limits. Select NRT only when timeliness is material and its
 provisional status can be retained; select the matching Standard Processing
 source for consistent historical work when available. Set
@@ -76,8 +75,7 @@ geocode place names, cross the antimeridian, or fan out across areas.
 ## Run
 
 ```bash
-npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
-  tiangong-ai data run nasa-firms.active-fire fetch-area \
+tiangong-ai data run nasa-firms.active-fire fetch-area \
   --input /absolute/path/to/request.json --json
 ```
 
@@ -118,5 +116,4 @@ result to another workflow.
 
 ## Reference
 
-- `references/tiangong-data-binding.json`: exact execution compatibility
-  binding for the reviewed CLI package.
+- `references/tiangong-data-requirement.json`: stable capability requirement; it is not a package lock.

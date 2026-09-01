@@ -1,25 +1,46 @@
 #!/usr/bin/env node
 
 import { spawnSync } from "node:child_process";
-import { readFileSync, renameSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  readFileSync,
+  readdirSync,
+  renameSync,
+  writeFileSync,
+} from "node:fs";
 import { basename, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const BINDING_SCHEMA_VERSION = "tiangong.data.skill-binding.v1";
+const REQUIREMENT_SCHEMA_VERSION =
+  "tiangong.data.skill-capability-requirement.v1";
+const PROVENANCE_SCHEMA_VERSION =
+  "tiangong.data.skill-migration-provenance.v1";
 const DESCRIBE_SCHEMA_VERSION = "tiangong.data.describe.v1";
 const DIGEST_PATTERN = /^[0-9a-f]{64}$/;
 const SEMVER_PATTERN = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
-const BINDING_FIELDS = new Set([
+const CONTRACT_VERSION_PATTERN = /^(0|[1-9]\d*)$/;
+const REQUIREMENT_FIELDS = new Set([
   "schemaVersion",
   "skillName",
+  "capabilityId",
+  "capabilityContractVersion",
+  "operations",
+]);
+const REQUIREMENT_OPERATION_FIELDS = new Set(["contractVersion"]);
+const PROVENANCE_FIELDS = new Set([
+  "schemaVersion",
   "generatedWithCliVersion",
+  "skills",
+]);
+const PROVENANCE_SKILL_FIELDS = new Set([
+  "skillName",
   "capabilityId",
   "capabilityVersion",
   "minimumCliVersion",
   "manifestDigest",
   "operations",
 ]);
-const OPERATION_FIELDS = new Set([
+const PROVENANCE_OPERATION_FIELDS = new Set([
   "operationId",
   "operationVersion",
   "inputSchemaId",
@@ -73,15 +94,16 @@ function parseSemver(value, label) {
   return match.slice(1).map(Number);
 }
 
-function compareSemver(left, right) {
-  const leftParts = parseSemver(left, "left version");
-  const rightParts = parseSemver(right, "right version");
-  for (let index = 0; index < leftParts.length; index += 1) {
-    if (leftParts[index] !== rightParts[index]) {
-      return leftParts[index] < rightParts[index] ? -1 : 1;
-    }
+function contractVersion(value, label) {
+  const version = requireString(value, label);
+  if (!CONTRACT_VERSION_PATTERN.test(version)) {
+    fail(`${label} must be a non-negative major version.`);
   }
-  return 0;
+  return version;
+}
+
+function semverContractVersion(value, label) {
+  return String(parseSemver(value, label)[0]);
 }
 
 function manifestFromDescribe(describe) {
@@ -98,7 +120,7 @@ function manifestFromDescribe(describe) {
   return manifest;
 }
 
-function operationBinding(operation) {
+function operationSnapshot(operation) {
   const item = assertPlainObject(operation, "manifest operation");
   const inputSchema = assertPlainObject(
     item.inputSchema,
@@ -127,59 +149,6 @@ function operationBinding(operation) {
   };
 }
 
-export function validateDataSkillBinding(binding) {
-  const value = assertClosedObject(binding, BINDING_FIELDS, "binding");
-  if (value.schemaVersion !== BINDING_SCHEMA_VERSION) {
-    fail(
-      `binding schemaVersion must be ${BINDING_SCHEMA_VERSION}, got ${String(value.schemaVersion)}.`,
-    );
-  }
-  requireString(value.skillName, "skillName");
-  parseSemver(value.generatedWithCliVersion, "generatedWithCliVersion");
-  requireString(value.capabilityId, "capabilityId");
-  requireString(value.capabilityVersion, "capabilityVersion");
-  parseSemver(value.minimumCliVersion, "minimumCliVersion");
-  if (
-    compareSemver(
-      value.generatedWithCliVersion,
-      value.minimumCliVersion,
-    ) < 0
-  ) {
-    fail(
-      `generatedWithCliVersion ${value.generatedWithCliVersion} is older than minimumCliVersion ${value.minimumCliVersion}.`,
-    );
-  }
-  requireDigest(value.manifestDigest, "manifestDigest");
-  if (!Array.isArray(value.operations) || value.operations.length === 0) {
-    fail("binding operations must be a non-empty array.");
-  }
-  const operationIds = new Set();
-  for (const operation of value.operations) {
-    const item = assertClosedObject(
-      operation,
-      OPERATION_FIELDS,
-      "binding operation",
-    );
-    const normalized = operationBinding({
-      operationId: item.operationId,
-      operationVersion: item.operationVersion,
-      inputSchema: {
-        schemaId: item.inputSchemaId,
-        digest: item.inputSchemaDigest,
-      },
-      outputSchema: {
-        schemaId: item.outputSchemaId,
-        digest: item.outputSchemaDigest,
-      },
-    });
-    if (operationIds.has(normalized.operationId)) {
-      fail(`Duplicate binding operationId: ${normalized.operationId}.`);
-    }
-    operationIds.add(normalized.operationId);
-  }
-  return value;
-}
-
 function selectedOperations(manifest, operationIds) {
   const requested = [...new Set(operationIds)].sort();
   if (requested.length === 0) {
@@ -192,46 +161,209 @@ function selectedOperations(manifest, operationIds) {
     if (!operation) {
       fail(`Capability does not publish operationId ${operationId}.`);
     }
-    return operationBinding(operation);
+    return operation;
   });
 }
 
-export function buildDataSkillBinding({
+export function validateDataSkillRequirement(requirement) {
+  const value = assertClosedObject(
+    requirement,
+    REQUIREMENT_FIELDS,
+    "requirement",
+  );
+  if (value.schemaVersion !== REQUIREMENT_SCHEMA_VERSION) {
+    fail(
+      `requirement schemaVersion must be ${REQUIREMENT_SCHEMA_VERSION}, got ${String(value.schemaVersion)}.`,
+    );
+  }
+  requireString(value.skillName, "skillName");
+  requireString(value.capabilityId, "capabilityId");
+  contractVersion(
+    value.capabilityContractVersion,
+    "capabilityContractVersion",
+  );
+  const operations = assertPlainObject(value.operations, "requirement operations");
+  if (Object.keys(operations).length === 0) {
+    fail("requirement operations must not be empty.");
+  }
+  for (const [operationId, operation] of Object.entries(operations)) {
+    requireString(operationId, "operationId");
+    const item = assertClosedObject(
+      operation,
+      REQUIREMENT_OPERATION_FIELDS,
+      `requirement operation ${operationId}`,
+    );
+    contractVersion(item.contractVersion, `${operationId}.contractVersion`);
+  }
+  return value;
+}
+
+export function buildDataSkillRequirement({
   skillName,
-  cliVersion,
   describe,
   operationIds,
 }) {
   requireString(skillName, "skillName");
-  parseSemver(cliVersion, "CLI version");
   const manifest = manifestFromDescribe(describe);
-  const minimumCliVersion = requireString(
-    manifest.minimumCliVersion,
-    "minimumCliVersion",
+  const operations = Object.fromEntries(
+    selectedOperations(manifest, operationIds).map((operation) => [
+      operation.operationId,
+      {
+        contractVersion: semverContractVersion(
+          operation.operationVersion,
+          `${operation.operationId}.operationVersion`,
+        ),
+      },
+    ]),
   );
-  parseSemver(minimumCliVersion, "minimumCliVersion");
-  if (compareSemver(cliVersion, minimumCliVersion) < 0) {
+  return {
+    schemaVersion: REQUIREMENT_SCHEMA_VERSION,
+    skillName,
+    capabilityId: requireString(manifest.capabilityId, "capabilityId"),
+    capabilityContractVersion: semverContractVersion(
+      manifest.capabilityVersion,
+      "capabilityVersion",
+    ),
+    operations,
+  };
+}
+
+export function verifyDataSkillRequirement({ requirement, describe }) {
+  const expected = validateDataSkillRequirement(requirement);
+  const manifest = manifestFromDescribe(describe);
+  if (manifest.capabilityId !== expected.capabilityId) {
     fail(
-      `CLI version ${cliVersion} is older than minimumCliVersion ${minimumCliVersion}.`,
+      `capabilityId drift: expected ${expected.capabilityId}, got ${String(manifest.capabilityId)}.`,
     );
   }
+  const actualCapabilityContract = semverContractVersion(
+    manifest.capabilityVersion,
+    "capabilityVersion",
+  );
+  if (actualCapabilityContract !== expected.capabilityContractVersion) {
+    fail(
+      `capability contract drift: expected major ${expected.capabilityContractVersion}, got ${actualCapabilityContract}.`,
+    );
+  }
+  for (const [operationId, operationRequirement] of Object.entries(
+    expected.operations,
+  )) {
+    const operation = manifest.operations.find(
+      (candidate) => candidate.operationId === operationId,
+    );
+    if (!operation) {
+      fail(`operationId drift: missing ${operationId}.`);
+    }
+    const actualOperationContract = semverContractVersion(
+      operation.operationVersion,
+      `${operationId}.operationVersion`,
+    );
+    if (actualOperationContract !== operationRequirement.contractVersion) {
+      fail(
+        `${operationId} contract drift: expected major ${operationRequirement.contractVersion}, got ${actualOperationContract}.`,
+      );
+    }
+  }
+}
 
+export function buildMigrationProvenanceEntry({
+  skillName,
+  describe,
+  operationIds,
+}) {
+  const manifest = manifestFromDescribe(describe);
   return {
-    schemaVersion: BINDING_SCHEMA_VERSION,
-    skillName,
-    generatedWithCliVersion: cliVersion,
+    skillName: requireString(skillName, "skillName"),
     capabilityId: requireString(manifest.capabilityId, "capabilityId"),
     capabilityVersion: requireString(
       manifest.capabilityVersion,
       "capabilityVersion",
     ),
-    minimumCliVersion,
-    manifestDigest: requireDigest(
-      manifest.manifestDigest,
-      "manifestDigest",
+    minimumCliVersion: requireString(
+      manifest.minimumCliVersion,
+      "minimumCliVersion",
     ),
-    operations: selectedOperations(manifest, operationIds),
+    manifestDigest: requireDigest(manifest.manifestDigest, "manifestDigest"),
+    operations: selectedOperations(manifest, operationIds).map(operationSnapshot),
   };
+}
+
+function validateProvenanceEntry(entry) {
+  const value = assertClosedObject(
+    entry,
+    PROVENANCE_SKILL_FIELDS,
+    "provenance skill",
+  );
+  requireString(value.skillName, "skillName");
+  requireString(value.capabilityId, "capabilityId");
+  parseSemver(value.capabilityVersion, "capabilityVersion");
+  parseSemver(value.minimumCliVersion, "minimumCliVersion");
+  requireDigest(value.manifestDigest, "manifestDigest");
+  if (!Array.isArray(value.operations) || value.operations.length === 0) {
+    fail("provenance operations must be a non-empty array.");
+  }
+  const operationIds = new Set();
+  for (const operation of value.operations) {
+    const item = assertClosedObject(
+      operation,
+      PROVENANCE_OPERATION_FIELDS,
+      "provenance operation",
+    );
+    const normalized = operationSnapshot({
+      operationId: item.operationId,
+      operationVersion: item.operationVersion,
+      inputSchema: {
+        schemaId: item.inputSchemaId,
+        digest: item.inputSchemaDigest,
+      },
+      outputSchema: {
+        schemaId: item.outputSchemaId,
+        digest: item.outputSchemaDigest,
+      },
+    });
+    if (operationIds.has(normalized.operationId)) {
+      fail(`Duplicate provenance operationId: ${normalized.operationId}.`);
+    }
+    operationIds.add(normalized.operationId);
+  }
+  return value;
+}
+
+export function validateMigrationProvenance(provenance) {
+  const value = assertClosedObject(
+    provenance,
+    PROVENANCE_FIELDS,
+    "provenance",
+  );
+  if (value.schemaVersion !== PROVENANCE_SCHEMA_VERSION) {
+    fail(
+      `provenance schemaVersion must be ${PROVENANCE_SCHEMA_VERSION}, got ${String(value.schemaVersion)}.`,
+    );
+  }
+  parseSemver(value.generatedWithCliVersion, "generatedWithCliVersion");
+  if (!Array.isArray(value.skills) || value.skills.length === 0) {
+    fail("provenance skills must be a non-empty array.");
+  }
+  const skillNames = new Set();
+  for (const entry of value.skills) {
+    const item = validateProvenanceEntry(entry);
+    if (skillNames.has(item.skillName)) {
+      fail(`Duplicate provenance skillName: ${item.skillName}.`);
+    }
+    skillNames.add(item.skillName);
+  }
+  return value;
+}
+
+export function buildMigrationProvenance({ cliVersion, skills }) {
+  parseSemver(cliVersion, "CLI version");
+  return validateMigrationProvenance({
+    schemaVersion: PROVENANCE_SCHEMA_VERSION,
+    generatedWithCliVersion: cliVersion,
+    skills: [...skills].sort((left, right) =>
+      left.skillName.localeCompare(right.skillName),
+    ),
+  });
 }
 
 function compareField(actual, expected, label) {
@@ -240,52 +372,28 @@ function compareField(actual, expected, label) {
   }
 }
 
-export function verifyDataSkillBinding({ binding, cliVersion, describe }) {
-  const expected = validateDataSkillBinding(binding);
-  parseSemver(cliVersion, "CLI version");
-  if (cliVersion !== expected.generatedWithCliVersion) {
-    fail(
-      `CLI version ${cliVersion} does not match generatedWithCliVersion ${expected.generatedWithCliVersion}.`,
-    );
-  }
-  if (compareSemver(cliVersion, expected.minimumCliVersion) < 0) {
-    fail(
-      `CLI version ${cliVersion} is older than minimumCliVersion ${expected.minimumCliVersion}.`,
-    );
-  }
-
-  const manifest = manifestFromDescribe(describe);
-  compareField(manifest.capabilityId, expected.capabilityId, "capabilityId");
-  compareField(
-    manifest.capabilityVersion,
-    expected.capabilityVersion,
+export function verifyMigrationProvenanceEntry({ entry, describe }) {
+  const expected = validateProvenanceEntry(entry);
+  const actual = buildMigrationProvenanceEntry({
+    skillName: expected.skillName,
+    describe,
+    operationIds: expected.operations.map((operation) => operation.operationId),
+  });
+  for (const field of [
+    "skillName",
+    "capabilityId",
     "capabilityVersion",
-  );
-  compareField(
-    manifest.minimumCliVersion,
-    expected.minimumCliVersion,
     "minimumCliVersion",
-  );
-  compareField(
-    manifest.manifestDigest,
-    expected.manifestDigest,
     "manifestDigest",
-  );
-
-  for (const expectedOperation of expected.operations) {
-    const operation = manifest.operations.find(
-      (candidate) =>
-        candidate.operationId === expectedOperation.operationId,
-    );
-    if (!operation) {
-      fail(`operationId drift: missing ${expectedOperation.operationId}.`);
-    }
-    const actualOperation = operationBinding(operation);
-    for (const field of OPERATION_FIELDS) {
+  ]) {
+    compareField(actual[field], expected[field], field);
+  }
+  for (let index = 0; index < expected.operations.length; index += 1) {
+    for (const field of PROVENANCE_OPERATION_FIELDS) {
       compareField(
-        actualOperation[field],
-        expectedOperation[field],
-        `${expectedOperation.operationId}.${field}`,
+        actual.operations[index]?.[field],
+        expected.operations[index][field],
+        `${expected.skillName}.${expected.operations[index].operationId}.${field}`,
       );
     }
   }
@@ -293,8 +401,16 @@ export function verifyDataSkillBinding({ binding, cliVersion, describe }) {
 
 function parseArguments(argv) {
   const [command, ...tokens] = argv;
-  if (!command || !["generate", "verify"].includes(command)) {
-    fail("Expected command generate or verify.");
+  const commands = new Set([
+    "generate",
+    "verify",
+    "generate-provenance",
+    "verify-provenance",
+  ]);
+  if (!command || !commands.has(command)) {
+    fail(
+      "Expected command generate, verify, generate-provenance, or verify-provenance.",
+    );
   }
   const options = {};
   for (let index = 0; index < tokens.length; index += 2) {
@@ -391,37 +507,117 @@ function generateCommand(options) {
     .split(",")
     .map((value) => value.trim())
     .filter(Boolean);
-  const { cliVersion, describe } = loadExactDescribe(options, capabilityId);
-  const binding = buildDataSkillBinding({
+  const { describe } = loadExactDescribe(options, capabilityId);
+  const requirement = buildDataSkillRequirement({
     skillName: readSkillName(skillPath),
-    cliVersion,
     describe,
     operationIds,
   });
   const outputPath =
     options.output ??
-    resolve(skillPath, "references", "tiangong-data-binding.json");
-  writeJsonAtomically(outputPath, binding);
+    resolve(skillPath, "references", "tiangong-data-requirement.json");
+  writeJsonAtomically(outputPath, requirement);
   process.stdout.write(`${resolve(outputPath)}\n`);
 }
 
 function verifyCommand(options) {
-  const bindingPath = resolve(requireOption(options, "binding"));
-  const binding = JSON.parse(readFileSync(bindingPath, "utf8"));
-  const { cliVersion, describe } = loadExactDescribe(
+  const requirementPath = resolve(requireOption(options, "requirement"));
+  const requirement = JSON.parse(readFileSync(requirementPath, "utf8"));
+  const { describe } = loadExactDescribe(
     options,
-    requireString(binding.capabilityId, "binding capabilityId"),
+    requireString(requirement.capabilityId, "requirement capabilityId"),
   );
-  verifyDataSkillBinding({ binding, cliVersion, describe });
-  process.stdout.write(`${bindingPath}: valid\n`);
+  verifyDataSkillRequirement({ requirement, describe });
+  process.stdout.write(`${requirementPath}: compatible\n`);
+}
+
+function readRepositoryRequirements(root) {
+  const requirements = [];
+  for (const entry of readdirSync(root, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const path = resolve(
+      root,
+      entry.name,
+      "references",
+      "tiangong-data-requirement.json",
+    );
+    if (!existsSync(path)) continue;
+    requirements.push({
+      path,
+      value: validateDataSkillRequirement(
+        JSON.parse(readFileSync(path, "utf8")),
+      ),
+    });
+  }
+  return requirements.sort((left, right) =>
+    left.value.skillName.localeCompare(right.value.skillName),
+  );
+}
+
+function generateProvenanceCommand(options) {
+  const root = resolve(options.root ?? ".");
+  const requirements = readRepositoryRequirements(root);
+  const skills = requirements.map(({ value }) => {
+    const { describe } = loadExactDescribe(options, value.capabilityId);
+    return buildMigrationProvenanceEntry({
+      skillName: value.skillName,
+      describe,
+      operationIds: Object.keys(value.operations),
+    });
+  });
+  const provenance = buildMigrationProvenance({
+    cliVersion: requireOption(options, "cli-version"),
+    skills,
+  });
+  const outputPath =
+    options.output ?? resolve(root, "scripts", "data-skill-migration-provenance.json");
+  writeJsonAtomically(outputPath, provenance);
+  process.stdout.write(`${resolve(outputPath)}\n`);
+}
+
+function verifyProvenanceCommand(options) {
+  const root = resolve(options.root ?? ".");
+  const provenancePath = resolve(
+    options.provenance ??
+      resolve(root, "scripts", "data-skill-migration-provenance.json"),
+  );
+  const provenance = validateMigrationProvenance(
+    JSON.parse(readFileSync(provenancePath, "utf8")),
+  );
+  const cliVersion = requireOption(options, "cli-version");
+  if (cliVersion !== provenance.generatedWithCliVersion) {
+    fail(
+      `CLI version ${cliVersion} does not match migration provenance ${provenance.generatedWithCliVersion}.`,
+    );
+  }
+  const requirements = new Map(
+    readRepositoryRequirements(root).map(({ value }) => [value.skillName, value]),
+  );
+  if (requirements.size !== provenance.skills.length) {
+    fail(
+      `Migration provenance contains ${provenance.skills.length} skills but the repository contains ${requirements.size} data skill requirements.`,
+    );
+  }
+  for (const entry of provenance.skills) {
+    const requirement = requirements.get(entry.skillName);
+    if (!requirement) {
+      fail(`Missing requirement for provenance skill ${entry.skillName}.`);
+    }
+    const { describe } = loadExactDescribe(options, entry.capabilityId);
+    verifyDataSkillRequirement({ requirement, describe });
+    verifyMigrationProvenanceEntry({ entry, describe });
+  }
+  process.stdout.write(`${provenancePath}: exact migration provenance valid\n`);
 }
 
 function main() {
   const { command, options } = parseArguments(process.argv.slice(2));
-  if (command === "generate") {
-    generateCommand(options);
+  if (command === "generate") generateCommand(options);
+  else if (command === "verify") verifyCommand(options);
+  else if (command === "generate-provenance") {
+    generateProvenanceCommand(options);
   } else {
-    verifyCommand(options);
+    verifyProvenanceCommand(options);
   }
 }
 

@@ -29,16 +29,19 @@ lastReviewedCommit: f61170eb09f7b1a518f023bd80810ad36895f70d
 OpenAQ Air Quality、Regulations.gov Comments、Regulations.gov Comment Details、Regulations.gov Attachments、
 USBR Project Records、USBR RISE、USGS Water IV、三个 Open-Meteo 来源，以及 GDELT DOC、Events、GKG、Mentions
 加上 Bluesky Cascades、YouTube Video Search 与 YouTube Comments，共二十一个 Skill 已
-收敛为 Tiangong CLI TypeScript 7 数据运行时之上的薄语义候选。每个候选都在
-`references/tiangong-data-binding.json` 中记录精确 CLI 包绑定；Agent
-通过 CLI `data describe` 获取当前数据源事实，通过 `data run` 执行已绑定 operation。
-这些 Skills 不再保留第二份 provider connector 运行时。
+收敛为 Tiangong CLI TypeScript 7 数据运行时之上的薄语义候选。每个候选只在
+`references/tiangong-data-requirement.json` 中记录稳定的 capability/operation
+contract major 要求；实际 CLI build 由调用方或 workspace runtime lock 选择。Agent
+使用同一已解析 CLI 运行 `data describe` 与 `data run`。这些 Skills 不再保留第二份
+provider connector 运行时，也不保存各自的 package lock。
 
 权威迁移源 `main@ac19289b4876d8a90595a0270721ef3f5ee7ced8` 共有 21 个
-`source-fetch` Skill，当前 21 项均已完成源语义复核、与本地 CLI 候选的精确 binding
-校验，以及统一 copy/symlink 安装和数据专项门禁。仓库全量 cold gate 在叠加独立范围的
-上游文件系统时钟修复后同样通过；该前置修复有意不进入本数据迁移分支。合并前仍须在
-替代本地 `0.0.55` 候选的 CLI 精确正式版本发布后重新生成一次 binding。
+`source-fetch` Skill，当前 21 项均已完成源语义复核、与本地 CLI 候选的 requirement
+校验，以及统一 copy/symlink 安装和数据专项门禁。本次迁移验收使用的 CLI 版本与精确
+manifest/Schema digest 只集中保存在
+`scripts/data-skill-migration-provenance.json`，它是发布证据而不是安装后的 Skill
+运行依赖。仓库全量 cold gate 在叠加独立范围的上游文件系统时钟修复后同样通过；该
+前置修复有意不进入本数据迁移分支。
 
 所有权边界、候选清单、迁移源审计更正、分批迁移顺序和发布门槛见
 `_docs/architecture/atomic-data-capabilities.md` 与

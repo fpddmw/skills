@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "tiangong.data.skill-capability-requirement.v1",
+  "skillName": "federal-register-doc-fetch",
+  "capabilityId": "federal-register.documents",
+  "capabilityContractVersion": "1",
+  "operations": {
+    "search": {
+      "contractVersion": "1"
+    }
+  }
+}

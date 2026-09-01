@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "tiangong.data.skill-capability-requirement.v1",
+  "skillName": "youtube-video-search",
+  "capabilityId": "youtube.public-content",
+  "capabilityContractVersion": "1",
+  "operations": {
+    "search-videos": {
+      "contractVersion": "1"
+    }
+  }
+}

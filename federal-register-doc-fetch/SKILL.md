@@ -12,16 +12,16 @@ receipts.
 
 ## Before running
 
-1. Read `references/tiangong-data-binding.json`.
-2. Use its exact `generatedWithCliVersion` in the package spec below. Never use
-   `latest`, a tag, or a version range.
-3. Run `data describe` and compare the returned capability version, execution
-   manifest digest, operation version, and input/output schema digests with the
-   binding. Stop on any mismatch.
+1. Read `references/tiangong-data-requirement.json`.
+2. Use the caller- or workspace-resolved stable CLI. The requirement declares
+   compatible capability and operation contract majors; it does not select a
+   package build.
+3. Run `data describe` with that same CLI. Continue only when the capability
+   ID and required contract majors match, and copy the exact current
+   capability/operation versions from that response into the run request.
 
 ```bash
-npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
-  tiangong-ai data describe federal-register.documents --json
+tiangong-ai data describe federal-register.documents --json
 ```
 
 Use the returned Discovery Metadata to confirm current source coverage,
@@ -31,7 +31,7 @@ task needs full text, docket attachments, public comments, or legal analysis.
 ## Prepare the request
 
 Build a `tiangong.data.run-request.v1` envelope and replace the two version
-placeholders with the exact values in the binding. Prefer a publication date
+placeholders with the exact versions from the same `data describe` response. Prefer a publication date
 and a narrowing filter for evidence questions. An empty `input` is allowed only
 for a bounded newest-document listing under explicit runtime limits:
 
@@ -39,9 +39,9 @@ for a bounded newest-document listing under explicit runtime limits:
 {
   "schemaVersion": "tiangong.data.run-request.v1",
   "capabilityId": "federal-register.documents",
-  "capabilityVersion": "<binding.capabilityVersion>",
+  "capabilityVersion": "<describe.manifest.capabilityVersion>",
   "operationId": "search",
-  "operationVersion": "<binding.operations[0].operationVersion>",
+  "operationVersion": "<describe.manifest.operations[0].operationVersion>",
   "limits": {
     "maxPages": 2,
     "maxRecords": 100
@@ -60,7 +60,7 @@ for a bounded newest-document listing under explicit runtime limits:
 }
 ```
 
-Use the operation input schema returned by `data describe` for current agency,
+Use the operation input schema returned by the same `data describe` response for current agency,
 document type, topic, docket, RIN, ordering, and page-size semantics under
 `input`. Optional top-level `limits` may only reduce the operation's published
 page, record, response-size, or timeout limits; they cannot raise them. Do not
@@ -70,8 +70,7 @@ intent.
 ## Run
 
 ```bash
-npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
-  tiangong-ai data run federal-register.documents search \
+tiangong-ai data run federal-register.documents search \
   --input /absolute/path/to/request.json --json
 ```
 
@@ -95,5 +94,4 @@ result to another workflow.
 
 ## Reference
 
-- `references/tiangong-data-binding.json`: exact execution compatibility
-  binding for the reviewed CLI release.
+- `references/tiangong-data-requirement.json`: stable capability requirement; it is not a package lock.

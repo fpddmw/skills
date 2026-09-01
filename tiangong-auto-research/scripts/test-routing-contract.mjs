@@ -61,7 +61,6 @@ for (const marker of [
 
 for (const marker of [
   "runDataCapability",
-  "tiangong-ai data describe",
   "standalone `data run`",
   "dynamic data catalog",
 ]) {
@@ -70,6 +69,18 @@ for (const marker of [
     `Auto Research entry must explain native data evidence marker ${marker}`,
   );
 }
+
+const managedDataGuidance = `${autoResearchSkill}\n${evidencePipelineReference}`;
+assert.match(
+  managedDataGuidance,
+  /node "\$AUTO_RESEARCH_CLI"[\s\S]*?--[\s\\\n]+data describe <capability-id> --json/,
+  "Managed Auto Research must inspect data capabilities through the locked resolver",
+);
+assert.doesNotMatch(
+  managedDataGuidance,
+  /`tiangong-ai data describe|^tiangong-ai data describe/m,
+  "Managed Auto Research must not expose a bare data describe command",
+);
 
 for (const marker of [
   "native-direct",

@@ -13,16 +13,16 @@ downloads, transactional file writes, partial results, and receipts.
 
 ## Before running
 
-1. Read `references/tiangong-data-binding.json`.
-2. Use its exact `generatedWithCliVersion` in every package spec below. Never
-   use `latest`, a tag, or a version range.
-3. Run `data describe` and compare the capability version, execution manifest
-   digest, operation version, and input/output schema digests with the binding.
-   Stop on any mismatch.
+1. Read `references/tiangong-data-requirement.json`.
+2. Use the caller- or workspace-resolved stable CLI. The requirement declares
+   compatible capability and operation contract majors; it does not select a
+   package build.
+3. Run `data describe` with that same CLI. Continue only when the capability
+   ID and required contract majors match, and copy the exact current
+   capability/operation versions from that response into the run request.
 
 ```bash
-npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
-  tiangong-ai data describe regulations-gov.attachments --json
+tiangong-ai data describe regulations-gov.attachments --json
 ```
 
 Use the returned Discovery Metadata to confirm current coverage, granularity,
@@ -47,16 +47,16 @@ facts copied from an older Skill revision.
 ## Prepare the request
 
 Build one `tiangong.data.run-request.v1` envelope. Replace both version
-placeholders with exact binding values and validate `input` against the current
+placeholders with the exact versions from the same `data describe` response and validate `input` against the current
 operation schema returned by `data describe`.
 
 ```json
 {
   "schemaVersion": "tiangong.data.run-request.v1",
   "capabilityId": "regulations-gov.attachments",
-  "capabilityVersion": "<binding.capabilityVersion>",
+  "capabilityVersion": "<describe.manifest.capabilityVersion>",
   "operationId": "download",
-  "operationVersion": "<binding.operations[0].operationVersion>",
+  "operationVersion": "<describe.manifest.operations[0].operationVersion>",
   "input": {
     "commentIds": ["EPA-HQ-OAR-2026-0001-0002"],
     "attachmentIds": ["EPA-HQ-OAR-2026-0001-0002-ATTACHMENT-1"],
@@ -73,8 +73,7 @@ URL, output path, retry setting, or credential in `input`.
 ## Run
 
 ```bash
-npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
-  tiangong-ai data run regulations-gov.attachments download \
+tiangong-ai data run regulations-gov.attachments download \
   --input /absolute/path/to/request.json \
   --artifact-dir /absolute/path/to/empty-artifact-directory \
   --json
@@ -109,5 +108,4 @@ observations, warnings, errors, and the core receipt.
 
 ## Reference
 
-- `references/tiangong-data-binding.json`: exact execution compatibility
-  binding for the reviewed CLI package.
+- `references/tiangong-data-requirement.json`: stable capability requirement; it is not a package lock.

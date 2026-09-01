@@ -17,8 +17,8 @@ checkPaths:
   - scripts/**
   - .claude-plugin/**
   - "*/SKILL.md"
-lastReviewedAt: 2026-08-31
-lastReviewedCommit: 33fb9013862099b38a0b5885b6fd556f12e64773
+lastReviewedAt: 2026-09-01
+lastReviewedCommit: 5bb2c2c229c95ae4431aabc152d8e9d34762f0b2
 ---
 
 # Skills Development Runbook
@@ -41,19 +41,21 @@ new skills, then fill in `SKILL.md`, optional `scripts/`, `references/`,
 Before changing a fetch/search/download Skill as part of the atomic
 data refactor, read `_docs/architecture/atomic-data-capabilities.md` and follow
 `_docs/runbooks/atomic-data-skill-migration.md`. Do not remove a provider
-runtime until the CLI's TypeScript 7 connector is accepted, an exact package is
-installable, and the Skill's capability/operation/schema binding passes the
-offline and isolated install contracts. Planning changes alone do not authorize
-Skill rewrites or file deletion.
+runtime until the CLI's TypeScript 7 connector is accepted, a compatible
+package is installable, the Skill's stable capability requirement passes, and
+the exact migration package/digests are recorded once in repository-level
+provenance. Planning changes alone do not authorize Skill rewrites or file
+deletion.
 
-Run the execution-only binding contract with:
+Run the requirement/provenance contract with:
 
 ```bash
 node --test scripts/tests/data-skill-binding.test.mjs
 ```
 
-For a migrated pair, run the explicit copy/symlink install smoke against the
-same exact published CLI package recorded in both bindings:
+For migrated Skills, run the explicit copy/symlink install smoke against the
+same exact published CLI package whose version and contracts are recorded by
+the repository migration provenance:
 
 ```bash
 TIANGONG_DATA_SKILLS_RUN_INSTALL_SMOKE=1 \
@@ -66,10 +68,11 @@ The smoke runs version, catalog, describe, static doctor, and an intentionally
 blocked local request with provider credentials removed. It must not contact a
 provider.
 
-After an exact CLI release containing the capability is installable, use
-`scripts/data-skill-binding.mjs generate` and `verify` as documented in the
-atomic-data migration runbook. The binding pins the execution manifest and
-operation schemas, not the separate discovery digest.
+Use `scripts/data-skill-binding.mjs generate` and `verify` for stable per-Skill
+requirements. These checks compare capability and operation contract majors and
+do not compare package versions or digests. Use `generate-provenance` and
+`verify-provenance` only to qualify the exact CLI release used by this migration;
+the resulting repository artifact is not installed with each Skill.
 
 ## Validation
 

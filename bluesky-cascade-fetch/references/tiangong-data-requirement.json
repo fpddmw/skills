@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "tiangong.data.skill-capability-requirement.v1",
+  "skillName": "bluesky-cascade-fetch",
+  "capabilityId": "bluesky.public-posts",
+  "capabilityContractVersion": "1",
+  "operations": {
+    "fetch-cascades": {
+      "contractVersion": "1"
+    }
+  }
+}

@@ -12,8 +12,8 @@ checkPaths:
   - .docpact/config.yaml
   - .github/workflows/docpact.yml
   - _docs/**
-lastReviewedAt: 2026-08-31
-lastReviewedCommit: 33fb9013862099b38a0b5885b6fd556f12e64773
+lastReviewedAt: 2026-09-01
+lastReviewedCommit: 5bb2c2c229c95ae4431aabc152d8e9d34762f0b2
 ---
 
 # Skills Documentation

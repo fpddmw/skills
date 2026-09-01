@@ -12,20 +12,19 @@ receipts.
 
 ## Before running
 
-1. Read `references/tiangong-data-binding.json`.
-2. Use its exact `generatedWithCliVersion` in the package spec below. Never use
-   `latest`, a tag, or a version range.
-3. Run `data describe` and compare the returned capability version, execution
-   manifest digest, operation version, and input/output schema digests with the
-   binding. Stop on any mismatch.
+1. Read `references/tiangong-data-requirement.json`.
+2. Use the caller- or workspace-resolved stable CLI. The requirement declares
+   compatible capability and operation contract majors; it does not select a
+   package build.
+3. Run `data describe` with that same CLI. Continue only when the capability
+   ID and required contract majors match, and copy the exact current
+   capability/operation versions from that response into the run request.
 4. Run the default static doctor. Do not add `--live` unless the user explicitly
    asks for a provider probe.
 
 ```bash
-npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
-  tiangong-ai data describe usgs.water-instantaneous-values --json
-npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
-  tiangong-ai data doctor usgs.water-instantaneous-values --json
+tiangong-ai data describe usgs.water-instantaneous-values --json
+tiangong-ai data doctor usgs.water-instantaneous-values --json
 ```
 
 Use the returned Discovery Metadata to confirm current source coverage,
@@ -40,7 +39,7 @@ water observations are absent.
 ## Prepare the request
 
 Build a `tiangong.data.run-request.v1` envelope and replace the two version
-placeholders with the exact values in the binding. Under `input`, choose exactly
+placeholders with the exact versions from the same `data describe` response. Under `input`, choose exactly
 one spatial selector (`boundingBox` or `siteNumbers`) and exactly one time
 selector (`period` or a paired explicit start/end window):
 
@@ -48,9 +47,9 @@ selector (`period` or a paired explicit start/end window):
 {
   "schemaVersion": "tiangong.data.run-request.v1",
   "capabilityId": "usgs.water-instantaneous-values",
-  "capabilityVersion": "<binding.capabilityVersion>",
+  "capabilityVersion": "<describe.manifest.capabilityVersion>",
   "operationId": "fetch",
-  "operationVersion": "<binding.operations[0].operationVersion>",
+  "operationVersion": "<describe.manifest.operations[0].operationVersion>",
   "input": {
     "boundingBox": {
       "minLongitude": -77.3,
@@ -66,7 +65,7 @@ selector (`period` or a paired explicit start/end window):
 }
 ```
 
-Use the operation input schema returned by `data describe` for current field
+Use the operation input schema returned by the same `data describe` response for current field
 semantics and limits. Preserve leading zeroes in site and parameter identifiers.
 Do not infer site numbers from place names, widen an area or time range without
 the user's intent, or mix selectors that the schema declares exclusive. The
@@ -78,8 +77,7 @@ append an empty `T`, or mix week notation with other duration components.
 ## Run
 
 ```bash
-npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
-  tiangong-ai data run usgs.water-instantaneous-values fetch \
+tiangong-ai data run usgs.water-instantaneous-values fetch \
   --input /absolute/path/to/request.json --json
 ```
 
@@ -111,5 +109,4 @@ result to another workflow.
 
 ## Reference
 
-- `references/tiangong-data-binding.json`: exact execution compatibility
-  binding for the reviewed CLI release.
+- `references/tiangong-data-requirement.json`: stable capability requirement; it is not a package lock.

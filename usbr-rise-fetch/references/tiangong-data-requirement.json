@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "tiangong.data.skill-capability-requirement.v1",
+  "skillName": "usbr-rise-fetch",
+  "capabilityId": "usbr.rise",
+  "capabilityContractVersion": "1",
+  "operations": {
+    "discover-items": {
+      "contractVersion": "1"
+    },
+    "fetch-results": {
+      "contractVersion": "1"
+    }
+  }
+}

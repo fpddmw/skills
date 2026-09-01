@@ -12,20 +12,20 @@ filtering, limits, validation, partial results, and receipts.
 
 ## Before running
 
-1. Read `references/tiangong-data-binding.json`.
-2. Use its exact `generatedWithCliVersion` in every package spec below. Never
-   use `latest`, a tag, or a version range.
-3. Compare `data describe` with the bound capability, manifest, operation, and
-   schema digests. Stop on any mismatch.
+1. Read `references/tiangong-data-requirement.json`.
+2. Use the caller- or workspace-resolved stable CLI. The requirement declares
+   compatible capability and operation contract majors; it does not select a
+   package build.
+3. Run `data describe` with that same CLI. Continue only when the capability
+   ID and required contract majors match, and copy the exact current
+   capability/operation versions from that response into the run request.
 4. Ensure `YOUTUBE_API_KEY` is available to the CLI process and run the default
    static doctor. Never place the key in argv, request JSON, Skill files, logs,
    or output.
 
 ```bash
-npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
-  tiangong-ai data describe youtube.public-content --json
-npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
-  tiangong-ai data doctor youtube.public-content --json
+tiangong-ai data describe youtube.public-content --json
+tiangong-ai data doctor youtube.public-content --json
 ```
 
 Use current Discovery Metadata to confirm coverage, restrictions, quota and
@@ -57,16 +57,16 @@ than bypassing the CLI.
 ## Prepare the request
 
 Build one `tiangong.data.run-request.v1` envelope. Replace the version
-placeholders with the exact binding values and validate every input field
+placeholders with the exact versions from the same `data describe` response and validate every input field
 against `data describe`.
 
 ```json
 {
   "schemaVersion": "tiangong.data.run-request.v1",
   "capabilityId": "youtube.public-content",
-  "capabilityVersion": "<binding.capabilityVersion>",
+  "capabilityVersion": "<describe.manifest.capabilityVersion>",
   "operationId": "search-videos",
-  "operationVersion": "<binding.operations[0].operationVersion>",
+  "operationVersion": "<describe.manifest.operations[0].operationVersion>",
   "input": {
     "query": "climate policy",
     "publishedAfter": "2026-03-01T00:00:00Z",
@@ -91,8 +91,7 @@ path, scheduler, or persistence instruction to the envelope.
 ## Run
 
 ```bash
-npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
-  tiangong-ai data run youtube.public-content search-videos \
+tiangong-ai data run youtube.public-content search-videos \
   --input /absolute/path/to/request.json --json
 ```
 
@@ -125,5 +124,4 @@ paths to another Skill.
 
 ## Reference
 
-- `references/tiangong-data-binding.json`: exact execution compatibility
-  binding for the reviewed CLI package.
+- `references/tiangong-data-requirement.json`: stable capability requirement; it is not a package lock.

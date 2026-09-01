@@ -13,8 +13,8 @@ checkPaths:
   - .github/workflows/docpact.yml
   - _docs/**
   - "*/SKILL.md"
-lastReviewedAt: 2026-08-31
-lastReviewedCommit: 33fb9013862099b38a0b5885b6fd556f12e64773
+lastReviewedAt: 2026-09-01
+lastReviewedCommit: 5bb2c2c229c95ae4431aabc152d8e9d34762f0b2
 ---
 
 # Skills Documentation Standards
@@ -46,5 +46,5 @@ lastReviewedCommit: 33fb9013862099b38a0b5885b6fd556f12e64773
 - Architecture/runbook documents must label unavailable commands and future
   behavior as proposed. For atomic data, CLI documents are authoritative
   for machine contracts; Skills documents cover semantic entrypoints,
-  compatibility bindings, inventory, and migration workflow without copying
-  closed schemas.
+  capability requirements, release provenance, inventory, and migration
+  workflow without copying closed schemas.

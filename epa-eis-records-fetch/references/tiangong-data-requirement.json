@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "tiangong.data.skill-capability-requirement.v1",
+  "skillName": "epa-eis-records-fetch",
+  "capabilityId": "epa.eis-records",
+  "capabilityContractVersion": "1",
+  "operations": {
+    "search": {
+      "contractVersion": "1"
+    }
+  }
+}

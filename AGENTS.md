@@ -15,8 +15,8 @@ checkPaths:
   - .github/workflows/docpact.yml
   - scripts/**
   - _docs/**
-lastReviewedAt: 2026-08-31
-lastReviewedCommit: 33fb9013862099b38a0b5885b6fd556f12e64773
+lastReviewedAt: 2026-09-01
+lastReviewedCommit: 5bb2c2c229c95ae4431aabc152d8e9d34762f0b2
 ---
 
 # Tiangong AI Skills Agent Contract
@@ -55,7 +55,8 @@ skill 内容、skill 规范、marketplace 元数据和本仓文档治理属于�
 - 修改 skill 触发条件、脚本、引用资料、agent 配置或 marketplace 元数据时，
   同步检查本仓 docs 和 docpact route 结果。
 - 原子数据机器契约、connector、Schema、凭证和运行回执属于 Tiangong CLI；
-  数据 Skill 只保留语义入口和可检验兼容绑定。
+  数据 Skill 只保留语义入口和可检验的 capability/operation contract-major requirement。
+  实际 CLI package 由调用方或 workspace runtime lock 负责，不下沉到每个 Skill。
 
 ## Completion Criteria
 
@@ -63,8 +64,9 @@ skill 内容、skill 规范、marketplace 元数据和本仓文档治理属于�
 - route 命中的文档已 reviewed 或 updated。
 - 治理变更后 `docpact validate-config --root . --strict` 通过。
 - skill 变更按 `skill-creator` 流程运行对应校验。
-- 数据 Skill 迁移还必须验证 exact CLI capability/operation/Schema binding，且只有
-  对应 CLI 正式版本可安装后才能移除旧执行脚本。
+- 数据 Skill 迁移还必须验证稳定 requirement，并用仓库级 migration provenance 对
+  exact CLI capability/operation/Schema 做一次发布资格审计；只有对应 CLI 正式版本
+  可安装后才能移除旧执行脚本。普通兼容 CLI 发布不要求重写全部 Skill requirement。
 - `tsinghua-graduate-thesis` 的 PDF renderer 或视觉 QA 变更必须用仓库内隐私安全的真实二进制 PDF fixture，在其 targeted clean-container 中先观察 RED、再在新容器中转 GREEN；PR 前还要运行全仓 cold gate。
 - Auto Research 及其直接 evidence wrapper 的变更必须先在
   `scripts/test-clean-container.sh` 创建的独立、无宿主 HOME/全局

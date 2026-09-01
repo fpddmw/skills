@@ -17,8 +17,8 @@ checkPaths:
   - Dockerfile.clean-test
   - scripts/**
   - "*/SKILL.md"
-lastReviewedAt: 2026-08-31
-lastReviewedCommit: 33fb9013862099b38a0b5885b6fd556f12e64773
+lastReviewedAt: 2026-09-01
+lastReviewedCommit: 5bb2c2c229c95ae4431aabc152d8e9d34762f0b2
 ---
 
 # Skills Repository Contract
@@ -38,11 +38,13 @@ marketplace grouping metadata.
 - Runtime credentials and user-private data do not belong in skill assets,
   references, or scripts.
 - Atomic data Skills own trigger semantics, source guidance, limitations, and
-  an exact compatibility binding. Tiangong CLI owns connector execution,
+  a stable capability/operation contract-major requirement. Tiangong CLI owns connector execution,
   machine schemas, HTTP/authentication, retries, errors, and core receipts.
-  A data Skill must not merge before its referenced CLI contract is available
-  from an approved package, and it must not retain a second runtime after
-  migration.
+  The caller or workspace runtime lock selects the exact package and integrity.
+  The qualifying CLI version and exact manifest/Schema digests live in one
+  repository-level provenance artifact, not in every installed Skill. A data
+  Skill must not merge before its required contract is available from an
+  approved package, and it must not retain a second runtime after migration.
 - Default Research Policy assets must remain conservative, non-secret, and
   visibly generic. They must not claim target-journal fit or acceptance; user
   customization, approval, expiry, and hash enforcement belong to the CLI and
@@ -89,9 +91,10 @@ assets, generated `agents/**` files, or marketplace metadata require review of:
   skill when available.
 - When a Skill changes an exact external CLI pin, add or update an offline
   stale-pin contract and run its clean temporary install/command-surface smoke.
-- When migrating an atomic data Skill, verify its capability, operation,
-  minimum CLI version, manifest digest, and input/output schema digests against
-  the exact CLI package before removing the old executable implementation.
+- When migrating an atomic data Skill, verify its capability and operation
+  contract majors, then record the exact qualifying CLI package, manifest, and
+  input/output Schema digests once in repository-level migration provenance
+  before removing the old executable implementation.
 - For `tsinghua-graduate-thesis` PDF renderer changes, preserve the privacy-safe
   embedded Adobe-GB1 binary fixture, observe the behavior regression in its
   targeted clean container, and turn it green in a separate container. The

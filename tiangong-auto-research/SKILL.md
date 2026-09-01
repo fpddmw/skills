@@ -143,11 +143,18 @@ required credentials must block before any source download.
 - Built-in structured data capabilities are native CLI capabilities, not
   external Skills. During discover, use only the packet's dynamic data catalog:
   choose from its source/capability/operation summaries, inspect the selected
-  input contract with `tiangong-ai data describe`, and invoke the packet's
+  input contract through the workspace-locked resolver, and invoke the packet's
   `runDataCapability` command. That command promotes the shared TypeScript
   runtime result into Research evidence. Never use standalone `data run` for a
   project, copy provider logic into this Skill, or assume a fixed capability
   list.
+
+Use the same runtime lock for contract inspection and execution:
+
+```bash
+node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
+  data describe <capability-id> --json
+```
 - `document-granular-decompose` is an `input-preprocessor`. Run it explicitly
   through `research setup companion run`, then admit the exact hash-bound output
   as a project input. Its output is not evidence merely because parsing worked.
@@ -270,7 +277,7 @@ For `native-stage-required`, do not keep calling `research run`. Prepare the
 exact next stage, perform the returned prompt in this current app/session, and
 submit its JSON through the CLI. Discovery evidence must be fetched through the
 packet's broker command or its native `runDataCapability` command for a selected
-structured source. Use the dynamic data catalog and `tiangong-ai data describe`
+structured source. Use the dynamic data catalog and the locked `data describe`
 instead of memorizing operations. Record discovery assessments incrementally instead of
 returning all source metadata in the final stage output. Record native
 Web/Browser activity, formalize useful leads through the broker, and bind every

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "tiangong.data.skill-capability-requirement.v1",
+  "skillName": "open-meteo-historical-fetch",
+  "capabilityId": "open-meteo.historical-weather",
+  "capabilityContractVersion": "1",
+  "operations": {
+    "fetch": {
+      "contractVersion": "1"
+    }
+  }
+}

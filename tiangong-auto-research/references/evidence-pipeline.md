@@ -60,8 +60,15 @@ help find a lead but cannot replace a required broker occurrence.
 The packet also exposes built-in structured data capabilities dynamically. The
 catalog distinguishes the external data source, the CLI capability, and each
 atomic operation; use its summary, `provides`, `doesNotProvide`, and selection
-hints to choose a source, then inspect only the selected operation with
-`tiangong-ai data describe <capability-id> --json`. Follow upstream/downstream
+hints to choose a source, then inspect only the selected operation through the
+same workspace runtime lock used by the packet:
+
+```bash
+node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
+  data describe <capability-id> --json
+```
+
+Follow upstream/downstream
 hints when they are useful, but do not turn them into a mandatory workflow.
 
 Run the exact published `DataRunRequest` only through the packet's

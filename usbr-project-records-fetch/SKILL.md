@@ -12,16 +12,16 @@ limits, retries, link normalization, partial results, and receipts.
 
 ## Before running
 
-1. Read `references/tiangong-data-binding.json`.
-2. Use its exact `generatedWithCliVersion` in every package spec below. Never
-   use `latest`, a tag, or a version range.
-3. Run `data describe` and compare the capability version, execution manifest
-   digest, operation version, and input/output schema digests with the binding.
-   Stop on any mismatch.
+1. Read `references/tiangong-data-requirement.json`.
+2. Use the caller- or workspace-resolved stable CLI. The requirement declares
+   compatible capability and operation contract majors; it does not select a
+   package build.
+3. Run `data describe` with that same CLI. Continue only when the capability
+   ID and required contract majors match, and copy the exact current
+   capability/operation versions from that response into the run request.
 
 ```bash
-npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
-  tiangong-ai data describe usbr.project-records --json
+tiangong-ai data describe usbr.project-records --json
 ```
 
 Use the returned Discovery Metadata to confirm current coverage, granularity,
@@ -44,16 +44,16 @@ objective source facts copied from an older Skill revision.
 ## Prepare the request
 
 Build one `tiangong.data.run-request.v1` envelope. Replace both version
-placeholders with exact binding values and validate `input` against the current
+placeholders with the exact versions from the same `data describe` response and validate `input` against the current
 operation schema returned by `data describe`.
 
 ```json
 {
   "schemaVersion": "tiangong.data.run-request.v1",
   "capabilityId": "usbr.project-records",
-  "capabilityVersion": "<binding.capabilityVersion>",
+  "capabilityVersion": "<describe.manifest.capabilityVersion>",
   "operationId": "fetch",
-  "operationVersion": "<binding.operations[0].operationVersion>",
+  "operationVersion": "<describe.manifest.operations[0].operationVersion>",
   "input": {
     "urls": [
       "https://www.usbr.gov/uc/progact/amp/index.html",
@@ -72,8 +72,7 @@ settings, a custom base URL, external-link instructions, or credentials in
 ## Run
 
 ```bash
-npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
-  tiangong-ai data run usbr.project-records fetch \
+tiangong-ai data run usbr.project-records fetch \
   --input /absolute/path/to/request.json --json
 ```
 
@@ -100,5 +99,4 @@ Preserve the complete `tiangong.data.run-result.v1` envelope, including
 
 ## Reference
 
-- `references/tiangong-data-binding.json`: exact execution compatibility
-  binding for the reviewed CLI package.
+- `references/tiangong-data-requirement.json`: stable capability requirement; it is not a package lock.

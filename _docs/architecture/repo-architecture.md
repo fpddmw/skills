@@ -13,8 +13,8 @@ checkPaths:
   - README.zh-CN.md
   - .claude-plugin/**
   - "*/SKILL.md"
-lastReviewedAt: 2026-08-31
-lastReviewedCommit: 33fb9013862099b38a0b5885b6fd556f12e64773
+lastReviewedAt: 2026-09-01
+lastReviewedCommit: 5bb2c2c229c95ae4431aabc152d8e9d34762f0b2
 ---
 
 # Skills Repository Architecture
@@ -99,25 +99,30 @@ The architecture and staged inventory are documented in
 `_docs/architecture/atomic-data-capabilities.md` and
 `_docs/runbooks/atomic-data-skill-migration.md`.
 
-An atomic data Skill is a thin semantic entrypoint over an
-exact published Tiangong CLI capability. It keeps source guidance, limitations,
-agent instructions, and a machine-checkable binding, while connector logic,
-schemas, credentials, retries, and core receipts live only in the CLI's
-TypeScript 7 runtime. Auto Research reuses that same runtime and adds its own
-evidence admission and persistence instead of executing a second Skill script.
+An atomic data Skill is a thin semantic entrypoint over a compatible published
+Tiangong CLI capability. It keeps source guidance, limitations, agent
+instructions, and a machine-checkable contract-major requirement. The caller or
+workspace runtime lock owns the exact package; connector logic, schemas,
+credentials, retries, and core receipts live only in the CLI's
+TypeScript 7 runtime. Auto Research reuses its workspace-locked runtime and adds
+its own evidence admission and persistence instead of executing a second Skill
+script.
 
-Seventeen local candidate Skills now use this shape: AirNow, Federal Register,
-USGS Water IV, three Open-Meteo sources, NASA FIRMS, OpenAQ, the separate
-Regulations.gov search and detail semantic entrypoints, and separate GDELT DOC,
-Events, GKG, and Mentions entrypoints, plus Bluesky Cascades and separate
-YouTube video-search/comment entrypoints. The two Regulations.gov Skills bind
-different operations of one CLI capability; the two YouTube Skills likewise
-bind different operations of one capability; the GDELT Skills bind four
-independent capabilities with one operation each. Each directory has only
-`SKILL.md`, generated agent metadata, and an execution-only CLI binding; its
+Twenty-one local candidate Skills now use this shape: AirNow, Federal Register,
+USGS Water IV, three Open-Meteo sources, NASA FIRMS, OpenAQ, EPA EIS, USBR RISE,
+USBR Project Records, three Regulations.gov semantic entrypoints, separate
+GDELT DOC, Events, GKG, and Mentions entrypoints, Bluesky Cascades, and separate
+YouTube video-search/comment entrypoints. Regulations.gov search and detail
+bind different operations of one capability, while attachments uses its own
+capability; the two YouTube Skills likewise bind different operations of one
+capability; the GDELT Skills bind four independent capabilities with one
+operation each. Each directory has only
+`SKILL.md`, generated agent metadata, and a package-independent capability
+requirement; its
 former Python connector and duplicate provider references are absent. These
-become production migrations only after the exact CLI package is published and
-the bindings/install smoke are regenerated against that package. RSS/full-text,
+become production migrations only after a compatible CLI package is published
+and the repository-level migration provenance/install smoke qualify that
+release. Ordinary compatible CLI releases do not rewrite every Skill. RSS/full-text,
 Figshare, academic-paper, Tiangong/KB, and private-email
 candidates have completed their boundary audit and retain their specialized
 runtimes rather than losing core content, artifact, product, research, or

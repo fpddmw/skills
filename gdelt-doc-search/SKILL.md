@@ -11,16 +11,16 @@ input/output schemas, HTTP behavior, limits, validation, and receipts.
 
 ## Before running
 
-1. Read `references/tiangong-data-binding.json`.
-2. Use its exact `generatedWithCliVersion` in the package spec below. Never use
-   `latest`, a tag, or a version range.
-3. Run `data describe` and compare the returned capability version, execution
-   manifest digest, operation version, and input/output schema digests with the
-   binding. Stop on any mismatch.
+1. Read `references/tiangong-data-requirement.json`.
+2. Use the caller- or workspace-resolved stable CLI. The requirement declares
+   compatible capability and operation contract majors; it does not select a
+   package build.
+3. Run `data describe` with that same CLI. Continue only when the capability
+   ID and required contract majors match, and copy the exact current
+   capability/operation versions from that response into the run request.
 
 ```bash
-npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
-  tiangong-ai data describe gdelt.doc-search --json
+tiangong-ai data describe gdelt.doc-search --json
 ```
 
 Use the returned Discovery Metadata to confirm current source coverage,
@@ -30,16 +30,16 @@ facts remembered from an older Skill revision.
 ## Prepare the request
 
 Build a `tiangong.data.run-request.v1` envelope. Replace the two version
-placeholders with the exact values in the binding. This example requests an
+placeholders with the exact versions from the same `data describe` response. This example requests an
 article list for one bounded absolute UTC window:
 
 ```json
 {
   "schemaVersion": "tiangong.data.run-request.v1",
   "capabilityId": "gdelt.doc-search",
-  "capabilityVersion": "<binding.capabilityVersion>",
+  "capabilityVersion": "<describe.manifest.capabilityVersion>",
   "operationId": "search",
-  "operationVersion": "<binding.operations[0].operationVersion>",
+  "operationVersion": "<describe.manifest.operations[0].operationVersion>",
   "input": {
     "query": "(\"climate change\" OR pollution) sourcecountry:us",
     "mode": "artlist",
@@ -53,7 +53,7 @@ article list for one bounded absolute UTC window:
 }
 ```
 
-Use the operation input schema returned by `data describe` to select a
+Use the operation input schema returned by the same `data describe` response to select a
 supported mode and its mode-specific fields. Use at most one time-window form;
 omitting both uses the provider default window. Never silently widen a supplied
 window or pass arbitrary DOC parameters absent from the schema.
@@ -67,8 +67,7 @@ useful and retain `batchQueries` plus `queryErrors`.
 ## Run
 
 ```bash
-npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
-  tiangong-ai data run gdelt.doc-search search \
+tiangong-ai data run gdelt.doc-search search \
   --input /absolute/path/to/request.json --json
 ```
 
@@ -97,5 +96,4 @@ result to another workflow.
 
 ## Reference
 
-- `references/tiangong-data-binding.json`: exact execution compatibility
-  binding for the reviewed CLI release.
+- `references/tiangong-data-requirement.json`: stable capability requirement; it is not a package lock.

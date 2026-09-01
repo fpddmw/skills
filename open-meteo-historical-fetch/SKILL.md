@@ -12,20 +12,19 @@ receipts.
 
 ## Before running
 
-1. Read `references/tiangong-data-binding.json`.
-2. Use its exact `generatedWithCliVersion` in the package spec below. Never use
-   `latest`, a tag, or a version range.
-3. Run `data describe` and compare the returned capability version, execution
-   manifest digest, operation version, and input/output schema digests with the
-   binding. Stop on any mismatch.
+1. Read `references/tiangong-data-requirement.json`.
+2. Use the caller- or workspace-resolved stable CLI. The requirement declares
+   compatible capability and operation contract majors; it does not select a
+   package build.
+3. Run `data describe` with that same CLI. Continue only when the capability
+   ID and required contract majors match, and copy the exact current
+   capability/operation versions from that response into the run request.
 4. Run the default static doctor. Do not add `--live` unless the user explicitly
    asks for a provider probe.
 
 ```bash
-npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
-  tiangong-ai data describe open-meteo.historical-weather --json
-npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
-  tiangong-ai data doctor open-meteo.historical-weather --json
+tiangong-ai data describe open-meteo.historical-weather --json
+tiangong-ai data doctor open-meteo.historical-weather --json
 ```
 
 Use the returned Discovery Metadata to confirm current model coverage,
@@ -36,7 +35,7 @@ from an older Skill revision.
 ## Prepare the request
 
 Build a `tiangong.data.run-request.v1` envelope and replace the two version
-placeholders with the exact values in the binding. Coordinates are WGS84
+placeholders with the exact versions from the same `data describe` response. Coordinates are WGS84
 decimal degrees. Both variable arrays are required; use an empty array for an
 unneeded granularity. At least one array must be non-empty. The CLI fixes
 timezone and units, preserves coordinate order, and normalizes variable order:
@@ -45,9 +44,9 @@ timezone and units, preserves coordinate order, and normalizes variable order:
 {
   "schemaVersion": "tiangong.data.run-request.v1",
   "capabilityId": "open-meteo.historical-weather",
-  "capabilityVersion": "<binding.capabilityVersion>",
+  "capabilityVersion": "<describe.manifest.capabilityVersion>",
   "operationId": "fetch",
-  "operationVersion": "<binding.operations[0].operationVersion>",
+  "operationVersion": "<describe.manifest.operations[0].operationVersion>",
   "input": {
     "locations": [
       { "latitude": 52.52, "longitude": 13.41 },
@@ -73,7 +72,7 @@ timezone and units, preserves coordinate order, and normalizes variable order:
 }
 ```
 
-Use the operation input schema returned by `data describe` for current variable
+Use the operation input schema returned by the same `data describe` response for current variable
 codes, model meanings, and limits. Select `era5` or `era5_land` for a
 multi-decade analysis where one consistent model family matters. The default
 `best_match` favors available local detail but can change model families over
@@ -85,8 +84,7 @@ the date range, switch models, or add variables beyond the user's intent.
 ## Run
 
 ```bash
-npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
-  tiangong-ai data run open-meteo.historical-weather fetch \
+tiangong-ai data run open-meteo.historical-weather fetch \
   --input /absolute/path/to/request.json --json
 ```
 
@@ -128,5 +126,4 @@ result to another workflow.
 
 ## Reference
 
-- `references/tiangong-data-binding.json`: exact execution compatibility
-  binding for the reviewed CLI release.
+- `references/tiangong-data-requirement.json`: stable capability requirement; it is not a package lock.

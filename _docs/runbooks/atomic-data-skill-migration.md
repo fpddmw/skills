@@ -17,8 +17,8 @@ checkPaths:
   - "*-search/**"
   - "*-download/**"
   - tiangong-auto-research/**
-lastReviewedAt: 2026-08-31
-lastReviewedCommit: f61170eb09f7b1a518f023bd80810ad36895f70d
+lastReviewedAt: 2026-09-01
+lastReviewedCommit: 5bb2c2c229c95ae4431aabc152d8e9d34762f0b2
 ---
 
 # 原子数据 Skill 迁移实施计划
@@ -36,7 +36,7 @@ lastReviewedCommit: f61170eb09f7b1a518f023bd80810ad36895f70d
   纪律和部分 fetch 脚本试验；不得从中复制、择取实现或用其修正 `ac19289` 的源语义。
 - 原 Skills checkout、现有 `codex/atomic-environment-data-skills` worktree 及 CLI 的
   未提交变更都保持不动，不 stash/reset/rebase/clean。
-- 首批实现继续使用该独立 worktree；正式 CLI 包、binding 和全部门禁通过后才提交 PR。
+- 首批实现继续使用该独立 worktree；兼容 CLI 包、requirement/provenance 和全部门禁通过后才提交 PR。
 
 ## 2026-08-31 迁移源审计更正
 
@@ -44,9 +44,9 @@ lastReviewedCommit: f61170eb09f7b1a518f023bd80810ad36895f70d
   这是目标目录盘点，不是 EcoCouncil 迁移源清单，不能证明迁移完整性。
 - 当前 21 个薄 Skill 与 19 个 CLI capability 已逐项对照 EcoCouncil 权威源完成本地
   迁移与源语义复核；21 项均有明确 CLI/Skill 目标，不再存在结构性缺项。
-- 下方矩阵保留逐项审计结论。所有本地 binding、统一安装与数据专项门禁已通过；仓库
-  全量 cold-container 门禁在叠加独立前置修复 `576a6cb` 后通过。正式 CLI 版本发布后
-  仍须把 21 个 binding 从本地 `0.0.55` 候选重生为该精确正式版本，才能合并 Skills PR。
+- 下方矩阵保留逐项审计结论。所有稳定 requirement、仓库级 migration provenance、统一安装与数据专项门禁已通过；
+  仓库全量 cold-container 门禁在叠加独立前置修复 `576a6cb` 后通过。正式 CLI 版本发布后
+  仍须用正式 CLI 验证 21 个 requirement，并重生一次仓库级 migration provenance，才能合并 Skills PR。
 - EcoCouncil 功能分支已提交点 `32d38e5172ebe8703c61a7031b7055c766ac9028`
   与 `ac19289` 的 `skills/source-fetch` 内容一致；本次仍只引用远端可复现的
   `main@ac19289`，不引用未提交工作树状态。
@@ -54,43 +54,43 @@ lastReviewedCommit: f61170eb09f7b1a518f023bd80810ad36895f70d
 ### EcoCouncil 21 项迁移控制矩阵
 
 下表按 `ac19289:skills/source-fetch` 的字典序逐项列出迁移目标。21 项均已完成源
-`SKILL.md`、脚本外部行为、CLI Discovery/Execution contract、thin Skill 和 binding
-对照，并通过本地数据专项门禁及含独立前置修复的集成 cold gate；表中的“待正式重绑”
-只表示 CLI 正式版本尚未发布，不表示仍有业务实现缺口。
+`SKILL.md`、脚本外部行为、CLI Discovery/Execution contract、thin Skill、stable requirement 与 migration provenance
+对照，并通过本地数据专项门禁及含独立前置修复的集成 cold gate；表中的“待正式复验”
+只表示仍需用正式 CLI 复验稳定 requirement 并更新仓库级 provenance，不表示仍有业务实现缺口。
 
 | # | EcoCouncil 权威源 Skill | Skills 目标 | CLI capability / operation 或保留边界 | 当前状态 |
 | -: | ------------------------ | ----------- | ---------------------------------------- | -------- |
-| 1 | `fetch-airnow-hourly-observations` | `airnow-hourly-obs-fetch` | `airnow.hourly-observations/fetch-hourly` | 完成；本地门禁通过；待正式重绑 |
-| 2 | `fetch-bluesky-cascade` | `bluesky-cascade-fetch` | `bluesky.public-posts/fetch-cascades` | 完成；本地门禁通过；待正式重绑 |
-| 3 | `fetch-epa-eis-records` | `epa-eis-records-fetch` | `epa.eis-records/search`；只解析官方 EIS 结果表，不作法律或政策判断 | 完成；本地门禁通过；待正式重绑 |
-| 4 | `fetch-federal-register-documents` | `federal-register-doc-fetch` | `federal-register.documents/search` | 完成；本地门禁通过；待正式重绑 |
-| 5 | `fetch-gdelt-doc-search` | `gdelt-doc-search` | `gdelt.doc-search/search` | 完成；本地门禁通过；待正式重绑 |
-| 6 | `fetch-gdelt-events` | `gdelt-events-fetch` | `gdelt.events/fetch` | 完成；本地门禁通过；待正式重绑 |
-| 7 | `fetch-gdelt-gkg` | `gdelt-gkg-fetch` | `gdelt.gkg/fetch` | 完成；本地门禁通过；待正式重绑 |
-| 8 | `fetch-gdelt-mentions` | `gdelt-mentions-fetch` | `gdelt.mentions/fetch` | 完成；本地门禁通过；待正式重绑 |
-| 9 | `fetch-nasa-firms-fire` | `nasa-firms-fire-fetch` | `nasa-firms.active-fire/fetch-area` | 完成；本地门禁通过；待正式重绑 |
-| 10 | `fetch-open-meteo-air-quality` | `open-meteo-air-quality-fetch` | `open-meteo.air-quality/fetch-hourly` | 完成；本地门禁通过；待正式重绑 |
-| 11 | `fetch-open-meteo-flood` | `open-meteo-flood-fetch` | `open-meteo.flood/fetch-daily` | 完成；本地门禁通过；待正式重绑 |
-| 12 | `fetch-open-meteo-historical` | `open-meteo-historical-fetch` | `open-meteo.historical-weather/fetch` | 完成；本地门禁通过；待正式重绑 |
-| 13 | `fetch-openaq` | `openaq-data-fetch` | `openaq.air-quality/search-locations` 与 `fetch-sensor-measurements`；S3 archive 明确移出该 atomic capability | 完成；本地门禁通过；待正式重绑 |
-| 14 | `fetch-regulationsgov-attachments` | `regulationsgov-attachments-fetch` | `regulations-gov.attachments/download`；固定官方 origin、SHA-256、relative manifest 与事务型本地 artifact | 完成；本地门禁通过；待正式重绑 |
-| 15 | `fetch-regulationsgov-comment-detail` | `regulationsgov-comment-detail-fetch` | `regulations-gov.comments/fetch-details`，只含 attachment metadata | 完成；本地门禁通过；待正式重绑 |
-| 16 | `fetch-regulationsgov-comments` | `regulationsgov-comments-fetch` | `regulations-gov.comments/search` | 完成；本地门禁通过；待正式重绑 |
-| 17 | `fetch-usbr-project-records` | `usbr-project-records-fetch` | `usbr.project-records/fetch`；只取显式官方 URL 与同站链接清单 | 完成；本地门禁通过；待正式重绑 |
-| 18 | `fetch-usbr-rise` | `usbr-rise-fetch` | `usbr.rise/discover-items` 与 `fetch-results` | 完成；本地门禁通过；待正式重绑 |
-| 19 | `fetch-usgs-water-iv` | `usgs-water-iv-fetch` | `usgs.water-instantaneous-values/fetch` | 完成；本地门禁通过；待正式重绑 |
-| 20 | `fetch-youtube-comments` | `youtube-comments-fetch` | `youtube.public-content/fetch-comments` | 完成；本地门禁通过；待正式重绑 |
-| 21 | `fetch-youtube-video-search` | `youtube-video-search` | `youtube.public-content/search-videos` | 完成；本地门禁通过；待正式重绑 |
+| 1 | `fetch-airnow-hourly-observations` | `airnow-hourly-obs-fetch` | `airnow.hourly-observations/fetch-hourly` | 完成；本地门禁通过；待正式复验 |
+| 2 | `fetch-bluesky-cascade` | `bluesky-cascade-fetch` | `bluesky.public-posts/fetch-cascades` | 完成；本地门禁通过；待正式复验 |
+| 3 | `fetch-epa-eis-records` | `epa-eis-records-fetch` | `epa.eis-records/search`；只解析官方 EIS 结果表，不作法律或政策判断 | 完成；本地门禁通过；待正式复验 |
+| 4 | `fetch-federal-register-documents` | `federal-register-doc-fetch` | `federal-register.documents/search` | 完成；本地门禁通过；待正式复验 |
+| 5 | `fetch-gdelt-doc-search` | `gdelt-doc-search` | `gdelt.doc-search/search` | 完成；本地门禁通过；待正式复验 |
+| 6 | `fetch-gdelt-events` | `gdelt-events-fetch` | `gdelt.events/fetch` | 完成；本地门禁通过；待正式复验 |
+| 7 | `fetch-gdelt-gkg` | `gdelt-gkg-fetch` | `gdelt.gkg/fetch` | 完成；本地门禁通过；待正式复验 |
+| 8 | `fetch-gdelt-mentions` | `gdelt-mentions-fetch` | `gdelt.mentions/fetch` | 完成；本地门禁通过；待正式复验 |
+| 9 | `fetch-nasa-firms-fire` | `nasa-firms-fire-fetch` | `nasa-firms.active-fire/fetch-area` | 完成；本地门禁通过；待正式复验 |
+| 10 | `fetch-open-meteo-air-quality` | `open-meteo-air-quality-fetch` | `open-meteo.air-quality/fetch-hourly` | 完成；本地门禁通过；待正式复验 |
+| 11 | `fetch-open-meteo-flood` | `open-meteo-flood-fetch` | `open-meteo.flood/fetch-daily` | 完成；本地门禁通过；待正式复验 |
+| 12 | `fetch-open-meteo-historical` | `open-meteo-historical-fetch` | `open-meteo.historical-weather/fetch` | 完成；本地门禁通过；待正式复验 |
+| 13 | `fetch-openaq` | `openaq-data-fetch` | `openaq.air-quality/search-locations` 与 `fetch-sensor-measurements`；S3 archive 明确移出该 atomic capability | 完成；本地门禁通过；待正式复验 |
+| 14 | `fetch-regulationsgov-attachments` | `regulationsgov-attachments-fetch` | `regulations-gov.attachments/download`；固定官方 origin、SHA-256、relative manifest 与事务型本地 artifact | 完成；本地门禁通过；待正式复验 |
+| 15 | `fetch-regulationsgov-comment-detail` | `regulationsgov-comment-detail-fetch` | `regulations-gov.comments/fetch-details`，只含 attachment metadata | 完成；本地门禁通过；待正式复验 |
+| 16 | `fetch-regulationsgov-comments` | `regulationsgov-comments-fetch` | `regulations-gov.comments/search` | 完成；本地门禁通过；待正式复验 |
+| 17 | `fetch-usbr-project-records` | `usbr-project-records-fetch` | `usbr.project-records/fetch`；只取显式官方 URL 与同站链接清单 | 完成；本地门禁通过；待正式复验 |
+| 18 | `fetch-usbr-rise` | `usbr-rise-fetch` | `usbr.rise/discover-items` 与 `fetch-results` | 完成；本地门禁通过；待正式复验 |
+| 19 | `fetch-usgs-water-iv` | `usgs-water-iv-fetch` | `usgs.water-instantaneous-values/fetch` | 完成；本地门禁通过；待正式复验 |
+| 20 | `fetch-youtube-comments` | `youtube-comments-fetch` | `youtube.public-content/fetch-comments` | 完成；本地门禁通过；待正式复验 |
+| 21 | `fetch-youtube-video-search` | `youtube-video-search` | `youtube.public-content/search-videos` | 完成；本地门禁通过；待正式复验 |
 
 矩阵完成定义同时要求：CLI connector 或明确保留边界已批准、TypeScript 7 业务实现与
-fixture/conformance 通过、Skill 只保留意图与上层组合语义、execution binding 从同一
-候选/正式 CLI 包生成、旧重复 connector 逻辑已移除，并且两仓治理与 clean-container
+fixture/conformance 通过、Skill 只保留意图与上层组合语义、stable requirement 与同一
+候选/正式 CLI 包的仓库级 provenance 相互验证、旧重复 connector 逻辑已移除，并且两仓治理与 clean-container
 门禁通过。数量对上但任一条件缺失，仍不得宣称迁移完成。
 
 AirNow 复核以固定提交中的 Python 归一化行为为准，补回了源行时间无效时使用所属
 HourlyAQObs 文件小时的回退、空 AQSID 的保留，以及单个污染物数值无效时按缺失值处理而
-不丢弃同一记录的其他有效字段；这些边界已有 TypeScript 回归测试，binding 已从修正后的
-本地 CLI 候选重新生成。
+不丢弃同一记录的其他有效字段；这些边界已有 TypeScript 回归测试，requirement 与仓库级 provenance 已用修正后的
+本地 CLI 候选重新验证。
 
 Bluesky 复核补回了固定源所声明的公共 AppView `403` 备用主机、关闭服务端时间过滤但继续
 执行客户端 UTC 窗口的历史覆盖诊断，以及对坏 seed/feed/thread 节点的局部隔离；同时保留
@@ -144,7 +144,7 @@ endpoint override 或 raw artifact 参数。
 Open-Meteo Flood 复核确认了固定源的最多 10 个坐标、366 个闭合日期、7 个官方 discharge
 variables、cell selection、多坐标响应、严格递增日轴与可选 ensemble member 校验。TypeScript
 连接器补回 provider GMT/零 UTC offset 校验，并将 member 识别从固定两位后缀恢复为源脚本的
-`river_discharge_memberN` 数字后缀，同时拒绝不能安全表示的 member ID；输出 Schema 与 binding
+`river_discharge_memberN` 数字后缀，同时拒绝不能安全表示的 member ID；输出 Schema 与 migration provenance
 已同步。CLI 仍要求 ensemble 与 `river_discharge` 同时请求，并固定公共 non-commercial
 endpoint/GMT，不迁入任意 timezone、optional API key 或 raw artifact 参数。
 
@@ -161,8 +161,8 @@ Open-Meteo Historical Weather 复核确认了固定源的最多 10 个坐标、3
   TypeScript 7、data runtime、AirNow、Federal Register 以及 Execution Manifest /
   Discovery Metadata 分层均已进入源码主线。
 - 当前公共 `@tiangong-ai/cli@0.0.54` 尚不包含 `data` 命令，因此仍未达到删除
-  Skill 旧执行脚本和提交正式 binding 的门槛。
-- Skills 仓库已增加 execution-only binding 生成/校验器及离线 stale-binding 测试。
+  Skill 旧执行脚本和提交稳定 requirement/迁移 provenance 的门槛。
+- Skills 仓库已增加 capability requirement/迁移 provenance 生成校验器及离线兼容测试。
   AirNow、EPA EIS、Federal Register、USGS Water IV、Open-Meteo Air Quality、Open-Meteo Flood、
   Open-Meteo Historical Weather、NASA FIRMS、OpenAQ、Regulations.gov Comments、
   Regulations.gov Comment Details、Regulations.gov Attachments、USBR Project Records、USBR RISE，以及 GDELT DOC、Events、GKG、Mentions 已在本地
@@ -175,8 +175,8 @@ Open-Meteo Historical Weather 复核确认了固定源的最多 10 个坐标、3
   二十一项旧 Python connector 与重复 provider references 已移出候选 Skill，并共同纳入
   copy/symlink 安装 smoke。
 - 当前本地候选包 `0.0.55` 只用于分支内兼容验证，不代表 npm 正式发布。PR 前必须用
-  实际包含全部十九个 capability 的正式版本重新生成二十一个 binding，并用该 npm 包
-  重跑全部门禁。
+  实际包含全部十九个 capability 的正式版本验证二十一个 requirement、重生一次仓库级
+  provenance，并用该 npm 包重跑全部门禁。
 
 ## 2026-08-31 本地候选自洽性审计（不代表 EcoCouncil 迁移完成）
 
@@ -184,22 +184,22 @@ Open-Meteo Historical Weather 复核确认了固定源的最多 10 个坐标、3
   Skill 已薄化，其余 21 个落入下文记录的内容/文件、产品或私有账户保留边界。该统计
   只说明目标仓库目录已分类，不覆盖 EcoCouncil 独有 Skill，也不是迁移完成证据。
 - CLI 候选使用 Node 24、TypeScript 7.0.2 和版本 `0.0.55`，发布 19 个 capability；
-  21 个薄 Skill 的 `generatedWithCliVersion` 与 `minimumCliVersion` 均为 `0.0.55`。
+  21 个薄 Skill 的 requirement 均不含 package version；仓库级 migration provenance 记录候选 `0.0.55`。
 - 每个薄 Skill 只含 `SKILL.md`、`agents/openai.yaml` 和
-  `references/tiangong-data-binding.json`；原 Python connector、provider 配置、重复 API
+  `references/tiangong-data-requirement.json`；原 Python connector、provider 配置、重复 API
   notes 和 OpenClaw 模板均不在生产 Skill 路径中。
-- 21 个 binding 已逐项对照当前候选的 execution manifest 与 operation 输入/输出 Schema
+- 21 个 requirement 已逐项验证 capability/operation contract major；仓库级 migration provenance 已对照当前候选的 execution manifest 与 operation 输入/输出 Schema
   digest；copy/symlink 隔离安装 smoke 已对当前全部 21 项、copy/symlink 两种模式和同一
   本地 CLI 候选包通过，且未携带 provider 凭证。EPA EIS 已通过
-  独立 `quick_validate.py`、binding verify 和 thin-skill contract；USBR Project Records
+  独立 `quick_validate.py`、requirement verify 和 thin-skill contract；USBR Project Records
   已完成同样的独立验证；Regulations.gov Attachments 已完成本地 TypeScript artifact
-  transaction、`quick_validate.py`、薄 Skill/binding contract 与 binding verify。正式 npm
+  transaction、`quick_validate.py`、薄 Skill requirement contract 与 provenance verify。正式 npm
   包可用后仍必须对全部 21 项重跑同一 smoke，且不访问真实 provider。
 - CLI 的 lint、typecheck、543 项全量测试、3 项 platform contract、coverage、npm pack、
   immutable setup pin audit 和 docpact 均通过；21 个薄 Skill 与 21 个明确保留 Skill 的
-  `quick_validate.py` 均通过，binding contract 与 docpact 也通过。
+  `quick_validate.py` 均通过，requirement/provenance contract 与 docpact 也通过。
 - 当前 19 capability/21 thin Skill 的最终候选已重跑门禁：CLI 在新 clean container 中
-  通过 543 项测试，statement coverage 为 85.13%；21 项精确 binding verify、独立
+  通过 543 项测试，statement coverage 为 85.13%；21 项 requirement verify 与 1 份精确 migration provenance verify、独立
   `quick_validate.py` 以及 copy/symlink 两种模式共 42 次 provider-offline 安装 smoke 均
   通过。
 - Skills 数据分支相对 `upstream/main` 对 `academic-paper-download` 为零差异；其全量 cold
@@ -221,7 +221,7 @@ Open-Meteo Historical Weather 复核确认了固定源的最多 10 个坐标、3
 2. CLI 独立完成 TypeScript 7 基线 PR。
 3. CLI 完成空 data runtime/机器 contract PR，再实现首批 connectors。
 4. CLI 发布候选版本，导出 canonical manifest/Schema digest。
-5. Skills 首批迁移 PR 使用候选包做验证；正式 CLI 发布后更新 exact binding 并合并。
+5. Skills 首批迁移 PR 使用候选包做验证；正式 CLI 发布后验证 requirement、更新仓库级 provenance 并合并。
 6. CLI 接入 Research adapter；Auto Research Skill 同步遵循其强制 clean-room RED/GREEN
    门禁。状态：本地实现与文档已完成，待两个仓库各自全量门禁和维护者审阅。
 
@@ -317,7 +317,7 @@ incremental sync；fulltext Skill 的核心包括 HTML/body acquisition、正文
 
 - CLI TypeScript 7 和基础 data contract 已合并。
 - 两个 CLI connector 的 manifest、Schema、fixtures、错误和 receipt 测试已通过。
-- 可安装的 CLI 候选包能导出 canonical binding。
+- 可安装的 CLI 候选包能导出 canonical describe contract。
 - 现有 Skill 的外部行为、来源说明和限制已盘点；旧 Python 只读。
 
 ### Skill 变更
@@ -325,7 +325,7 @@ incremental sync；fulltext Skill 的核心包括 HTML/body acquisition、正文
 每个首批 Skill：
 
 1. 用 `skill-creator` 工作流更新 `SKILL.md` 和生成的 `agents/openai.yaml`。
-2. 新增 CLI 生成的 `references/tiangong-data-binding.json`。
+2. 新增由 CLI describe 生成的 `references/tiangong-data-requirement.json`。
 3. 删除已由 CLI Discovery Metadata 发布的数据源/API/覆盖/许可/限制副本；只在确有
    任务型选择语义时保留非重复 reference。凭证解析转由 CLI 时删除重复配置。
 4. 将 Python fetch 脚本、OpenClaw chaining 模板和旧 raw artifact 约定从生产路径移除。
@@ -368,11 +368,13 @@ Skill。以下差异必须明确，不能被误写成无损命令替换：
 
 ### 首批验收
 
-- binding 中的 capability、operation、minimum CLI version 和 digests 与候选/正式包一致。
-- binding 只锁 Execution Manifest 和 operation Schema digest；Discovery Metadata
-  文案或 `discoveryDigest` 变化不得触发 execution binding 漂移。
+- 每个 requirement 的 capability/operation contract major 与候选/正式包兼容。
+- exact package 与 integrity 由调用方/workspace runtime lock 负责；Execution Manifest
+  与 operation Schema digest 只出现在仓库级 migration provenance。Discovery Metadata
+  文案变化和普通兼容 CLI 发布不得触发全部 Skill 锁步更新。
 - `quick_validate.py <skill-path>` 和生成 agent metadata 校验通过。
-- 离线 stale-binding 测试分别覆盖缺失 capability、过低 CLI 版本和 digest 漂移。
+- 离线 requirement 测试覆盖缺失 capability/operation 与 contract-major 漂移；
+  migration provenance 测试单独覆盖 exact manifest/Schema digest 漂移。
 - copy/symlink 安装 smoke 使用临时 project/HOME，只运行 version、catalog、describe、
   静态 doctor 和 fixture/local dry contract；不访问真实 provider。
 - 仓库中不再存在首批 provider 的第二份可执行业务逻辑。
@@ -385,7 +387,7 @@ USGS Water IV、Open-Meteo Air Quality、Open-Meteo Flood、Open-Meteo Historica
 Weather、NASA FIRMS、OpenAQ，以及 Regulations.gov comments/detail/attachments 三个语义入口已在
 本地完成 CLI connector 与 Skill 薄化。comments/detail 两个 Skill 共享一个 capability；
 attachments 使用独立 capability 和受控本地 artifact contract，三者保持独立意图入口与
-单 operation binding。
+单 operation requirement。
 
 USGS 已验证 100-site/25-square-degree/8-parameter 边界、严格正 duration、WaterML
 series/value、qualifier/provisional、部分运行数据 120-day 限制，以及 2026-H2 可能
@@ -397,7 +399,7 @@ reanalysis 与 station observation 区分，以及跨年代模型一致性提示
 path-segment logical credential、quota estimate、CSV chunk 与 hotspot/non-perimeter 边界；
 OpenAQ 已验证 header credential、官方 `monitor`/`mobile` filter、显式 ID 排序、location
 discovery、单 sensor raw/hourly/daily、provider 合法 null/flag/coverage interval、daily
-local-day 边界、双 operation binding、source-specific attribution 和 S3 download 分层；
+local-day 边界、双 operation requirement、source-specific attribution 和 S3 download 分层；
 旧版 standalone metadata catalog 与任意 path/query 被明确收敛，S3 archive 进入独立
 content/download 能力 backlog，二者均不再被误报为当前 atomic Skill 能力或未完成迁移项；Regulations.gov
 已验证 provider-auth、JSON:API pagination、beta last-modified filter 的 Eastern wall-clock
@@ -417,8 +419,8 @@ USBR RISE 已作为下一项独立 capability 完成：`discover-items` 保留 p
 order 并应用 client-side filter，`fetch-results` 只接受 grounded item IDs；两者共享官方
 keyless API scope，但拥有独立闭合 Schema。对应 `usbr-rise-fetch` 只保留 item 选择、
 缺口解释和上层判断边界，不再携带 Python connector、artifact 输出或 endpoint 调参。
-CLI clean container 492 项全过，Skill binding、`quick_validate.py` 与 copy/symlink 安装
-smoke 已通过；正式 binding 仍须等待包含最终 21 项迁移结果的精确 CLI 发布版本。
+CLI clean container 492 项全过，Skill requirement/provenance、`quick_validate.py` 与 copy/symlink 安装
+smoke 已通过；正式 migration provenance 仍须等待包含最终 21 项迁移结果的精确 CLI 发布版本。
 
 EPA EIS 已完成 `epa.eis-records/search` 与 `epa-eis-records-fetch`：保留四种官方
 common search 和 UI-created search URL，后者只接受官方 HTTPS origin/path。CLI 使用
@@ -437,17 +439,16 @@ provenance 和同 origin 链接清单，不跟随或下载链接；page/global r
 
 GDELT 已决定保持四个独立 capability：DOC 搜索的 API/模式化聚合语义与三个文件 feed
 不同；Events、GKG、Mentions 共享 CLI 内部有界 ZIP/TSV 核心，但分别拥有闭合输出 Schema
-和独立发现语义。四个 Skill 已在本地候选分支完成薄化、execution-only binding 和统一
+和独立发现语义。四个 Skill 已在本地候选分支完成薄化、stable requirement 和统一
 安装 smoke 接入。
 
 Bluesky 与 YouTube 的审计结论是：它们的公开、闭合、只读 API operation 适合 data
 runtime。CLI 已完成 `bluesky.public-posts/fetch-cascades` 以及
-`youtube.public-content/search-videos|fetch-comments`；三个 Skill 已薄化、绑定同一精确本地
-候选包并进入统一安装 smoke。YouTube key 仅经 `X-Goog-Api-Key` header 注入；comments
+`youtube.public-content/search-videos|fetch-comments`；三个 Skill 已薄化、与同一本地候选包完成兼容复验并进入统一安装 smoke。YouTube key 仅经 `X-Goog-Api-Key` header 注入；comments
 operation 使用 `comments.list` 展开 replies，不信任 embedded reply sample。固定 EcoCouncil
 提交的 17 个原有候选已全部完成逐项源语义复核；连同补齐的 4 个缺失能力，21 项迁移主体
 均已落到本地候选树并通过最终统一安装、数据专项门禁及含独立前置修复的集成 cold gate。
-合并前仅剩正式 CLI 版本发布后的精确 binding 重生与复验。
+合并前仅剩正式 CLI 版本发布后的 requirement 复验与仓库级 provenance 重生。
 
 RSS/fulltext、Figshare 与 academic paper 的审计结论相反：它们分别拥有持久订阅/正文队列、
 浏览器文件 artifact 或 Research acquisition/provenance 核心，因此继续保持现有专用实现，
@@ -465,7 +466,7 @@ RSS/fulltext、Figshare 与 academic paper 的审计结论相反：它们分别�
 1. Skills plan PR：本文、架构、docpact 路由；不改 Skill。
 2. CLI plan PR：与 Skills plan 同步评审。
 3. CLI TS7、foundation、pilot PRs：先合并并产出候选/正式包。
-4. Skills pilot PR：可在候选包出现后以 draft 开放，正式包发布后更新 binding 并合并。
+4. Skills pilot PR：可在候选包出现后以 draft 开放，正式包发布后验证 requirement、更新仓库级 provenance 并合并。
 5. CLI Research adapter PR 与必要的 Auto Research Skill PR：单独 clean-room TDD。
 
 若维护者要求每个仓库只保留一个实现 PR，仍遵守同一依赖：两边同时审阅，CLI 先合并/
@@ -485,12 +486,12 @@ docpact lint --root . --worktree --mode enforce
 
 - 按 `AGENTS.md` 完整读取并使用 `skill-creator`；
 - 对每个目标运行 `scripts/quick_validate.py <skill-path>`；
-- 运行新增的 binding contract 和隔离安装 smoke；
+- 运行新增的 requirement/provenance contract 和隔离安装 smoke；
 - 运行受影响脚本/引用/agent metadata 测试；
 - Auto Research 或直接 evidence wrapper 变更必须在相互独立的 clean container 中先
   观察 RED、再转 GREEN，PR 前运行 cold gate。
 
-binding 工具的离线契约测试：
+requirement/provenance 工具的离线契约测试：
 
 ```bash
 node --test scripts/tests/data-skill-binding.test.mjs
@@ -509,8 +510,8 @@ node --test scripts/tests/data-skill-install-smoke.test.mjs
 结构化阻断请求，不访问 AirNow、Bluesky、EPA EIS、FederalRegister.gov、GDELT、NASA
 FIRMS、OpenAQ、Open-Meteo、Regulations.gov、USBR、USGS WaterServices 或 YouTube。
 
-正式 CLI 版本发布后，先生成再用同一精确包复验；`X.Y.Z` 必须替换为实际可安装且
-包含 `data` 命令的版本：
+稳定 requirement 只在 Skill 所需的 capability/operation contract major 改变时生成；
+普通 CLI patch/minor 发布无需改写 21 个文件：
 
 ```bash
 node scripts/data-skill-binding.mjs generate \
@@ -518,177 +519,31 @@ node scripts/data-skill-binding.mjs generate \
   --capability airnow.hourly-observations \
   --operations fetch-hourly \
   --cli-version X.Y.Z
-node scripts/data-skill-binding.mjs generate \
-  --skill epa-eis-records-fetch \
-  --capability epa.eis-records \
-  --operations search \
-  --cli-version X.Y.Z
-node scripts/data-skill-binding.mjs generate \
-  --skill federal-register-doc-fetch \
-  --capability federal-register.documents \
-  --operations search \
-  --cli-version X.Y.Z
-node scripts/data-skill-binding.mjs generate \
-  --skill usgs-water-iv-fetch \
-  --capability usgs.water-instantaneous-values \
-  --operations fetch \
-  --cli-version X.Y.Z
-node scripts/data-skill-binding.mjs generate \
-  --skill open-meteo-air-quality-fetch \
-  --capability open-meteo.air-quality \
-  --operations fetch-hourly \
-  --cli-version X.Y.Z
-node scripts/data-skill-binding.mjs generate \
-  --skill open-meteo-flood-fetch \
-  --capability open-meteo.flood \
-  --operations fetch-daily \
-  --cli-version X.Y.Z
-node scripts/data-skill-binding.mjs generate \
-  --skill open-meteo-historical-fetch \
-  --capability open-meteo.historical-weather \
-  --operations fetch \
-  --cli-version X.Y.Z
-node scripts/data-skill-binding.mjs generate \
-  --skill nasa-firms-fire-fetch \
-  --capability nasa-firms.active-fire \
-  --operations fetch-area \
-  --cli-version X.Y.Z
-node scripts/data-skill-binding.mjs generate \
-  --skill openaq-data-fetch \
-  --capability openaq.air-quality \
-  --operations search-locations,fetch-sensor-measurements \
-  --cli-version X.Y.Z
-node scripts/data-skill-binding.mjs generate \
-  --skill regulationsgov-comments-fetch \
-  --capability regulations-gov.comments \
-  --operations search \
-  --cli-version X.Y.Z
-node scripts/data-skill-binding.mjs generate \
-  --skill regulationsgov-comment-detail-fetch \
-  --capability regulations-gov.comments \
-  --operations fetch-details \
-  --cli-version X.Y.Z
-node scripts/data-skill-binding.mjs generate \
-  --skill regulationsgov-attachments-fetch \
-  --capability regulations-gov.attachments \
-  --operations download \
-  --cli-version X.Y.Z
-node scripts/data-skill-binding.mjs generate \
-  --skill usbr-project-records-fetch \
-  --capability usbr.project-records \
-  --operations fetch \
-  --cli-version X.Y.Z
-node scripts/data-skill-binding.mjs generate \
-  --skill usbr-rise-fetch \
-  --capability usbr.rise \
-  --operations discover-items,fetch-results \
-  --cli-version X.Y.Z
-node scripts/data-skill-binding.mjs generate \
-  --skill gdelt-doc-search \
-  --capability gdelt.doc-search \
-  --operations search \
-  --cli-version X.Y.Z
-node scripts/data-skill-binding.mjs generate \
-  --skill gdelt-events-fetch \
-  --capability gdelt.events \
-  --operations fetch \
-  --cli-version X.Y.Z
-node scripts/data-skill-binding.mjs generate \
-  --skill gdelt-gkg-fetch \
-  --capability gdelt.gkg \
-  --operations fetch \
-  --cli-version X.Y.Z
-node scripts/data-skill-binding.mjs generate \
-  --skill gdelt-mentions-fetch \
-  --capability gdelt.mentions \
-  --operations fetch \
-  --cli-version X.Y.Z
-node scripts/data-skill-binding.mjs generate \
-  --skill bluesky-cascade-fetch \
-  --capability bluesky.public-posts \
-  --operations fetch-cascades \
-  --cli-version X.Y.Z
-node scripts/data-skill-binding.mjs generate \
-  --skill youtube-video-search \
-  --capability youtube.public-content \
-  --operations search-videos \
-  --cli-version X.Y.Z
-node scripts/data-skill-binding.mjs generate \
-  --skill youtube-comments-fetch \
-  --capability youtube.public-content \
-  --operations fetch-comments \
-  --cli-version X.Y.Z
 node scripts/data-skill-binding.mjs verify \
-  --binding airnow-hourly-obs-fetch/references/tiangong-data-binding.json \
-  --cli-version X.Y.Z
-node scripts/data-skill-binding.mjs verify \
-  --binding epa-eis-records-fetch/references/tiangong-data-binding.json \
-  --cli-version X.Y.Z
-node scripts/data-skill-binding.mjs verify \
-  --binding federal-register-doc-fetch/references/tiangong-data-binding.json \
-  --cli-version X.Y.Z
-node scripts/data-skill-binding.mjs verify \
-  --binding usgs-water-iv-fetch/references/tiangong-data-binding.json \
-  --cli-version X.Y.Z
-node scripts/data-skill-binding.mjs verify \
-  --binding open-meteo-air-quality-fetch/references/tiangong-data-binding.json \
-  --cli-version X.Y.Z
-node scripts/data-skill-binding.mjs verify \
-  --binding open-meteo-flood-fetch/references/tiangong-data-binding.json \
-  --cli-version X.Y.Z
-node scripts/data-skill-binding.mjs verify \
-  --binding open-meteo-historical-fetch/references/tiangong-data-binding.json \
-  --cli-version X.Y.Z
-node scripts/data-skill-binding.mjs verify \
-  --binding nasa-firms-fire-fetch/references/tiangong-data-binding.json \
-  --cli-version X.Y.Z
-node scripts/data-skill-binding.mjs verify \
-  --binding openaq-data-fetch/references/tiangong-data-binding.json \
-  --cli-version X.Y.Z
-node scripts/data-skill-binding.mjs verify \
-  --binding regulationsgov-comments-fetch/references/tiangong-data-binding.json \
-  --cli-version X.Y.Z
-node scripts/data-skill-binding.mjs verify \
-  --binding regulationsgov-comment-detail-fetch/references/tiangong-data-binding.json \
-  --cli-version X.Y.Z
-node scripts/data-skill-binding.mjs verify \
-  --binding regulationsgov-attachments-fetch/references/tiangong-data-binding.json \
-  --cli-version X.Y.Z
-node scripts/data-skill-binding.mjs verify \
-  --binding usbr-project-records-fetch/references/tiangong-data-binding.json \
-  --cli-version X.Y.Z
-node scripts/data-skill-binding.mjs verify \
-  --binding usbr-rise-fetch/references/tiangong-data-binding.json \
-  --cli-version X.Y.Z
-node scripts/data-skill-binding.mjs verify \
-  --binding gdelt-doc-search/references/tiangong-data-binding.json \
-  --cli-version X.Y.Z
-node scripts/data-skill-binding.mjs verify \
-  --binding gdelt-events-fetch/references/tiangong-data-binding.json \
-  --cli-version X.Y.Z
-node scripts/data-skill-binding.mjs verify \
-  --binding gdelt-gkg-fetch/references/tiangong-data-binding.json \
-  --cli-version X.Y.Z
-node scripts/data-skill-binding.mjs verify \
-  --binding gdelt-mentions-fetch/references/tiangong-data-binding.json \
-  --cli-version X.Y.Z
-node scripts/data-skill-binding.mjs verify \
-  --binding bluesky-cascade-fetch/references/tiangong-data-binding.json \
-  --cli-version X.Y.Z
-node scripts/data-skill-binding.mjs verify \
-  --binding youtube-video-search/references/tiangong-data-binding.json \
-  --cli-version X.Y.Z
-node scripts/data-skill-binding.mjs verify \
-  --binding youtube-comments-fetch/references/tiangong-data-binding.json \
+  --requirement airnow-hourly-obs-fetch/references/tiangong-data-requirement.json \
   --cli-version X.Y.Z
 ```
+
+本次删除 21 个旧 provider runtime 的 exact release 资格只集中生成、验证一次：
+
+```bash
+node scripts/data-skill-binding.mjs generate-provenance \
+  --root . --cli-version X.Y.Z
+node scripts/data-skill-binding.mjs verify-provenance \
+  --root . --cli-version X.Y.Z
+```
+
+`generate-provenance` 会读取全部 per-Skill requirement，并把 package version、manifest
+与 operation Schema digests 写入 `scripts/data-skill-migration-provenance.json`。该文件
+是迁移/发布验证证据，不随单个 Skill 安装，也不参与日常 runtime compatibility；实际
+workspace build 继续由各自的 runtime lock 和 integrity 负责。
 
 ## 回退和删除纪律
 
 - 计划 PR 不删除业务文件。
-- Skill 实现 PR 只有在正式 CLI 版本可安装、binding 已验证且迁移 smoke 通过后才删除
+- Skill 实现 PR 只有在正式 CLI 版本可安装、requirement/provenance 已验证且迁移 smoke 通过后才删除
   旧脚本。
-- CLI connector 若发布后回退，Skills binding 同步回到仍受支持的正式 CLI；不能静默
+- CLI connector 若发布后回退，调用方 runtime lock 回到仍受支持的正式 CLI；Skill requirement 仅在 contract major 改变时更新；不能静默
   指向 branch 或本地 checkout。
 - 不清理旧仓库、旧 worktree 或用户未提交内容；归档/删除需要另一次明确授权。
 

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "tiangong.data.skill-capability-requirement.v1",
+  "skillName": "open-meteo-air-quality-fetch",
+  "capabilityId": "open-meteo.air-quality",
+  "capabilityContractVersion": "1",
+  "operations": {
+    "fetch-hourly": {
+      "contractVersion": "1"
+    }
+  }
+}

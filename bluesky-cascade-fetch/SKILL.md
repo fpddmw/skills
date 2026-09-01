@@ -12,16 +12,16 @@ normalization, limits, partial results, and receipts.
 
 ## Before running
 
-1. Read `references/tiangong-data-binding.json`.
-2. Use its exact `generatedWithCliVersion` in every package spec below. Never
-   use `latest`, a tag, or a version range.
-3. Run `data describe` and compare the returned capability version, execution
-   manifest digest, operation version, and input/output schema digests with the
-   binding. Stop on any mismatch.
+1. Read `references/tiangong-data-requirement.json`.
+2. Use the caller- or workspace-resolved stable CLI. The requirement declares
+   compatible capability and operation contract majors; it does not select a
+   package build.
+3. Run `data describe` with that same CLI. Continue only when the capability
+   ID and required contract majors match, and copy the exact current
+   capability/operation versions from that response into the run request.
 
 ```bash
-npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
-  tiangong-ai data describe bluesky.public-posts --json
+tiangong-ai data describe bluesky.public-posts --json
 ```
 
 Use the current Discovery Metadata to confirm source coverage, freshness,
@@ -47,15 +47,15 @@ provider facts remembered from an older Skill revision.
 
 Build one `tiangong.data.run-request.v1` envelope and validate it against the
 current input schema from `data describe`. Replace both version placeholders
-with the exact values from the binding.
+with the exact versions from the same `data describe` response.
 
 ```json
 {
   "schemaVersion": "tiangong.data.run-request.v1",
   "capabilityId": "bluesky.public-posts",
-  "capabilityVersion": "<binding.capabilityVersion>",
+  "capabilityVersion": "<describe.manifest.capabilityVersion>",
   "operationId": "fetch-cascades",
-  "operationVersion": "<binding.operations[0].operationVersion>",
+  "operationVersion": "<describe.manifest.operations[0].operationVersion>",
   "input": {
     "source": {
       "mode": "search",
@@ -83,8 +83,7 @@ and recurring collection belong to the caller.
 ## Run
 
 ```bash
-npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
-  tiangong-ai data run bluesky.public-posts fetch-cascades \
+tiangong-ai data run bluesky.public-posts fetch-cascades \
   --input /absolute/path/to/request.json --json
 ```
 
@@ -112,5 +111,4 @@ to another workflow.
 
 ## Reference
 
-- `references/tiangong-data-binding.json`: exact execution compatibility
-  binding for the reviewed CLI package.
+- `references/tiangong-data-requirement.json`: stable capability requirement; it is not a package lock.

@@ -12,21 +12,20 @@ receipts.
 
 ## Before running
 
-1. Read `references/tiangong-data-binding.json`.
-2. Use its exact `generatedWithCliVersion` in every package spec below. Never
-   use `latest`, a tag, or a version range.
-3. Run `data describe` and compare the returned capability version, execution
-   manifest digest, both operation versions, and all input/output schema digests
-   with the binding. Stop on any mismatch.
+1. Read `references/tiangong-data-requirement.json`.
+2. Use the caller- or workspace-resolved stable CLI. The requirement declares
+   compatible capability and operation contract majors; it does not select a
+   package build.
+3. Run `data describe` with that same CLI. Continue only when the capability
+   ID and required contract majors match, and copy the exact current
+   capability/operation versions from that response into the run request.
 4. Ensure `OPENAQ_API_KEY` is present in the CLI process environment, then run
    the default static doctor. Never place the key in argv, request JSON, a
-   Skill-local config file, logs, or output.
+   Skill-local file, logs, or output.
 
 ```bash
-npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
-  tiangong-ai data describe openaq.air-quality --json
-npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
-  tiangong-ai data doctor openaq.air-quality --json
+tiangong-ai data describe openaq.air-quality --json
+tiangong-ai data doctor openaq.air-quality --json
 ```
 
 Use the returned Discovery Metadata to confirm current ownership, coverage,
@@ -56,7 +55,7 @@ license, instrument, or sensor catalog.
 ## Prepare a location request
 
 Build a `tiangong.data.run-request.v1` envelope and replace the version
-placeholders with the exact matching binding values. This example searches a
+placeholders with the exact versions from the same `data describe` response. This example searches a
 bounded country/parameter combination; use the current input schema from
 `data describe` for other supported filters.
 
@@ -64,9 +63,9 @@ bounded country/parameter combination; use the current input schema from
 {
   "schemaVersion": "tiangong.data.run-request.v1",
   "capabilityId": "openaq.air-quality",
-  "capabilityVersion": "<binding.capabilityVersion>",
+  "capabilityVersion": "<describe.manifest.capabilityVersion>",
   "operationId": "search-locations",
-  "operationVersion": "<binding.operations[1].operationVersion>",
+  "operationVersion": "<describe.manifest.operations[1].operationVersion>",
   "input": {
     "countryCode": "NL",
     "parameterIds": [2],
@@ -90,9 +89,9 @@ call.
 {
   "schemaVersion": "tiangong.data.run-request.v1",
   "capabilityId": "openaq.air-quality",
-  "capabilityVersion": "<binding.capabilityVersion>",
+  "capabilityVersion": "<describe.manifest.capabilityVersion>",
   "operationId": "fetch-sensor-measurements",
-  "operationVersion": "<binding.operations[0].operationVersion>",
+  "operationVersion": "<describe.manifest.operations[0].operationVersion>",
   "input": {
     "sensorId": 1001,
     "granularity": "hourly",
@@ -106,12 +105,10 @@ call.
 ## Run
 
 ```bash
-npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
-  tiangong-ai data run openaq.air-quality search-locations \
+tiangong-ai data run openaq.air-quality search-locations \
   --input /absolute/path/to/location-request.json --json
 
-npx --yes --package "@tiangong-ai/cli@<generatedWithCliVersion>" -- \
-  tiangong-ai data run openaq.air-quality fetch-sensor-measurements \
+tiangong-ai data run openaq.air-quality fetch-sensor-measurements \
   --input /absolute/path/to/measurement-request.json --json
 ```
 
@@ -151,5 +148,4 @@ result to another workflow.
 
 ## Reference
 
-- `references/tiangong-data-binding.json`: exact execution compatibility
-  binding for the reviewed CLI package.
+- `references/tiangong-data-requirement.json`: stable capability requirement; it is not a package lock.
