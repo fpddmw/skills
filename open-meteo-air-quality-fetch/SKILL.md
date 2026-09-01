@@ -82,6 +82,10 @@ result to another workflow.
 - Treat every value as a CAMS-derived model-grid estimate, not a measurement at
   the requested coordinate. Preserve requested and returned grid coordinates.
 - Retain nulls as unavailable model values. Never convert them to zero.
+- Distinguish `series-missing` from `series-all-null`: missing means the
+  provider did not return a requested series, while all-null means it returned
+  a structurally valid, aligned series with no usable numeric values. Preserve
+  an all-null series and report the machine-readable issue code.
 - Treat `partial` as incomplete coordinate, timestamp, or variable coverage and
   report the affected paths with the usable columns.
 - In GMT mode, require exactly 24 strictly ascending hourly timestamps per
