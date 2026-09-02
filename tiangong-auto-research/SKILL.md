@@ -1,9 +1,17 @@
 ---
 name: tiangong-auto-research
-description: Orchestrate open-ended, multi-source, evidence-backed research in the current native Codex, Claude Code, WorkBuddy, or CodeBuddy host, especially when an ancestor directory contains `.tiangong-research` or the user asks to research, investigate, build on prior outputs, compare evidence, form a conclusion, or produce a reviewed research artifact. Also use for setup, preflight, native producer execution, recovery, independent review, and closure. In an Auto Research workspace this Skill takes precedence over individual web, news, SCI, report, patent, download, or document Skills unless the user explicitly requests one isolated standalone operation outside the research workflow. Covers Chinese requests such as “研究一下”, “朝这个方向做一做”, “结合已有成果继续研究”, “查资料并形成结论”, and “系统梳理证据”.
+description: Orchestrate open-ended, multi-source, evidence-backed research in the current native Codex, Claude Code, WorkBuddy, or CodeBuddy host, especially when an ancestor directory contains `.tiangong-research` or the user asks to research, investigate, build on prior outputs, compare evidence, form a conclusion, or produce a reviewed research artifact. Also use for setup, preflight, native producer execution, recovery, independent review, closure, and requests to report Auto Research bugs or suggest capabilities (反馈问题、提交 Issue). In an Auto Research workspace this Skill takes precedence over individual web, news, SCI, report, patent, download, or document Skills unless the user explicitly requests one isolated standalone operation outside the research workflow. Covers Chinese requests such as “研究一下”, “朝这个方向做一做”, “结合已有成果继续研究”, “查资料并形成结论”, and “系统梳理证据”.
 ---
 
 # Tiangong Auto Research
+
+## Route feedback before research
+
+For requests to report a problem, suggest a capability, or prepare an Issue,
+read [references/issue-reporting.md](references/issue-reporting.md) and follow
+that reporting workflow. Reporting does not require a valid research workspace,
+setup, or scientific-question approval. Return the report without entering the
+research workflow unless the user also requests research execution.
 
 ## Gate the research question before acting
 

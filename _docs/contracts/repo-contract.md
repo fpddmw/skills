@@ -114,3 +114,10 @@ assets, generated `agents/**` files, or marketplace metadata require review of:
 `.claude-plugin/marketplace.json` is curated marketplace grouping metadata. It
 may be a subset of installable skill directories unless the marketplace file is
 explicitly updated to include every skill.
+
+## User Feedback Boundary
+
+The workspace owns common reporting principles and fields. This repository
+owns its contributor guide, GitHub forms, and portable installed Skill reporting
+workflow. Maintain their shared contract together; feedback preparation must
+work before research setup and must preserve user authorization for posting.

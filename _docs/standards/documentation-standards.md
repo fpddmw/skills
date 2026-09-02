@@ -48,3 +48,7 @@ lastReviewedCommit: 5ba8988d13cdf3f2674fbbcd182e4b15c9e2e3fe
   for machine contracts; Skills documents cover semantic entrypoints,
   capability requirements, release provenance, inventory, and migration
   workflow without copying closed schemas.
+
+User-facing contribution guides and issue forms implement the shared workspace
+reporting policy. Keep required core labels/IDs stable, accept Chinese and
+English content, and ship the complete agent templates inside Auto Research.

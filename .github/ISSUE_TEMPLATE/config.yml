@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: CLI runtime or uncertain ownership / CLI 运行时或归属不确定
+    url: https://github.com/tiangong-ai/cli/issues/new/choose
+    about: Choose the related component when known; uncertain reports are accepted by CLI.

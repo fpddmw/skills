@@ -23,6 +23,13 @@ lastReviewedCommit: 5ba8988d13cdf3f2674fbbcd182e4b15c9e2e3fe
 
 请使用 https://github.com/vercel-labs/skills 提供的 `skills` CLI 来安装、更新和管理这些 skills。
 
+## 反馈问题或建议能力
+
+使用[反馈表单](https://github.com/tiangong-ai/skills/issues/new/choose)和
+[提交指南](CONTRIBUTING.md)，支持中文和英文。CLI 运行时问题或归属不确定时，
+使用 [CLI 表单](https://github.com/tiangong-ai/cli/issues/new/choose)。也可以让
+已安装的 Auto Research 按随包提供的反馈规范生成统一格式的 Issue 草稿。
+
 ## 原子数据 Skills
 
 当前本地候选分支中的 AirNow Hourly Observations、EPA EIS Records、Federal Register Documents、NASA FIRMS Active Fire、

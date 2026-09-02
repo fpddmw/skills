@@ -165,3 +165,14 @@ language to pass in the clean container.
 Update `README.md` and `README.zh-CN.md` when installation, environment
 variables, target agents, or user-facing skill availability changes. Update
 `.claude-plugin/marketplace.json` when marketplace discovery metadata changes.
+
+## Reporting Contract
+
+When changing contribution guidance, GitHub forms, or the installed reporting
+reference, review the shared workspace reporting policy and both repositories'
+core field IDs, labels, ordering, and required flags together. Repository-only
+fields remain optional. Keep reporting instructions available in an isolated
+Skill install; never link local templates outside the installed Skill tree.
+`node --test scripts/tests/issue-reporting.test.mjs` checks isolated installation
+and form/agent heading parity, and runs in the existing clean-container suite.
+Inspect both YAML forms with a YAML parser before delivery.

@@ -23,6 +23,14 @@ Repository: https://github.com/tiangong-ai/skills
 
 Use the `skills` CLI from https://github.com/vercel-labs/skills to install, update, and manage these skills.
 
+## Report a problem or suggest a capability
+
+Use the [feedback forms](https://github.com/tiangong-ai/skills/issues/new/choose)
+and [contribution guide](CONTRIBUTING.md). Chinese and English reports are welcome.
+For CLI runtime problems or uncertain ownership, use the
+[CLI forms](https://github.com/tiangong-ai/cli/issues/new/choose). Auto Research
+can also prepare the same structured report from its installed reporting reference.
+
 ## Atomic data skills
 
 Twenty-one local candidate Skills—AirNow Hourly Observations, EPA EIS Records, Federal Register Documents, NASA
