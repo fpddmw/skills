@@ -137,6 +137,8 @@ for (const marker of [
 }
 
 const managedDataGuidance = `${autoResearchSkill}\n${evidencePipelineReference}`;
+assert.doesNotMatch(autoResearchSkill, /later stages are tool-free/u,
+  "Acquisition must retain packet-governed download/parsing operations after discovery");
 assert.match(
   managedDataGuidance,
   /node "\$AUTO_RESEARCH_CLI"[\s\S]*?--[\s\\\n]+data describe <capability-id> --json/,
