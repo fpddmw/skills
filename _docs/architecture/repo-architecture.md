@@ -13,8 +13,8 @@ checkPaths:
   - README.zh-CN.md
   - .claude-plugin/**
   - "*/SKILL.md"
-lastReviewedAt: 2026-09-01
-lastReviewedCommit: 4e22640981bca2c037dae31f47666400afefab5c
+lastReviewedAt: 2026-09-02
+lastReviewedCommit: 5ba8988d13cdf3f2674fbbcd182e4b15c9e2e3fe
 ---
 
 # Skills Repository Architecture
@@ -85,6 +85,14 @@ defaults only. The CLI owns schemas, hashing, stage admission, mechanical
 evaluation, lifecycle reservations, other-family reviewer isolation, and
 semantic audit verification; the configured native Codex, Claude, WorkBuddy,
 or CodeBuddy host remains the scientific producer.
+
+Large evidence sets use the CLI's optional pre-freeze role forecast and bounded
+atomic decomposition/atom batches. File-size preflight distinguishes an
+artifact ceiling from aggregate output limits. Prepared scientific reviews use
+the configured isolated transport through an explicit cost-confirmed execution
+command; recovery reuses exact discovery/artifact bytes in a reviewed successor.
+These recipes do not duplicate schema evaluators or add per-record verification
+loops to the Skill.
 
 `tiangong-auto-research-workbuddy` is a thin sandboxed-IDE adapter. It routes
 WorkBuddy/CodeBuddy native producer tasks back to the canonical orchestrator and

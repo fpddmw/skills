@@ -324,8 +324,11 @@ full-text/date states from the frozen chain. Pass its exact, external JSON canar
 `--canary-artifacts`; an unbound digest or invented source ID is a mechanical
 failure. Reviewer prose cannot override these failures.
 
-Proceed only when doctor reports ready. Discovery uses only locked broker
-capabilities; later stages are tool-free. Doctor, preflight, dependency,
+Proceed only when doctor reports ready. Discovery uses only locked broker or
+native data evidence capabilities for formal retrieval. Acquisition uses its
+packet-governed download, parsing, and artifact-registration operations;
+analysis, synthesis, and independent review do not acquire additional evidence.
+Doctor, preflight, dependency,
 provider, and evidence-coverage failures must stop the workflow. Never silently
 downgrade a systematic task to a standalone SCI, report, patent, web, or paper
 operation; only the user may explicitly narrow the request to one isolated

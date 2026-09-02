@@ -13,8 +13,8 @@ checkPaths:
   - README.zh-CN.md
   - .claude-plugin/**
   - "*/SKILL.md"
-lastReviewedAt: 2026-09-01
-lastReviewedCommit: 4e22640981bca2c037dae31f47666400afefab5c
+lastReviewedAt: 2026-09-02
+lastReviewedCommit: 5ba8988d13cdf3f2674fbbcd182e4b15c9e2e3fe
 ---
 
 # Tiangong AI Skills
@@ -195,6 +195,12 @@ tag, or a range. After apply creates `runtime-lock.json`, the installed
 orchestrator's bundled resolver runs exactly that locked version for all
 workspace operations.
 
+For acquisition-heavy work, the orchestrator uses the CLI's read-only artifact
+size and role-coverage forecasts, bounded atomic content batches, and explicit
+prepared scientific-review execution. Recovery reuses verified discovery and
+downloaded artifacts in a reviewed successor; it never edits frozen history or
+silently changes scientific requirements to make a gate pass.
+
 The orchestrator gates a research question before setup or any tool call. A
 request that presupposes its conclusion or excludes contrary evidence is
 paused with one testable rewrite and resumes only after explicit user
@@ -235,9 +241,9 @@ Before discovery, the current native Codex or Claude host must also provide a
 closed, target-specific scientific design. The CLI validates and freezes the
 design. Frozen model implementations and environment locks must first enter the
 workspace through `research scientific object register`; the Skill never asks
-the user to hand-copy them into `.tiangong-research`. The CLI then enforces independent `research-design`, real-record
-`evidence-construct`, and `pilot-methods` reviews before discovery, acquisition,
-and analysis respectively. After acquisition it also requires exact
+the user to hand-copy them into `.tiangong-research`. The CLI requires independent
+`research-design` review before discovery, then real-record `evidence-construct`
+and `pilot-methods` reviews after acquisition and before analysis. After acquisition it also requires exact
 decomposition records, evidence atoms, a typed-content snapshot, a passing
 inference snapshot, a reproduced analysis, and a mechanically generated
 Claim-Evidence Graph. Publication freeze requires the complete manuscript

@@ -11,6 +11,11 @@ The sequence is a correctness boundary, not merely a preferred writing style.
 Do not analyze while evidence is still mutable, and do not use analysis to
 decide what the evidence ledger claims was retrieved.
 
+Use these recipes through the workspace-locked runtime. If its help does not
+expose a needed command, request the reviewed setup/CLI upgrade rather than
+switching to a floating version or imitating the operation with control-file
+edits.
+
 ## 1. Define the coverage contract
 
 Before spending provider or model budget, describe the question as reviewed
@@ -18,6 +23,12 @@ evidence requirements: dimensions, source types, required capability IDs,
 required discovery scopes, minimum source/full-text/dated counts, and date
 boundaries. `research project preflight` is authoritative for capability,
 context, reservation, and expected-cost gaps.
+
+For scientific evidence roles, a flat `sourceTypeRequirements` array means
+all-of, not alternatives. When scientifically justified, use the CLI schema's
+explicit `allOf`, `anyOf`, and `atLeast` groups; every supplied group must hold.
+Do not add a required type merely because a search capability is available,
+or relabel a source to satisfy a missing type.
 
 Production requires an independent public-internet capability. Add every
 owner-whitelisted database whose contents matter to the question as an exact
@@ -145,7 +156,22 @@ node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
 
 After provisional admission, the native `acquire` stage assesses every source
 exactly once. Use selected external acquisition/document Skills or an explicitly
-authorized browser. For every network file, capture the exact browser Download
+authorized browser. Before a large transfer with a known size, use the offline
+preflight; it reads no file body and does not contact a provider:
+
+```bash
+node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
+  research project evidence artifact preflight --bytes KNOWN_BYTE_COUNT \
+  --workspace /absolute/path/to/workspace --json
+```
+
+The per-artifact limit and aggregate package-output limit are distinct. For a
+local file use `--path /absolute/path/to/exact-file` instead of `--bytes`.
+An oversized file requires a lawful provider-side subset/filter or an explicit
+reviewed size decision, not a blind download, arbitrary chunking, or a skipped
+hash/format check. Size eligibility alone never proves valid file content.
+
+For every network file, capture the exact browser Download
 object or equivalent transport completion, save it to a unique planned staging
 path, and first bind that event through `bindDownload`. A failed or cancelled
 event creates no successful binding and cannot register an artifact. Never scan
@@ -215,6 +241,31 @@ Continue only far enough to decompose everything already acquired and freeze
 the typed-content record; then request the exact access/scope handoff. Never
 report the stopped snapshot as inference-ready.
 
+Use `limitations` for nonblocking qualifications and an intentional outcome
+seal that the current gate permits. `gaps` means unresolved blocking evidence
+deficits; every entry stops inference. Never move a genuine deficit into
+`limitations` just to pass. Later Policy obligations belong in the reviewed
+design's due-gate dispositions, not a second informal to-do list.
+
+Create and register all needed readable derivatives while acquire is active.
+Before final acquisition submission, forecast the proposed audit, especially
+for a top-journal design with role-specific floors:
+
+```bash
+node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
+  research project evidence content forecast PROJECT \
+  --input /absolute/path/to/acquisition-audit.json \
+  --workspace /absolute/path/to/workspace --json
+```
+
+Inspect the exact known source/artifact gaps. A forecast pass means potential
+eligibility, never that atoms, scientific relevance, or an independent review
+already passed. Metadata-only entries cannot stand in for atom-eligible role
+coverage. Run this once per meaningful completed acquisition batch and before
+freezing, not after every small record. Keep acquiring only the explicit gaps
+that remain lawfully actionable; retain an honest stopped audit and hand off
+when the necessary evidence is unavailable.
+
 ## 5. Freeze, then infer
 
 Successful acquisition creates `outputs/evidence-snapshot.json` plus an
@@ -225,10 +276,10 @@ and parent/delta lineage. File existence is not readiness; inspect the semantic
 hash and gate through `research status --json`.
 
 Before any evidence-construct assessment or analysis, disposition every
-acquired full-text/data artifact. Use the installed document/PDF/spreadsheet
-tools to create legitimate producer-readable derivatives, register each exact
-derived artifact with its parent, and record one decomposition object per
-source artifact:
+acquired full-text/data artifact. Readable derivatives must already have been
+registered during acquire and selected in its audit. After acquisition freezes,
+record one decomposition object per source artifact; do not try to register new
+files into the closed acquisition window:
 
 ```bash
 node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
@@ -257,7 +308,32 @@ node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
 ```
 
 Do not paste an invented excerpt or cite only a source-level ID when an exact
-atom is required. Freeze the typed universe only after all acquired artifacts
+atom is required. For many records prefer the bounded atomic batch commands;
+the CLI validates a shared snapshot/artifact view once instead of reloading it
+for every record. Use the CLI-owned record schemas inside a
+`{"schemaVersion":1,"records":[...]}` envelope and the limits returned by help:
+
+Inspect `research schema show evidence-atom-batch --json` or
+`research schema show artifact-decomposition-batch --json` through the same
+locked resolver. The corresponding single-record schema names are
+`evidence-atom` and `artifact-decomposition`. These schemas describe record
+shape; real artifact, stage, lineage, and locator checks still run at admission.
+
+```bash
+node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
+  research project evidence decomposition batch PROJECT \
+  --record /absolute/path/to/decomposition-batch.json \
+  --workspace /absolute/path/to/workspace --json
+node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
+  research project evidence atom batch PROJECT \
+  --record /absolute/path/to/atom-batch.json \
+  --workspace /absolute/path/to/workspace --json
+```
+
+One invalid item commits none of that batch. Correct that item and replay the
+batch; an identical committed batch is idempotent. Single-record commands remain
+appropriate for one-off additions. Do not launch a second validation loop per
+item after a successful batch. Freeze the typed universe only after all acquired artifacts
 have dispositions and all material claims have atoms:
 
 ```bash
@@ -296,6 +372,15 @@ closure re-verifies all hashes and refuses a missing, changed, or stale
 snapshot, graph, packet, context, receipt, artifact, or source.
 
 ## 6. Refresh through an addendum
+
+If acquire already completed but missing readable artifacts were discovered
+before analysis, use the recovery fork in
+[scientific-design.md](scientific-design.md). `--resume-through discover`
+reuses verified discovery and acquired files while reopening acquire in an
+explicit successor. It does not redo paid search or downloads for unchanged
+bytes. New top-journal Policy/design approval is still required; a content stop
+does not authorize editing old snapshots or repeatedly retrying a complete
+package.
 
 Never mutate a closed project. When material new evidence exists, create a new
 addendum project:
