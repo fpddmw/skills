@@ -20,6 +20,12 @@ node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
 producer stage. It is not an error and must not trigger a nested `codex exec` or
 `claude -p` call.
 
+`scientific-review-required`, `scientific-revision-required`, and
+`scientific-stopped` are different actions. Inspect the named gate and its
+`recommendedAction`; do not loop on `research run` or prepare a producer stage
+that a due scientific gate prohibits. A future gate does not prevent an
+earlier allowed discover/acquire package.
+
 For a top-journal project, `research status` can instead return a pending
 `research-design`, `evidence-construct`, or `pilot-methods` gate. Complete that
 gate before preparing a native stage. The current native host writes the
@@ -29,8 +35,8 @@ fresh independent review. See [scientific-design.md](scientific-design.md).
 The ordering is deliberate:
 
 ```text
-design review → discover → acquire and freeze evidence
-→ decompose acquired content → register atoms → freeze typed content
+design review → discover → acquire, register readable derivatives, forecast
+→ freeze acquisition → record decompositions/atoms in batches → freeze typed content
 → real-record construct review → outcome-blind methods pilot review
 → freeze inference → analyze → freeze Claim-Evidence Graph → synthesize
 ```
@@ -48,6 +54,10 @@ locks are permitted only until their declared gate and only when an exact
 planned Policy rule owns them. They are not usable results. Freeze replacements
 through a new authoritative generation before the deadline; at the due gate the
 CLI must stop on the corresponding mechanical error.
+
+The same early obligation list includes ordinary planned Policy rules, not just
+model and uncertainty objects. Plan any required successor before its due gate;
+an assessment cannot silently resolve or rewrite the frozen design.
 
 For `evidence-construct`, write one or more bounded JSON canary artifacts outside
 `.tiangong-research`. Put their exact SHA-256 values in the assessment and pass
@@ -144,6 +154,12 @@ content freeze`. Do not leave acquired PDFs, spreadsheets, archives, or
 structured files as unexamined binary attachments. `research status` must show
 the typed content as verified; a stopped content/acquisition gate requires a
 scope/access handoff rather than analysis.
+
+Use the artifact byte preflight and acquisition forecast described in
+[evidence-pipeline.md](evidence-pipeline.md) before final submission. Register
+readable derivatives during the active acquire stage; only decomposition/atom
+records are added after that snapshot freezes. Prefer batch registration when
+there are many records, without repeating full verification for each item.
 
 ## Submit producer output
 

@@ -49,6 +49,41 @@ const sandboxedIdeReference = await readFile(
   join(skillsRoot, "tiangong-auto-research", "references", "sandboxed-ide.md"),
   "utf8",
 );
+const scientificDesignReference = await readFile(
+  join(skillsRoot, "tiangong-auto-research", "references", "scientific-design.md"),
+  "utf8",
+);
+const nativeExecutionReference = await readFile(
+  join(skillsRoot, "tiangong-auto-research", "references", "native-execution.md"),
+  "utf8",
+);
+
+// Test the installed command recipes and their ordering, not a second runtime
+// implementation. Behavioral decisions are evaluated independently before release.
+function researchRecipes(reference) {
+  return [...reference.matchAll(/```bash\n([\s\S]*?)```/g)].flatMap((match) =>
+    match[1].replace(/\\\n\s*/g, " ").split("\n")
+      .filter((line) => line.startsWith('node "$AUTO_RESEARCH_CLI"'))
+      .map((line) => line.slice(line.indexOf(" -- ") + 4).trim()),
+  );
+}
+const evidenceRecipes = researchRecipes(evidencePipelineReference);
+const forecastRecipe = evidenceRecipes.findIndex((line) => line.startsWith("research project evidence content forecast "));
+const freezeRecipe = evidenceRecipes.findIndex((line) => line.startsWith("research project evidence content freeze "));
+assert.ok(forecastRecipe >= 0 && forecastRecipe < freezeRecipe,
+  "The installed acquisition recipe must forecast before the immutable typed-content boundary");
+for (const prefix of [
+  "research project evidence artifact preflight ",
+  "research project evidence decomposition batch ",
+  "research project evidence atom batch ",
+]) assert.ok(evidenceRecipes.some((line) => line.startsWith(prefix)), `Missing public efficient recipe: ${prefix}`);
+const scientificRecipes = researchRecipes(scientificDesignReference);
+assert.ok(scientificRecipes.some((line) => line.startsWith("research project scientific review execute ") && line.includes("--confirm-review-cost")),
+  "The installed scientific-review recipe must use explicit isolated execution with cost consent");
+assert.ok(scientificRecipes.some((line) => line.startsWith("research project fork ") && line.includes("--resume-through discover")),
+  "Acquisition recovery must preserve discovery through the supported fork boundary");
+assert.match(nativeExecutionReference, /scientific-stopped/u,
+  "Native routing must distinguish stopped scientific work from a producer action");
 
 const questionGateHeading = "## Gate the research question before acting";
 const questionGateIndex = autoResearchSkill.indexOf(questionGateHeading);
@@ -102,6 +137,8 @@ for (const marker of [
 }
 
 const managedDataGuidance = `${autoResearchSkill}\n${evidencePipelineReference}`;
+assert.doesNotMatch(autoResearchSkill, /later stages are tool-free/u,
+  "Acquisition must retain packet-governed download/parsing operations after discovery");
 assert.match(
   managedDataGuidance,
   /node "\$AUTO_RESEARCH_CLI"[\s\S]*?--[\s\\\n]+data describe <capability-id> --json/,

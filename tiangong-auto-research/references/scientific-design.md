@@ -158,6 +158,12 @@ error code, exact due gate, object IDs, and owning Policy rule IDs. At the due
 gate the same condition becomes a blocking mechanical error unless a new
 authoritative generation freezes replacement objects.
 
+This list also exposes ordinary `planned` Policy rules with their exact due
+gate. A rule deferred to evidence-construct is not already discharged because
+research-design passed. Resolve it in a reviewed successor before its deadline
+when new design content is required. Do not mark it satisfied with an invented
+assessment or wait until a frozen acquisition makes an avoidable gap costly.
+
 ## Three early scientific gates
 
 `research status` returns the next gate and a safe command. Do not prepare a
@@ -209,10 +215,25 @@ node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
   research schema show scientific-review-research-design --json
 
 node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
-  research project scientific review submit PROJECT \
-  --role research-design --review /absolute/path/to/review.json \
+  research project scientific review execute PROJECT \
+  --role research-design --confirm-review-cost \
   --workspace /absolute/path/to/workspace --json
 ```
+
+Obtain user approval for the bounded reviewer cost before adding
+`--confirm-review-cost`. Execution uses the configured `native-direct` or
+`sandbox-bridge` transport, validates the prepared packet, and records a
+sanitized execution receipt before mechanical submission. It never starts a
+nested producer. Inspect `research reviewer status` for that configured
+transport; a native-direct workspace does not need a bridge sidecar.
+
+An already saved successful execution can be replayed without another model
+call. A failed attempt requires inspection and explicit `--retry` after the
+cause is corrected; do not blindly repeat it. A mechanically nonpassing packet
+can receive an independent stop/handoff verdict, but reviewer prose cannot
+upgrade its evidence. The manual `scientific review submit --review` path
+remains available for an independently produced, exactly bound review; never
+fabricate reviewer output in the producer session.
 
 Repeat with `evidence-construct`, adding
 `--canary-artifacts /absolute/path/to/canary-paths.json`, and then with
@@ -253,6 +274,28 @@ generation starts at the applicable pending gates; a later ready package cannot
 bypass an earlier gate. The source becomes explicitly superseded, the default
 status shows only the authoritative descendant, and `--all` remains the history
 view.
+
+For an acquisition-only correction before analysis, preserve discovery and
+verified acquired artifacts instead of repeating search and download:
+
+```bash
+node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
+  research project fork OLD --to NEW --resume-through discover \
+  --design /absolute/path/to/new-scientific-design.json \
+  --design-producer-agent codex \
+  --design-producer-session FRESH_NATIVE_SESSION \
+  --workspace /absolute/path/to/workspace --json
+```
+
+First approve the target-specific Policy and design as required for every
+top-journal successor. The fork retains source download provenance and exact
+artifact bytes, reopens acquire, and keeps old snapshots/reviews immutable.
+Use the successor's status and artifact IDs to select unchanged files in its
+new acquisition audit, then obtain only the missing lawful evidence. Rerun
+typed-content and scientific reviews for that successor; inherited evidence is
+not inherited scientific approval. For an evidence-report project without a
+scientific design, omit the design options. Neither path is an in-place edit of
+the old generation.
 
 Freezing previously pending uncertainty values, executable model bytes, or an
 exact environment lock is a material design change. Create the successor before
