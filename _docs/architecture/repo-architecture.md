@@ -148,3 +148,13 @@ account-security semantics.
 - Consumers install skills into project or user agent directories.
 - Marketplace metadata influences discovery and install ordering for the subset
   it lists.
+
+## User Feedback
+
+`CONTRIBUTING.md` and `.github/ISSUE_TEMPLATE/**` expose the shared workspace
+reporting contract. The canonical Auto Research Skill routes feedback before
+research setup or scientific-question gating and includes complete offline
+Markdown templates in `references/issue-reporting.md`. The WorkBuddy adapter
+uses that same route, including when setup is absent. Form labels and agent
+headings stay aligned; reporting gathers existing evidence without running
+research or implicitly submitting externally.

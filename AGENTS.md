@@ -85,3 +85,9 @@ For new or modified skills, load
 `~/.codex/skills/.system/skill-creator/SKILL.md` when `CODEX_HOME` is unset.
 Use that skill's scripts by path: `scripts/init_skill.py`,
 `scripts/generate_openai_yaml.py`, and `scripts/quick_validate.py <skill-path>`.
+
+## User Feedback
+
+Read `CONTRIBUTING.md` when changing reporting forms or assisting a reporter.
+The installed Auto Research reporting reference and GitHub form core fields
+must agree; reporting does not require research setup or paid diagnostics.

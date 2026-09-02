@@ -1,4 +1,4 @@
 interface:
   display_name: "Tiangong Auto Research"
-  short_description: "Run native top-journal research with audited gates"
+  short_description: "Run native research or prepare a structured issue report"
   default_prompt: "Use $tiangong-auto-research to author this study's scientific design and execute it in the current native host, pass independent scientific and final publication reviews, and export a verified portable audit bundle."

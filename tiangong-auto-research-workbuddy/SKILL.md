@@ -5,7 +5,11 @@ description: Adapt a managed Tiangong Auto Research workflow to a native WorkBud
 
 # Tiangong Auto Research for WorkBuddy
 
-Use this adapter only inside a user-selected managed Auto Research workspace.
+For feedback or Issue requests, load the sibling `tiangong-auto-research/SKILL.md`
+and follow its reporting route before workspace inspection. Its installed
+`references/issue-reporting.md` supplies the common templates and reporting rules.
+
+Use the research workflow below only inside a user-selected managed Auto Research workspace.
 Inspect the exact workspace context first. If setup is absent, use the canonical
 Skill's setup reference; do not copy control files or invent a workspace.
 

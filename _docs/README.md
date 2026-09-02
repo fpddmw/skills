@@ -42,3 +42,8 @@ This directory contains the repo-local source documents governed by docpact.
 - `_docs/runbooks/atomic-data-skill-migration.md`: candidate inventory, staged
   migration, cross-repo PR order, and acceptance gates for data Skills.
 - `_docs/standards/documentation-standards.md`: repo-local documentation rules.
+
+## User Feedback
+
+- [Contribution guide](../CONTRIBUTING.md)
+- [Installed Auto Research reporting workflow](../tiangong-auto-research/references/issue-reporting.md)

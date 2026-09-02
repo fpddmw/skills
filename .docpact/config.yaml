@@ -8,6 +8,12 @@ repo:
 
 routing:
   intents:
+    issue-reporting:
+      paths:
+        - CONTRIBUTING.md
+        - .github/ISSUE_TEMPLATE/**
+        - tiangong-auto-research/references/issue-reporting.md
+        - scripts/tests/issue-reporting.test.mjs
     governance:
       paths:
         - AGENTS.md
@@ -43,6 +49,8 @@ routing:
 
 coverage:
   include:
+    - CONTRIBUTING.md
+    - .github/ISSUE_TEMPLATE/**
     - AGENTS.md
     - README.md
     - README.zh-CN.md
@@ -73,6 +81,7 @@ coverage:
 
 docInventory:
   include:
+    - CONTRIBUTING.md
     - AGENTS.md
     - README.md
     - README.zh-CN.md
@@ -214,3 +223,28 @@ rules:
       - path: _docs/runbooks/development.md
         mode: review_or_update
     reason: Data Skills must remain thin semantic consumers of the CLI-owned TypeScript runtime and machine contract.
+
+  - id: skills-issue-reporting
+    scope: repo
+    repo: skills
+    triggers:
+      - path: CONTRIBUTING.md
+        kind: contributor-guide
+      - path: .github/ISSUE_TEMPLATE/**
+        kind: user-feedback-form
+      - path: tiangong-auto-research/references/issue-reporting.md
+        kind: installed-feedback-workflow
+      - path: scripts/tests/issue-reporting.test.mjs
+        kind: feedback-contract-test
+    requiredDocs:
+      - path: CONTRIBUTING.md
+        mode: review_or_update
+      - path: README.md
+        mode: review_or_update
+      - path: README.zh-CN.md
+        mode: review_or_update
+      - path: _docs/architecture/repo-architecture.md
+        mode: review_or_update
+      - path: _docs/runbooks/development.md
+        mode: review_or_update
+    reason: GitHub forms and installed agent reports must share the reporting contract and remain discoverable.
