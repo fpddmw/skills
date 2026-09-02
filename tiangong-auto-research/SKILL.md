@@ -89,6 +89,10 @@ detailed stop and recovery rules.
   agent authentication, provider checks, or wrappers.
 - Read [references/production-research.md](references/production-research.md)
   before production preflight, execution, recovery, or closure.
+- Read [references/execution-assurance.md](references/execution-assurance.md)
+  before original-task intake, pre-analysis evidence correction, scope changes,
+  or completion reporting. Prefer the supported same-project revision for an
+  unchanged study; preserve original/current task completion separately.
 - Read [references/evidence-pipeline.md](references/evidence-pipeline.md) before
   discovery, acquisition, evidence refresh, or an addendum.
 - Read [references/evidence-exhaustion.md](references/evidence-exhaustion.md)
@@ -285,6 +289,13 @@ initialization. For an explicitly selected evidence-report goal, omit the
 top-journal Policy/design options; do not silently downgrade a requested
 top-journal study to make admission pass.
 
+For a new project on a compatible locked runtime, register the original-task
+checklist immediately after init and before the first review or producer stage,
+following [execution-assurance.md](references/execution-assurance.md). Use a few
+meaningful user requirements and existing design/coverage IDs, not a duplicate
+workflow or one requirement per tool call. Never invent historical acceptance
+for a project that lacks those records.
+
 ## Validate, run, and recover
 
 Production requires explicit models/prices, different producer and reviewer
@@ -320,6 +331,11 @@ generated Claim-Evidence Graph, and synthesize. Only after that may
 mechanical closure. Follow
 [references/native-execution.md](references/native-execution.md) for the exact
 commands and recovery rules.
+
+At idle stage boundaries, record the checks actually performed against each
+current requirement before launching the existing independent review. Preserve
+failed, not-run and inconclusive outcomes; a supported negative finding is not
+automatically a failure. Check hashes identify bytes, not successful execution.
 
 For a top-journal project, `research status` may require `research-design`,
 `evidence-construct`, or `pilot-methods` review before it exposes the next
@@ -366,6 +382,9 @@ journal-editor reviews, then mechanically close the publication generation.
 Any Policy, manuscript, or submission-file change invalidates downstream
 approval/review. Return
 only the CLI-computed bounded readiness language; never promise acceptance.
+Report workflow status, publication verdict, `task.originalScope` and
+`task.currentScope` separately. A closed workflow or narrower completed scope
+does not answer withdrawn or unresolved original requirements.
 Export and independently verify a portable project audit bundle before external
 handoff or archival; it must contain the formal evidence bytes and review
 objects, not merely receipts or local-path references.

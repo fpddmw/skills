@@ -13,8 +13,8 @@ checkPaths:
   - README.md
   - .claude-plugin/**
   - "*/SKILL.md"
-lastReviewedAt: 2026-09-02
-lastReviewedCommit: 5ba8988d13cdf3f2674fbbcd182e4b15c9e2e3fe
+lastReviewedAt: 2026-09-03
+lastReviewedCommit: 4041b5da5335fcca3015b45c06ad767b79a884f6
 ---
 
 # 天工 AI Skills
@@ -185,8 +185,12 @@ apply 创建 `runtime-lock.json` 后，已安装 orchestrator 的内置 resolver
 所有 workspace 操作只运行该锁定版本。
 
 资料较多时，orchestrator 使用 CLI 的只读文件大小预检、角色覆盖预测、有界原子
-批量登记与显式科学评审执行。恢复时在经审阅的后继项目中复用已验证的 discovery
-和下载文件，不修改冻结历史，也不为通过门禁而偷偷降低科学要求。
+批量登记与显式科学评审执行。兼容的锁定 CLI 支持在分析前于同一项目修订获取结果，
+仅在需要新来源时显式重开 discovery，并复用已有回执和文件；设计变化或分析后的
+修订仍走正式后继流程。原始要求、当前批准范围、原生宿主检查、独立评审和可移植
+审计保持关联，不增加固定付费评审轮次；流程闭环与任务完成分别汇报。详见
+`tiangong-auto-research/references/execution-assurance.md`。不修改冻结历史，也不为
+通过门禁而偷偷降低科学要求。
 
 orchestrator 会在 setup 或任何工具调用之前先检查研究问题。预设结论或排除反证的
 请求会被暂停，并给出一个可检验的改写版本；只有用户明确确认后才继续。争议性主题和

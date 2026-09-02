@@ -13,8 +13,8 @@ checkPaths:
   - README.zh-CN.md
   - .claude-plugin/**
   - "*/SKILL.md"
-lastReviewedAt: 2026-09-02
-lastReviewedCommit: 5ba8988d13cdf3f2674fbbcd182e4b15c9e2e3fe
+lastReviewedAt: 2026-09-03
+lastReviewedCommit: 4041b5da5335fcca3015b45c06ad767b79a884f6
 ---
 
 # Tiangong AI Skills
@@ -206,8 +206,14 @@ workspace operations.
 For acquisition-heavy work, the orchestrator uses the CLI's read-only artifact
 size and role-coverage forecasts, bounded atomic content batches, and explicit
 prepared scientific-review execution. Recovery reuses verified discovery and
-downloaded artifacts in a reviewed successor; it never edits frozen history or
-silently changes scientific requirements to make a gate pass.
+downloaded artifacts. A compatible locked runtime can revise acquisition in the
+same project before analysis, explicitly reopening discovery only for new sources;
+design changes and later revisions retain the formal successor workflow. Original
+and currently approved task requirements, native check records, independent review
+and portable audit stay linked without extra fixed reviewer rounds. Workflow
+closure is reported separately from task completion. See
+`tiangong-auto-research/references/execution-assurance.md`; frozen history and
+scientific requirements are never silently rewritten to make a gate pass.
 
 The orchestrator gates a research question before setup or any tool call. A
 request that presupposes its conclusion or excludes contrary evidence is

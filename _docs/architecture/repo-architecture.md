@@ -13,8 +13,8 @@ checkPaths:
   - README.zh-CN.md
   - .claude-plugin/**
   - "*/SKILL.md"
-lastReviewedAt: 2026-09-02
-lastReviewedCommit: 5ba8988d13cdf3f2674fbbcd182e4b15c9e2e3fe
+lastReviewedAt: 2026-09-03
+lastReviewedCommit: 4041b5da5335fcca3015b45c06ad767b79a884f6
 ---
 
 # Skills Repository Architecture
@@ -93,6 +93,14 @@ the configured isolated transport through an explicit cost-confirmed execution
 command; recovery reuses exact discovery/artifact bytes in a reviewed successor.
 These recipes do not duplicate schema evaluators or add per-record verification
 loops to the Skill.
+
+`references/execution-assurance.md` routes the canonical orchestrator through
+CLI-owned original/current task contracts, exact scope confirmation, native
+check intake, pre-analysis same-project evidence revision and task-aware
+review/audit. Compatible runtimes may explicitly reopen discovery for new
+sources without changing project identity. The Skill reports task coverage
+separately from workflow/publication status and keeps all producer work native;
+it neither implements a second state machine nor adds fixed paid reviewer rounds.
 
 `tiangong-auto-research-workbuddy` is a thin sandboxed-IDE adapter. It routes
 WorkBuddy/CodeBuddy native producer tasks back to the canonical orchestrator and
