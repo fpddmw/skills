@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
+import { spawnSync } from "node:child_process";
+import { chmod, cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { delimiter, dirname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const skillsRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -317,6 +319,59 @@ const fixtures = [
 ];
 for (const [prompt, managed, expected] of fixtures) {
   assert.equal(expectedRoute(prompt, managed), expected, prompt);
+}
+
+// Execute the installed recipes against a capture-only Node stand-in. This
+// validates portable argv and consent binding, not model reasoning or CLI state.
+const recipeFixture = await mkdtemp(join(tmpdir(), "research-task-recipes-"));
+try {
+  const installed = join(recipeFixture, "installed-skill");
+  await cp(join(skillsRoot, "tiangong-auto-research"), installed, { recursive: true });
+  const referencePath = join(installed, "references", "execution-assurance.md");
+  const reference = await readFile(referencePath, "utf8");
+  const installedEntry = await readFile(join(installed, "SKILL.md"), "utf8");
+  assert.ok(installedEntry.includes("references/execution-assurance.md"),
+    "The execution-assurance workflow must be discoverable from the installed Skill");
+  for (const [, href] of reference.matchAll(/\[[^\]]+\]\(([^)#]+\.md)(?:#[^)]*)?\)/g)) {
+    const target = resolve(dirname(referencePath), href);
+    assert.ok(target.startsWith(installed + sep), "Reference must not escape the installed Skill");
+    await readFile(target);
+  }
+  const bin = join(recipeFixture, "bin");
+  await mkdir(bin);
+  const trace = join(recipeFixture, "argv.jsonl");
+  const standIn = join(bin, "node");
+  await writeFile(standIn, `#!${process.execPath}\nconst fs = require("node:fs");\nfs.appendFileSync(process.env.TASK_RECIPE_TRACE, JSON.stringify(process.argv.slice(2)) + "\\n");\n`);
+  await chmod(standIn, 0o700);
+  const resolver = join(installed, "scripts", "research_cli.mjs");
+  const recipes = [...reference.matchAll(/```bash\n([\s\S]*?)```/g)].flatMap((match) =>
+    match[1].replace(/\\\n\s*/g, " ").split("\n").map((line) => line.trim()).filter((line) => line && !line.startsWith("#")));
+  assert.ok(recipes.length > 0, "The workflow needs executable command examples");
+  for (const line of recipes) {
+    assert.ok(line.startsWith('node "$AUTO_RESEARCH_CLI" '), "Recipes must use the installed locked resolver");
+    assert.ok(!/[`;|&<>]/.test(line) && !line.includes("$("), "Recipe must be a single bounded argv invocation");
+    const run = spawnSync("sh", ["-eu", "-c", line], {encoding: "utf8", cwd: recipeFixture,
+      env: {...process.env, PATH: bin + delimiter + process.env.PATH, AUTO_RESEARCH_CLI: resolver, TASK_RECIPE_TRACE: trace}});
+    assert.equal(run.status, 0, run.stderr);
+  }
+  const invocations = (await readFile(trace, "utf8")).trim().split("\n").map(JSON.parse);
+  for (const argv of invocations) {
+    assert.equal(argv[0], resolver);
+    assert.equal(argv[argv.indexOf("--workspace") + 1], argv[argv.lastIndexOf("--workspace") + 1]);
+  }
+  const commands = invocations.map((argv) => argv.slice(argv.indexOf("--") + 1));
+  for (const prefix of [
+    ["research", "project", "task", "define"],
+    ["research", "project", "task", "status"],
+    ["research", "project", "task", "scope", "propose"],
+    ["research", "project", "task", "scope", "approve"],
+    ["research", "project", "task", "acceptance", "record"],
+    ["research", "project", "evidence", "acquisition", "revise"],
+  ]) assert.ok(commands.some((argv) => prefix.every((part, index) => argv[index] === part)), `Missing executable recipe: ${prefix.join(" ")}`);
+  const approval = commands.find((argv) => argv.includes("scope") && argv.includes("approve"));
+  assert.equal(approval[approval.indexOf("--proposal") + 1], approval[approval.indexOf("--confirm-change") + 1]);
+} finally {
+  await rm(recipeFixture, { recursive: true, force: true });
 }
 
 process.stdout.write("Auto Research routing contract tests passed\n");
