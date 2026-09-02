@@ -256,7 +256,12 @@ packet-file digest. Do not interchange those two hash meanings.
 
 ## Scope change and authoritative generations
 
-Never edit a frozen design or old project in place. A top-journal fork or
+Never edit frozen bytes by hand. The CLI's bounded pre-analysis acquisition and
+task-scope revisions are described in
+[execution-assurance.md](execution-assurance.md); they do not rewrite the
+scientific design. An actual design change still requires a new generation.
+Explain and obtain exact authorization for changed task requirements; a generic
+continue/fork instruction is not that authorization. A top-journal fork or
 addendum requires an approved Policy and scientific design whose `projectId`
 matches the new target generation, plus a fresh native producer session:
 
@@ -275,8 +280,11 @@ bypass an earlier gate. The source becomes explicitly superseded, the default
 status shows only the authoritative descendant, and `--all` remains the history
 view.
 
-For an acquisition-only correction before analysis, preserve discovery and
-verified acquired artifacts instead of repeating search and download:
+Prefer the supported same-project acquisition revision before analysis when
+the study is unchanged. It preserves the existing research-design approval and
+reopens only the explicitly selected evidence stages. The following fork is the
+fallback when that revision is unavailable or a new generation is required;
+it preserves discovery and files rather than repeating search and download:
 
 ```bash
 node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
@@ -332,3 +340,8 @@ capsules, and unrelated files. Export refuses an existing/symlink destination,
 host-specific workspace paths, sensitive text, missing evidence bytes, semantic
 drift, or any hash drift. Verification rejects every extra, missing, or changed
 byte; it never scans a Downloads directory or substitutes a newer file.
+With task tracking configured, `researchChain.task` binds the task history and
+check context. Verification checks the original/current requirements,
+authorization/check references, current dependencies and bound review as well
+as bytes. It remains a portable integrity/relationship check, not independent
+proof that a human approved the scope or that a computation actually ran.

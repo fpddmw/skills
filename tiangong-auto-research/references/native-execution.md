@@ -8,6 +8,11 @@ other agent family only for independent review, and closes mechanically.
 
 ## Identify the next action
 
+For a new project, record its original task before this first execution boundary.
+For recovery or scope changes, read
+[execution-assurance.md](execution-assurance.md). The returned task context is
+part of the native-stage binding; do not rewrite it while a session is active.
+
 Run the control plane after project initialization:
 
 ```bash
@@ -160,6 +165,10 @@ Use the artifact byte preflight and acquisition forecast described in
 readable derivatives during the active acquire stage; only decomposition/atom
 records are added after that snapshot freezes. Prefer batch registration when
 there are many records, without repeating full verification for each item.
+For a missing derivative after acquire completed, prefer the compatible CLI's
+same-project revision before analysis. A new source requires explicit discovery
+reopening and formal admission, not a direct edit to acquisition JSON. Preserve
+unchanged files/receipts and inspect the resulting current snapshot.
 
 ## Submit producer output
 
@@ -211,6 +220,13 @@ Claim-Evidence Graph. The same run command may then launch only the configured
 independent reviewer CLI and, after a passing review, perform mechanical
 closure.
 
+Before the run that may launch review, record an honest check/disposition for
+every current task requirement at an idle boundary. Computational work remains
+in this native host; the CLI records exact result/evidence bindings without
+self-certifying execution. Follow
+[execution-assurance.md](execution-assurance.md); do not add a separate paid
+reviewer round or treat a missing check as a reason to repeat the research.
+
 For a top-journal project, this is the base research closure, not the final
 publication verdict. Continue in the same current native host to author and
 freeze the manuscript, then use four fresh independent publication-review
@@ -237,3 +253,5 @@ Before an external handoff or archival milestone, export and verify the project
 audit bundle described in [scientific-design.md](scientific-design.md). A local
 manifest or receipt hash without the referenced evidence bytes is not a
 portable audit package.
+Read the task completion fields as well as workflow status. `status=complete`
+for the workflow can coexist with inconclusive or withdrawn task requirements.

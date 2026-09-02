@@ -52,7 +52,8 @@ runaway guard, never a quota:
 1. Exercise required first-pass capabilities.
 2. Use broad, high-yield queries across distinct selected channels.
 3. Inspect registered candidate IDs and coverage after each batch.
-4. Stop early when the reviewed minimums are supportable.
+4. End the broad first pass when reviewed coverage is supportable; minimum
+   counts alone do not establish task completion or scientific adequacy.
 5. Spend the remaining calls only on explicit gaps, counterevidence, missing
    dates, missing source types, applicability limits, or full-text candidates.
 
@@ -265,6 +266,9 @@ coverage. Run this once per meaningful completed acquisition batch and before
 freezing, not after every small record. Keep acquiring only the explicit gaps
 that remain lawfully actionable; retain an honest stopped audit and hand off
 when the necessary evidence is unavailable.
+The `submissionGate` distinguishes known submit blockers, such as an accepted
+binary input without readable content, from potential eligibility. Keep honest
+limited/stopped audits separate from permission to infer.
 
 ## 5. Freeze, then infer
 
@@ -373,14 +377,20 @@ snapshot, graph, packet, context, receipt, artifact, or source.
 
 ## 6. Refresh through an addendum
 
-If acquire already completed but missing readable artifacts were discovered
-before analysis, use the recovery fork in
-[scientific-design.md](scientific-design.md). `--resume-through discover`
-reuses verified discovery and acquired files while reopening acquire in an
-explicit successor. It does not redo paid search or downloads for unchanged
-bytes. New top-journal Policy/design approval is still required; a content stop
-does not authorize editing old snapshots or repeatedly retrying a complete
-package.
+If acquire completed but analysis has not started, first use
+[execution-assurance.md](execution-assurance.md) to choose the supported
+same-project revision. An acquisition-only correction preserves the approved
+research design while invalidating its dependent post-acquisition reviews.
+Use explicit `--include-discovery` only when a new source needs formal admission;
+reuse prior receipts and files, and do not reset the budget or repeat unchanged
+queries. Rebuild the current typed-content view; older failed decompositions
+and deselected atoms remain historical, not current evidence.
+
+When the locked runtime or snapshot cannot support that revision, or the design
+changes or analysis has started, use the formal recovery/new-generation route in
+[scientific-design.md](scientific-design.md). `--resume-through discover` can
+reuse verified discovery and files in a successor. Its target-specific
+Policy/design approval remains required. Never hand-edit frozen history.
 
 Never mutate a closed project. When material new evidence exists, create a new
 addendum project:

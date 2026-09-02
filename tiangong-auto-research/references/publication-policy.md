@@ -175,6 +175,11 @@ assessment, submission files, supplements, mechanical result, role, reviewer,
 and schema. Review cannot add evidence. A manuscript or submission-file
 revision creates a new generation and invalidates every old review; a Policy
 change or expiry blocks publication.
+When task tracking is configured, the frozen generation and each existing
+reviewer packet also bind the original request and original/current requirement
+check matrix. Read that context; a native check record is not a certified run.
+Use the existing role's findings for missing task coverage, not an extra fixed
+review round. See [execution-assurance.md](execution-assurance.md).
 
 ## Close and report bounded language
 
@@ -187,6 +192,8 @@ node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
 
 Closure re-verifies every hash and requires all four reviews. Report only the
 returned verdict, bounded statement, limitations, and pivots.
+Report original/current task completion alongside that publication verdict.
+A narrower approved scope does not erase unanswered original requirements.
 `target-journal-submission-ready` means the frozen artifact passed its declared
 gates; it does not predict or guarantee editorial acceptance.
 

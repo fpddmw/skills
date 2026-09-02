@@ -17,8 +17,8 @@ checkPaths:
   - scripts/**
   - .claude-plugin/**
   - "*/SKILL.md"
-lastReviewedAt: 2026-09-02
-lastReviewedCommit: 5ba8988d13cdf3f2674fbbcd182e4b15c9e2e3fe
+lastReviewedAt: 2026-09-03
+lastReviewedCommit: 4041b5da5335fcca3015b45c06ad767b79a884f6
 ---
 
 # Skills Development Runbook
@@ -159,6 +159,14 @@ When changing sandboxed-IDE routing, keep its deterministic markers in
 `tiangong-auto-research/scripts/test-routing-contract.mjs` and require the thin
 adapter, canonical reference, exact structured bridge errors, and no-bypass
 language to pass in the clean container.
+
+Task-assurance recipe tests copy the Skill to an isolated directory and execute
+its single-command shell examples against a capture-only Node stand-in. Check
+resolver paths, argv and exact scope-hash confirmation there; this is not a
+substitute for behavioral evaluation. Evaluate realistic recovery/completion
+decisions independently without supplying the expected answer, and run the
+corresponding protocol against the exact candidate CLI outside the repository.
+Keep native case data, captures and generated research outside Git.
 
 ## README And Marketplace Updates
 
