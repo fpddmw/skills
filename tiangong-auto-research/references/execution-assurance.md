@@ -240,9 +240,13 @@ this channel with general shell/workspace access or a new evidence search.
 Read receipts identify delivered bytes, not comprehension. Actual model capacity,
 permissions and finite runaway token/time/cost controls still apply; report an
 actual limitation honestly. Use rough cost estimates, not a separate billing
-reconciliation workflow. Small changes use fresh Docker plus a mock reviewer;
-major behavior also needs a fresh external native case with a real independent
-reviewer. Keep that real case and its data outside Git.
+reconciliation workflow.
+
+For CLI or Skill implementation changes only, small changes use fresh Docker
+plus a mock reviewer; major behavior also needs a fresh external native case
+with a real independent reviewer. Keep that real case and its data outside Git;
+ordinary research work does not require these development tests. Follow the
+existing research gates for fulfillment, calculations and artifact reads.
 
 ## Review once at the existing gates and report separately
 

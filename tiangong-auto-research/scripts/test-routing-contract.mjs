@@ -332,6 +332,8 @@ try {
   for (const marker of ["requestProvenance", "verbatim", "interpreted", "reconstructed", "unrecorded", "nativeRunSha256", "unverified-execution", "on-demand", "no total context-length"]) {
     assert.ok(reference.includes(marker), `Installed task assurance must explain ${marker}`);
   }
+  assert.match(reference, /For CLI or Skill implementation changes only[\s\S]*?ordinary research work does not require these development tests/u,
+    "Development TDD must not become a prerequisite for ordinary research actions");
   assert.doesNotMatch(scientificDesignReference, /Freezing previously pending[\s\S]*?is a material design change/u,
     "Predeclared pending slots must not automatically require a successor");
   assert.doesNotMatch(nativeExecutionReference, /Freeze replacements\s+through a new authoritative generation/u,
