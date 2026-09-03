@@ -224,7 +224,8 @@ Keep these distinctions exact:
 - `producerContextLevel=full-input`: the registered input itself is available
   through its reviewed input contract.
 - `producerContextLevel=bounded-text-artifact`: a registered UTF-8 text, JSON,
-  CSV, or Markdown derivative is embedded within the context limit. HTML stays
+  CSV, or Markdown derivative is selectively embedded or read through the exact
+  on-demand packet channel. HTML stays
   metadata-only because an error or challenge page must not masquerade as
   acquired full text.
 - `producerContextLevel=metadata-only`: no producer-readable full text was

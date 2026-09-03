@@ -14,7 +14,7 @@ checkPaths:
   - .claude-plugin/**
   - "*/SKILL.md"
 lastReviewedAt: 2026-09-03
-lastReviewedCommit: 4041b5da5335fcca3015b45c06ad767b79a884f6
+lastReviewedCommit: 7b599d395363122825b32792df1938e0f83310d4
 ---
 
 # 天工 AI Skills
@@ -191,6 +191,12 @@ apply 创建 `runtime-lock.json` 后，已安装 orchestrator 的内置 resolver
 审计保持关联，不增加固定付费评审轮次；流程闭环与任务完成分别汇报。详见
 `tiangong-auto-research/references/execution-assurance.md`。不修改冻结历史，也不为
 通过门禁而偷偷降低科学要求。
+
+兼容的锁定 CLI 还支持在原项目追加兑现预声明的待补科学对象，区分原始请求原文、
+解释与重建，并把计算验收绑定到实际原生计算回执。完整工件可经精确绑定的按需读取
+通道访问，不再因人为的总上下文长度门槛而阻断。只有命令自报时仍标为未验证执行；
+文件哈希与读取回执不等于科学结论正确。机器契约与观察器属于 CLI，Skill 不维护
+第二套执行器。
 
 orchestrator 会在 setup 或任何工具调用之前先检查研究问题。预设结论或排除反证的
 请求会被暂停，并给出一个可检验的改写版本；只有用户明确确认后才继续。争议性主题和

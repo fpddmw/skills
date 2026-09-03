@@ -14,7 +14,7 @@ checkPaths:
   - .claude-plugin/**
   - "*/SKILL.md"
 lastReviewedAt: 2026-09-03
-lastReviewedCommit: 4041b5da5335fcca3015b45c06ad767b79a884f6
+lastReviewedCommit: 7b599d395363122825b32792df1938e0f83310d4
 ---
 
 # Tiangong AI Skills
@@ -214,6 +214,13 @@ and portable audit stay linked without extra fixed reviewer rounds. Workflow
 closure is reported separately from task completion. See
 `tiangong-auto-research/references/execution-assurance.md`; frozen history and
 scientific requirements are never silently rewritten to make a gate pass.
+
+Compatible runtimes also fulfill predeclared pending scientific objects in place,
+preserve original-request provenance, and bind computational acceptance to an
+observed ordinary native calculation. Complete packet artifacts are available
+on demand without an arbitrary total context-length gate. A command report alone
+remains unverified execution; file hashes and read receipts do not certify
+scientific validity. These are CLI-owned contracts, not a second Skill executor.
 
 The orchestrator gates a research question before setup or any tool call. A
 request that presupposes its conclusion or excludes contrary evidence is

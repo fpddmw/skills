@@ -56,13 +56,16 @@ package cannot bypass an earlier gate.
 Read `mechanicalAssessment.futureGateObligations` before continuing. Pending
 source-derived parameter values, executable model bytes, and exact environment
 locks are permitted only until their declared gate and only when an exact
-planned Policy rule owns them. They are not usable results. Freeze replacements
-through a new authoritative generation before the deadline; at the due gate the
-CLI must stop on the corresponding mechanical error.
+planned Policy rule owns them. They are not usable results. Use the compatible
+CLI's same-project fulfillment for only those predeclared slots, as described in
+[execution-assurance.md](execution-assurance.md). Different assumptions or
+already-frozen values still need a reviewed successor. At the due gate the CLI
+stops if required objects remain unresolved.
 
 The same early obligation list includes ordinary planned Policy rules, not just
-model and uncertainty objects. Plan any required successor before its due gate;
-an assessment cannot silently resolve or rewrite the frozen design.
+model and uncertainty objects. Plan any genuinely required successor before its
+due gate; an assessment or object-filing receipt cannot silently resolve a
+scientific Policy rule or rewrite the frozen design.
 
 For `evidence-construct`, write one or more bounded JSON canary artifacts outside
 `.tiangong-research`. Put their exact SHA-256 values in the assessment and pass
@@ -94,6 +97,12 @@ journal, evidence store, or admitted outputs.
 Preparation is idempotent while its exact session remains active. If the wrong
 host, stage, model, project state, or hash is observed, stop on the structured
 error.
+
+Compatible packets expose `listArtifacts` and `readArtifact` for exact on-demand
+reads. Initial embedded text is not the whole evidence corpus. Follow the exact
+index and offsets, or request a whole object explicitly; do not drop original
+requirements or counterevidence to fit a historical context threshold. A real
+model-capacity or permission failure remains a limitation, not a passing review.
 
 ## Fetch discovery evidence
 
@@ -222,8 +231,11 @@ closure.
 
 Before the run that may launch review, record an honest check/disposition for
 every current task requirement at an idle boundary. Computational work remains
-in this native host; the CLI records exact result/evidence bindings without
-self-certifying execution. Follow
+in this native host. Use the compatible CLI observer for one explicitly declared
+ordinary calculation, then bind its exact `nativeRunSha256` at acceptance. It
+records process execution and exact inputs/outputs without inventing scientific
+validity or fully attesting the declared environment. Unobserved computational
+claims stay unverified, and failed runs cannot become positive checks. Follow
 [execution-assurance.md](execution-assurance.md); do not add a separate paid
 reviewer round or treat a missing check as a reason to repeat the research.
 

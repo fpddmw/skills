@@ -75,9 +75,12 @@ The sidecar refuses READY until real negative probes prove that its capsule
 cannot read the workspace credential store or an unapproved file and cannot
 write outside the private capsule to the host. Its protocol exposes only
 `execute`, `fingerprint`, and `status`; it has no arbitrary-command action. The
-reviewer invocation disables shell, browser, web, undeclared MCP, Skills, and
-other tools. Provider network remains available only because the authenticated
-reviewer CLI must reach its configured model service.
+reviewer invocation disables general shell, browser, web, undeclared MCP and
+Skills. Compatible review packets allow only `research_list_artifacts` and
+`research_read_artifact` against the exact hash-bound packet directory; doctor
+and formatting repair stay tool-free. The signed result binds this exact tool
+policy and directory. Network access is for the configured model service and,
+when granted, the local packet read channel, not a new evidence-acquisition route.
 
 ## Verify from the IDE
 
@@ -135,7 +138,8 @@ The actionable fail-closed codes are:
 - `RESEARCH_REVIEW_BRIDGE_ATTESTATION_INVALID`: stop; the workspace, request,
   signer, hash, or signature binding is invalid.
 - `RESEARCH_REVIEW_BRIDGE_SANDBOX_POLICY_INVALID`: stop; the platform capsule,
-  negative probes, tool-free policy, or network policy is not the reviewed one.
+  negative probes, declared tool-free policy or packet-read policy, or network
+  policy is not the reviewed one.
 - `RESEARCH_REVIEW_BRIDGE_MODEL_MISMATCH`: stop; use the exact configured
   reviewer family/model and rerun doctor.
 - `RESEARCH_REVIEW_BRIDGE_NONCE_REPLAY`: create one fresh request; never retry
