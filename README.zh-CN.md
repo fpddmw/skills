@@ -214,6 +214,9 @@ data catalog，Auto Research 通过 Research evidence 命令进程内调用同�
 runtime。Skill 不复制 provider adapter，也不维护固定 connector 清单；Research 只在
 不改变核心结果的前提下增加预算、owner-only credential、不可变 receipt/ledger、artifact
 和 review 绑定。
+当结果大于一次 Agent context 时，Auto Research 仍完整保存不可变证据，并提供与 receipt
+绑定的续读游标。需要逐行完整审阅时必须读到游标为空；摘要任务可以提前停止，但必须披露
+已呈现比例。provider 缺口、operation 限制和 Agent context 投影始终分开表达。
 `tiangong-auto-research-workbuddy` 只负责沙箱 IDE 路由，会回到 canonical
 orchestrator 及其签名 reviewer bridge 流程，不维护第二套研究协议。
 创建 PPT 时首选 PPT Master；Anthropic PPTX 仍是兼容的按场景选项，需要时可在

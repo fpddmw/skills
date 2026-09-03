@@ -235,6 +235,23 @@ for (const marker of [
   );
 }
 
+const structuredDataReviewGuidance =
+  `${autoResearchSkill}\n${evidencePipelineReference}\n${nativeExecutionReference}`;
+for (const marker of [
+  "providerCoverage",
+  "limitCoverage",
+  "contextView.nextCursor",
+  "runDataCapability.readArgv",
+  "nextCursor is null",
+  "presented fraction",
+  "does not consume another provider call",
+]) {
+  assert.ok(
+    structuredDataReviewGuidance.includes(marker),
+    `Managed structured-data review must explain ${marker}`,
+  );
+}
+
 for (const marker of [
   "--submission",
   "reporting-checklist",

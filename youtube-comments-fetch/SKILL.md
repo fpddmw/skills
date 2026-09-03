@@ -45,8 +45,10 @@ stop rather than bypassing the CLI.
 - Preserve search terms and ordering when supplied. `searchTerms` filters only
   top-level comment threads; replies expanded through `comments.list` are not
   independently term-filtered.
-- Request replies only when reply text is needed. Reply expansion consumes the
-  shared request budget in addition to top-level thread pages.
+- Choose `replyStrategy` explicitly. Use `top-level-only` when reply text is not
+  needed; use `all-visible` only when the task requires every provider-visible
+  reply within the declared limits. Reply expansion consumes the shared request
+  budget in addition to top-level thread pages.
 - Keep the ID set and page/record limits proportionate to the task. Per-video
   thread-page and per-thread reply-page caps truncate that local scope without
   preventing later videos or threads; operation-wide request/record limits can
@@ -71,7 +73,7 @@ current input schema from `data describe`.
     "startDateTime": "2026-03-01T00:00:00Z",
     "endDateTime": "2026-03-08T00:00:00Z",
     "timeField": "published",
-    "includeReplies": true,
+    "replyStrategy": "all-visible",
     "order": "time",
     "pageSize": 100,
     "maxThreadPagesPerVideo": 10,
@@ -102,6 +104,12 @@ completeness, per-video summaries, failures, warnings, and receipt.
 - Surface comments-disabled or unavailable videos, failed pages, empty results,
   `partial`, truncation, and reply completeness. Never label a bounded result
   exhaustive when those signals disagree.
+- Inspect `requestBudget` and `replyCompleteness` together. When
+  `knownUnexpandedThreadIds` is non-empty, preserve those thread IDs and make a
+  narrower follow-up request if complete reply review matters; otherwise state
+  exactly which visible reply branches were not expanded. `top-level-only` is
+  an intentional selection, not a provider failure and not complete reply
+  coverage.
 - When replies are requested, the CLI paginates `comments.list` instead of
   trusting the provider's incomplete embedded reply sample. A reply whose
   parent or video linkage disagrees with the requested thread is rejected and

@@ -306,11 +306,11 @@ const PILOT_SKILLS = [
         operationId: "fetch-comments",
         inputKeys: [
           "endDateTime",
-          "includeReplies",
           "maxReplyPagesPerThread",
           "maxThreadPagesPerVideo",
           "order",
           "pageSize",
+          "replyStrategy",
           "startDateTime",
           "timeField",
           "videoIds",

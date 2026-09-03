@@ -18,7 +18,7 @@ checkPaths:
   - "*-download/**"
   - tiangong-auto-research/**
 lastReviewedAt: 2026-09-02
-lastReviewedCommit: a8707a1d8c5a276fcb983c212856cdcacbd4b09d
+lastReviewedCommit: 002189f5ce1481423c85ea22b89da843c5dc3a39
 ---
 
 # 原子数据 Skill 目标架构
@@ -139,6 +139,11 @@ Auto Research 已接入同一 CLI 内部数据服务：native discover packet �
 相同核心结果/回执；Research 只额外负责 runtime/manifest binding、owner-only credential
 map、预算、来源/证据准入、永久 evidence/artifact、journal、handoff 和 review。这些状态
 不得回流到薄 Skill；新增 connector/operation 也不要求新增 Auto Research provider 代码。
+大结果的完整 core result 始终进入不可变 evidence store；Agent context 只做有界投影，并
+通过 receipt-bound opaque cursor 从同一对象续读，不重复访问 provider。Auto Research 必须
+分别解释 provider coverage、operation/runtime limit coverage 与 context view coverage：前两者
+决定数据本身是否存在缺口，后者只决定 Agent 当前看到了多少。需要逐行审阅时续读至游标
+为空；允许摘要或自适应停止时必须披露已呈现/总量比例。
 
 ## 原子性与独立性
 

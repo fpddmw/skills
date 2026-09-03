@@ -18,7 +18,7 @@ checkPaths:
   - "*-download/**"
   - tiangong-auto-research/**
 lastReviewedAt: 2026-09-02
-lastReviewedCommit: a8707a1d8c5a276fcb983c212856cdcacbd4b09d
+lastReviewedCommit: 002189f5ce1481423c85ea22b89da843c5dc3a39
 ---
 
 # 原子数据 Skill 迁移实施计划
@@ -213,6 +213,10 @@ Open-Meteo Historical Weather 复核确认了固定源的最多 10 个坐标、3
   registry 投影、进程内 data execution、core receipt parity、Research receipt/ledger/
   budget/credential/artifact 绑定和 native packet 入口均有单独 clean-room TDD；这份证据
   仍与此前 21 个原子 Skill 的迁移完成证据分离。
+- 后续可靠性补强把 provider 缺口、显式运行限制和 Agent context 投影拆成独立维度；完整
+  core result 仍一次持久化，Auto Research 通过 receipt-bound cursor 本地续读，不重复消耗
+  provider request。YouTube comments 显式区分 `top-level-only` 与 `all-visible`，并报告
+  request budget、已完整展开 thread 与未展开 thread ID。Regulations.gov 本轮暂缓且不改动。
 - 当前只有本地分支提交；在维护者统一审阅并明确确认前，不推送实现分支、不创建 PR。
 
 ## 与 CLI 的同步顺序

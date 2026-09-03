@@ -242,6 +242,11 @@ TypeScript runtime through its Research evidence command. The Skill does not
 duplicate provider adapters or keep a fixed connector list; Research adds only
 budget, owner-only credential, immutable receipt/ledger, artifact, and review
 bindings around the unchanged core result.
+When that result is larger than one Agent context, Auto Research keeps the full
+immutable evidence and exposes receipt-bound continuation cursors. Exhaustive
+row review follows those local pages to completion; summary work may stop early
+only with the presented fraction disclosed. Provider gaps, operation limits,
+and Agent-context projection remain separate signals.
 `tiangong-auto-research-workbuddy` is only a sandboxed-IDE adapter. It routes
 back to the canonical orchestrator and its signed reviewer-bridge reference;
 it does not define a second research workflow.
