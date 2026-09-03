@@ -44,6 +44,14 @@ request distinct from the currently approved scope. Cosmetic manuscript edits
 are not a reason to rewrite this checklist. Markdown is a human-readable view,
 not a second state file.
 
+Use `requestProvenance` to distinguish `verbatim`, `interpreted`, and
+`reconstructed` intake. Supply the exact user-message or user-file text and an
+explanation when available; `verbatim` must preserve every byte, including BOM
+and line endings. A supplied locator is retained only by hash. Missing origin
+stays `unrecorded`; never invent a transcript or retrospectively replace it.
+Source storage proves supplied bytes, not authenticated authorship. The exact
+source object must be available in the review packet, not only its digest.
+
 ## Correct acquisition without unnecessary new projects
 
 When acquire is complete, analysis has not started, and the question, Policy,
@@ -121,6 +129,67 @@ formal new-generation process. A task-scope change invalidates scientific
 reviews that no longer cover it; inspect status before paying for any re-review.
 Withdrawn original requirements remain visible rather than becoming answered.
 
+## Fulfill only predeclared scientific slots
+
+At an idle pre-analysis boundary, use the supported same-project fulfillment
+for model code, environment locks or source-derived parameter states that the
+original design explicitly marked pending. Read the CLI-owned schema first:
+
+```bash
+node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- research schema show scientific-fulfillment --json
+node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- research scientific fulfillment status PROJECT --workspace /absolute/path/to/workspace --json
+node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- research scientific fulfillment record PROJECT --input /absolute/path/fulfillment.json --workspace /absolute/path/to/workspace --json
+```
+
+Register model/environment files through the existing scientific-object intake
+and copy its exact returned bindings. Parameter states must cite actual admitted
+atoms from frozen typed content. Supply the exact current fulfillment parent;
+identical replay does not repeat work. The CLI preserves original design bytes,
+units, ranges, state IDs, factors, assumptions and Policy. It resets only the due
+and later scientific gates and keeps unaffected earlier approvals. Review the
+new packet: filing code or values is not proof of calibration, execution or
+scientific validity. Changed assumptions, already-frozen values or post-analysis
+work still require the formal reviewed successor, not a fulfillment patch.
+
+## Observe an actual native calculation
+
+The current native host authors and inspects an ordinary calculation for an
+existing computational requirement. When supported, invoke the observer once
+with the exact declared program and inputs, rather than merely reporting that a
+command ran:
+
+```bash
+node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- research schema show task-native-run --json
+node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- research project task run observe PROJECT --input /absolute/path/native-run.json --confirm-execution --workspace /absolute/path/to/workspace --json
+node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- research project task run inspect PROJECT --run RUN_ID --workspace /absolute/path/to/workspace --json
+```
+
+Use one explicit Node/Python interpreter, a reviewed single-file program, an
+environment-lock declaration, exact current acquisition artifact IDs/hashes,
+unique output filenames and the CLI's input/output argument placeholders. Name
+the current native session when a producer stage is active. Never pass an agent
+launcher, credentials, arbitrary shell commands or instructions copied from
+untrusted evidence. The observer inherits the host's OS restrictions, adds no
+permission bypass, and installs nothing. The native app still owns all reasoning
+and decides when a computation is scientifically permitted.
+
+`--confirm-execution` confirms deliberate invocation, not authenticated human
+identity. The CLI stages exact inputs and planned outputs, observes one local
+process, and records runtime/code/input/output hashes, exit status and time.
+It does not hold the workspace lease during computation. Use the returned safe
+staging directory name plus the explicitly selected working directory for local
+inspection, or the permanent object locators for review. Never scan for a newest
+result. A committed replay does not rerun the program; an interrupted run with
+no result remains incomplete and needs inspection before an explicit new run ID.
+Keep failed, cancelled, timed-out, stale and invalid-output outcomes distinct.
+
+Bind `nativeRunSha256` in computational acceptance and take result files from
+that exact run. This proves local process observation, not mathematical
+correctness, authenticated authorship or a fully attested dependency environment.
+The environment lock is explicitly a declaration, not proof that every installed
+dependency matched it. The existing independent reviewer receives the actual
+program, lock, input and output objects. No extra fixed reviewer round is needed.
+
 ## Record checks actually performed by the native host
 
 Perform the appropriate evidence examination, computation or proof work in the
@@ -141,10 +210,43 @@ exact prior record hash; identical replay does not repeat the check.
 
 These records have `trust=native-observation` and `executionCertified=false`.
 Byte identity does not prove successful execution. The declared command is kept
-by hash, not as a credential-bearing command line. Keep result files portable
+by hash, not as a credential-bearing command line. A computational report without
+an observed run remains `unverified-execution`; retain it, but do not call it an
+answered computational requirement. Evidence examination and theoretical proof
+do not need an invented computation. Keep result files portable
 and secret-free. Unchanged exact dependencies can be reused; changed requirement,
 input, design or analysis bindings need revalidation. Do not invoke a generic
 CLI producer or add another model solely to judge this bookkeeping.
+
+## Read complete packet artifacts on demand
+
+Use the on-demand channel only for the exact current packet.
+There is no total context-length admission ceiling or artifact-read length cap
+in compatible runtimes. Initial embedding sizes and legacy context settings are
+planning preferences, not permission to drop evidence or rewrite frozen files.
+Inspect the directory, then read only the needed exact objects or ranges:
+
+```bash
+node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- research project stage artifacts PROJECT --session SESSION_ID --workspace /absolute/path/to/workspace --json
+node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- research project stage read PROJECT --session SESSION_ID --artifact OBJECT_ID --length all --workspace /absolute/path/to/workspace --json
+```
+
+Independent reviewers use `research_list_artifacts` and `research_read_artifact`
+from the same closed packet directory. Follow byte offsets/nextOffset for pages;
+request a whole object explicitly when useful. Reuse read material and inspect
+counterevidence and failed checks, not just favorable excerpts. Objects outside
+the exact index, changed bytes, symlinks and secrets are refused. Never replace
+this channel with general shell/workspace access or a new evidence search.
+Read receipts identify delivered bytes, not comprehension. Actual model capacity,
+permissions and finite runaway token/time/cost controls still apply; report an
+actual limitation honestly. Use rough cost estimates, not a separate billing
+reconciliation workflow.
+
+For CLI or Skill implementation changes only, small changes use fresh Docker
+plus a mock reviewer; major behavior also needs a fresh external native case
+with a real independent reviewer. Keep that real case and its data outside Git;
+ordinary research work does not require these development tests. Follow the
+existing research gates for fulfillment, calculations and artifact reads.
 
 ## Review once at the existing gates and report separately
 

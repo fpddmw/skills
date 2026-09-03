@@ -18,7 +18,7 @@ checkPaths:
   - .claude-plugin/**
   - "*/SKILL.md"
 lastReviewedAt: 2026-09-03
-lastReviewedCommit: 4041b5da5335fcca3015b45c06ad767b79a884f6
+lastReviewedCommit: 246f93abffc19ff7efa6aad37f9cf2515b4fc82b
 ---
 
 # Skills Development Runbook
@@ -167,6 +167,14 @@ substitute for behavioral evaluation. Evaluate realistic recovery/completion
 decisions independently without supplying the expected answer, and run the
 corresponding protocol against the exact candidate CLI outside the repository.
 Keep native case data, captures and generated research outside Git.
+
+Use that deterministic layer for each small correction with a mock reviewer.
+For changes to task meaning, scientific-object fulfillment, execution/read trust
+boundaries or the end-to-end workflow, also use a fresh external native case and
+a real independent reviewer before claiming major-behavior qualification. Do
+not pay for another research run after every documentation or formatting edit;
+record the tier decision and exact validation evidence in the tracked task.
+The workspace testing standard remains authoritative for cross-repo gate policy.
 
 ## README And Marketplace Updates
 

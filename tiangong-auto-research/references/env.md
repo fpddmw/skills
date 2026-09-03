@@ -210,8 +210,16 @@ in the keychain.
 
 The current host application is the producer execution boundary. Discovery
 uses only the CLI's hash-bound one-shot broker command for admitted evidence;
-analyze and synthesize use prepared bounded context and gather no new evidence.
-The outer CLI sandbox applies to independent review, which is tool-free.
+analyze and synthesize use the complete prepared packet and its on-demand read
+route and gather no new evidence. The outer CLI sandbox applies to independent
+review. Compatible review packets permit only their two read-only artifact tools;
+doctor and formatting repair remain tool-free.
+
+An explicitly requested ordinary Node/Python calculation remains within the
+native host's OS restrictions. Its observer forwards no provider credentials,
+installs no dependencies and does not create an extra privileged sandbox or a
+producer agent. Supply a prepared runtime and exact frozen inputs; stop on a
+permission or runtime failure instead of enabling a bypass.
 
 When Codex is the reviewer, it receives a capsule-local project-root marker
 override. Its project configuration walk stops inside the capsule and never

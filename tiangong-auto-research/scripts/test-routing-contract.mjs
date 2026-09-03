@@ -329,6 +329,15 @@ try {
   await cp(join(skillsRoot, "tiangong-auto-research"), installed, { recursive: true });
   const referencePath = join(installed, "references", "execution-assurance.md");
   const reference = await readFile(referencePath, "utf8");
+  for (const marker of ["requestProvenance", "verbatim", "interpreted", "reconstructed", "unrecorded", "nativeRunSha256", "unverified-execution", "on-demand", "no total context-length"]) {
+    assert.ok(reference.includes(marker), `Installed task assurance must explain ${marker}`);
+  }
+  assert.match(reference, /For CLI or Skill implementation changes only[\s\S]*?ordinary research work does not require these development tests/u,
+    "Development TDD must not become a prerequisite for ordinary research actions");
+  assert.doesNotMatch(scientificDesignReference, /Freezing previously pending[\s\S]*?is a material design change/u,
+    "Predeclared pending slots must not automatically require a successor");
+  assert.doesNotMatch(nativeExecutionReference, /Freeze replacements\s+through a new authoritative generation/u,
+    "Native execution must expose the supported same-project fulfillment path");
   const installedEntry = await readFile(join(installed, "SKILL.md"), "utf8");
   assert.ok(installedEntry.includes("references/execution-assurance.md"),
     "The execution-assurance workflow must be discoverable from the installed Skill");
@@ -367,9 +376,19 @@ try {
     ["research", "project", "task", "scope", "approve"],
     ["research", "project", "task", "acceptance", "record"],
     ["research", "project", "evidence", "acquisition", "revise"],
+    ["research", "scientific", "fulfillment", "record"],
+    ["research", "scientific", "fulfillment", "status"],
+    ["research", "project", "task", "run", "observe"],
+    ["research", "project", "task", "run", "inspect"],
+    ["research", "project", "stage", "artifacts"],
+    ["research", "project", "stage", "read"],
   ]) assert.ok(commands.some((argv) => prefix.every((part, index) => argv[index] === part)), `Missing executable recipe: ${prefix.join(" ")}`);
   const approval = commands.find((argv) => argv.includes("scope") && argv.includes("approve"));
   assert.equal(approval[approval.indexOf("--proposal") + 1], approval[approval.indexOf("--confirm-change") + 1]);
+  const observation = commands.find(argv => argv.includes("run") && argv.includes("observe"));
+  assert.ok(observation.includes("--confirm-execution"), "Ordinary calculation observation requires exact execution consent");
+  const completeRead = commands.find(argv => argv.includes("stage") && argv.includes("read"));
+  assert.equal(completeRead[completeRead.indexOf("--length") + 1], "all", "Whole-object reads must remain an explicit supported choice");
 } finally {
   await rm(recipeFixture, { recursive: true, force: true });
 }

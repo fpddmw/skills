@@ -18,7 +18,7 @@ checkPaths:
   - scripts/**
   - "*/SKILL.md"
 lastReviewedAt: 2026-09-03
-lastReviewedCommit: 4041b5da5335fcca3015b45c06ad767b79a884f6
+lastReviewedCommit: 246f93abffc19ff7efa6aad37f9cf2515b4fc82b
 ---
 
 # Skills Repository Contract
@@ -64,6 +64,12 @@ marketplace grouping metadata.
   mechanical gates, reviewer-family/session enforcement, lifecycle budgets,
   authoritative generations, and semantic portable-audit verification to the
   CLI.
+- Native task-assurance guidance must preserve supplied request provenance and
+  distinguish a self-reported command from an observed calculation. Only exact
+  predeclared pending slots use same-project fulfillment; material assumptions
+  still require the reviewed scope/design process. On-demand reads use only the
+  exact packet directory and preserve counterevidence; actual model capacity,
+  permissions and finite runaway guards are not bypassed.
 - Research-question framing remains a native Skill decision before any tool
   call. It may pause a conclusion-presupposing request and propose a testable
   rewrite, but it must not reject controversial or directional hypotheses that

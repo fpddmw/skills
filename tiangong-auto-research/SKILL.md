@@ -91,8 +91,9 @@ detailed stop and recovery rules.
   before production preflight, execution, recovery, or closure.
 - Read [references/execution-assurance.md](references/execution-assurance.md)
   before original-task intake, pre-analysis evidence correction, scope changes,
-  or completion reporting. Prefer the supported same-project revision for an
-  unchanged study; preserve original/current task completion separately.
+  planned-object fulfillment, observed native calculations, packet-only artifact
+  reads, or completion reporting. Prefer supported same-project operations for
+  an unchanged study; preserve original/current task completion separately.
 - Read [references/evidence-pipeline.md](references/evidence-pipeline.md) before
   discovery, acquisition, evidence refresh, or an addendum.
 - Read [references/evidence-exhaustion.md](references/evidence-exhaustion.md)
@@ -335,7 +336,10 @@ commands and recovery rules.
 At idle stage boundaries, record the checks actually performed against each
 current requirement before launching the existing independent review. Preserve
 failed, not-run and inconclusive outcomes; a supported negative finding is not
-automatically a failure. Check hashes identify bytes, not successful execution.
+automatically a failure. Bind computational acceptance to its actual native run
+when the locked CLI supports observation; a self-reported command remains
+unverified execution. Read large bound artifacts on demand instead of dropping
+requirements or changing frozen evidence to fit an arbitrary context limit.
 
 For a top-journal project, `research status` may require `research-design`,
 `evidence-construct`, or `pilot-methods` review before it exposes the next

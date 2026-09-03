@@ -14,7 +14,7 @@ checkPaths:
   - .claude-plugin/**
   - "*/SKILL.md"
 lastReviewedAt: 2026-09-03
-lastReviewedCommit: 4041b5da5335fcca3015b45c06ad767b79a884f6
+lastReviewedCommit: 246f93abffc19ff7efa6aad37f9cf2515b4fc82b
 ---
 
 # Skills Repository Architecture
@@ -101,6 +101,15 @@ review/audit. Compatible runtimes may explicitly reopen discovery for new
 sources without changing project identity. The Skill reports task coverage
 separately from workflow/publication status and keeps all producer work native;
 it neither implements a second state machine nor adds fixed paid reviewer rounds.
+
+The same reference guides original-request provenance, same-project fulfillment
+of explicitly pending model/environment/parameter slots, actual native calculation
+observation and acceptance, and packet-only on-demand artifact reads. The CLI
+owns closed schemas and runtime/audit relationships. The Skill keeps reasoning
+native, preserves original assumptions and human scope approval, distinguishes
+unverified reports from observed processes, and never treats byte/read identity
+as scientific or environment attestation. It does not impose a second aggregate
+context-length gate or reproduce the on-demand server in Skill code.
 
 `tiangong-auto-research-workbuddy` is a thin sandboxed-IDE adapter. It routes
 WorkBuddy/CodeBuddy native producer tasks back to the canonical orchestrator and

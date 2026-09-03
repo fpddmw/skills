@@ -91,8 +91,9 @@ kind-mismatched, metadata-invalid, or hash-drifted.
 A digest proves byte identity, not scientific executability. For every model,
 bind both the implementation and its environment lock with safe retrievable
 locators and declare `artifactHashBasis: raw-file-bytes`. A model marked
-`executable-frozen` and an environment marked `exact-frozen` must both use
-`research-design` as their freeze gate. Otherwise declare
+`executable-frozen` and an environment marked `exact-frozen` must already bind
+their exact registered bytes. A compatible runtime preserves the originally
+declared deadline when a pending object is fulfilled before that gate. Otherwise declare
 `pending-source-acquisition` or `pending-runtime-lock` and a later
 `evidence-construct` or `pilot-methods` deadline. Specification prose,
 unresolved coefficients, an unpinned runtime, or an empty dependency lock is
@@ -155,13 +156,18 @@ The design may pass admission with later-gate objects explicitly pending. This
 is not permission to compute from them. The research-design review packet lists
 each such item under `mechanicalAssessment.futureGateObligations`, including its
 error code, exact due gate, object IDs, and owning Policy rule IDs. At the due
-gate the same condition becomes a blocking mechanical error unless a new
-authoritative generation freezes replacement objects.
+gate the same condition becomes a blocking mechanical error unless the exact
+predeclared slot has been fulfilled through the CLI, or a reviewed successor
+provides the materially changed design. Follow
+[execution-assurance.md](execution-assurance.md) for the closed fulfillment
+schema, exact parent binding and no-reexecution behavior.
 
 This list also exposes ordinary `planned` Policy rules with their exact due
 gate. A rule deferred to evidence-construct is not already discharged because
-research-design passed. Resolve it in a reviewed successor before its deadline
-when new design content is required. Do not mark it satisfied with an invented
+research-design passed. Fulfillment discharges only the pending-object filing
+blocker; the unchanged Policy rule still needs independent scientific judgement.
+Resolve it in a reviewed successor before its deadline when different design
+content is required. Do not mark it satisfied with an invented
 assessment or wait until a frozen acquisition makes an avoidable gap costly.
 
 ## Three early scientific gates
@@ -180,8 +186,8 @@ hash-invalid.
    construct the central joins/edges on real records without inspecting result
    values, record the exact canary artifacts, demonstrate that each required
    evidence role reaches its full-text, atom, and independent-source floor,
-   disposition closest work, and prove central evidence fits the bounded
-   context route.
+   disposition closest work, and provide a complete packet/on-demand route to
+   central evidence. A token estimate alone is not a context admission ceiling.
 
 This real-record construct canary is a feasibility gate, not a result-producing
 analysis. Discovery metadata or a binary file alone cannot satisfy it. Every
@@ -305,11 +311,15 @@ not inherited scientific approval. For an evidence-report project without a
 scientific design, omit the design options. Neither path is an in-place edit of
 the old generation.
 
-Freezing previously pending uncertainty values, executable model bytes, or an
-exact environment lock is a material design change. Create the successor before
-the declared due gate, rebind its Policy, design, raw objects, and native
-producer session, and obtain fresh early review. Never edit an old object or
-manually mark its obligation complete.
+Filling the original design's pending uncertainty values, model code or exact
+environment lock is not automatically a material redesign. Use the compatible
+CLI's append-only same-project fulfillment before analysis; keep original bytes,
+units, state identities, assumptions and Policy unchanged. The due and later
+reviews are reset and receive exact fulfillment objects, while unaffected
+earlier approvals remain bound to their deadline-specific view. A changed
+assumption or replacement of an already-frozen value still needs a successor
+with target-specific reapproval. Never edit an old object or manually mark an
+obligation complete.
 
 ## Portable audit handoff
 

@@ -97,8 +97,10 @@ The budget includes:
 New production workspaces use finite runaway ceilings of 50,000,000 total
 tokens and USD 5,000. Package ceilings are 12,000,000 for discovery, 2,000,000
 for acquisition, 1,500,000 each for analysis and synthesis, and 2,500,000 for
-review. Primary output is bounded at 32,000 tokens and repair at 16,000. Input
-context is bounded at 128,000 tokens. These values are not a target spend:
+review. Primary output is bounded at 32,000 tokens and repair at 16,000. The
+legacy input-context setting is only an embedding/planning hint; compatible
+runtimes have no total context-length or artifact-read admission ceiling.
+These values are not a target spend:
 coverage-driven working plans, early stop, three attempts per package, and
 explicit confirmation above USD 10 control ordinary execution. Smoke-test
 workspaces retain smaller low-cost defaults. Lower production ceilings only
@@ -169,7 +171,8 @@ type, full-text claim, publication date, and either:
 The native producer packet contains only the derived bounded context. The full,
 hash-verified source is withheld until independent review and is then listed in
 the review packet. The CLI rejects symlinks, duplicate source content,
-overlapping or out-of-range slices, changed hashes, and aggregate context above
+overlapping or out-of-range slices and changed hashes. Large aggregate context
+uses its complete packet-bound read route, not a refusal at
 `maxInputContextTokens`. Declaring `fullText: true` means the exact full file is
 registered for review; it does not expose that entire file to discovery.
 
@@ -246,8 +249,9 @@ resulting excerpt bundle and the complete review packet are themselves stored
 by content hash under the project's `review/contexts/` and `review/packets/`
 directories. The packet enumerates raw broker objects, original per-receipt
 bounded contexts, and full local-file hashes; its hash is schema-bound without
-duplicating packet metadata in the model prompt. The model reads only the
-global excerpt bundle and generated artifacts. Mechanical closure checks that
+duplicating packet metadata in the model prompt. The reviewer initially receives
+the excerpt bundle and artifact directory and can inspect needed complete objects
+through the packet-only read channel. Mechanical closure checks that
 the packet, bundle, broker objects, and local input/context hashes still exist
 and match before it records their safe locators.
 
@@ -319,15 +323,16 @@ native host records exact decomposition lineage and evidence atoms and freezes
 the typed-content snapshot. Analyze receives only a passing immutable inference
 snapshot and emits schema v2 with a reproduced analysis run; submit generates
 the Claim-Evidence Graph. Synthesize receives that chain and analysis. Neither
-later stage may gather new evidence. Review is tool-free and embeds
-generated artifacts plus deterministic excerpts from bounded local/broker
-evidence views within the reviewer's route-specific structured-output turn cap.
-Preflight and runtime reserve the same
-stage-specific ceiling: three maximum-size generated artifacts plus one
-`maxInputContextTokens` excerpt bundle. The complete packet, full files,
-original bounded contexts, and raw objects remain hash-bound for later
-human/mechanical audit; never report that the model read beyond the embedded
-excerpts. Run records, journal usage, and JSONL progress include sanitized
+later stage may gather new evidence. Review uses only the two packet-bound
+artifact read tools, with initial context and exact immutable file references.
+Preflight/runtime use rough initial-context and expected-read estimates, not the
+whole corpus or an unbounded legacy context hint. There is no artificial aggregate
+length refusal; real provider capacity and finite runaway time/token/cost budgets
+remain. Claude supports the configured provider turn guard; Codex has no equivalent
+CLI turn flag. Only formatting repair is tool-free. The complete packet, full
+files, original contexts and raw objects stay hash-bound. Read receipts show which
+exact bytes were delivered; never claim comprehension or inspection of unread
+files. Run records, journal usage, and JSONL progress include sanitized
 event/item counts, provider turns, tool calls, reasoning-token counts, and
 bounded provider errors.
 
@@ -451,7 +456,7 @@ Confirm the owning CLI release passed deterministic mock coverage for:
 - reviewer capsule HOME/sandbox startup and evidence/journal recovery;
 - bounded native producer context with full-source reviewer staging;
 - explicit native broker discovery with embedded locked Skill documentation,
-  no new evidence in analyze/synthesize, and tool-free review;
+  no new evidence in analyze/synthesize, packet-only review reads, and tool-free repair;
 - a broker result larger than the historical 64 KiB capture floor;
 - capability drift and evidence tampering;
 - insufficient evidence blocking closure;
