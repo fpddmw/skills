@@ -181,7 +181,14 @@ required credentials must block before any source download.
   `runDataCapability` command. That command promotes the shared TypeScript
   runtime result into Research evidence. Never use standalone `data run` for a
   project, copy provider logic into this Skill, or assume a fixed capability
-  list.
+  list. Suspended capabilities are not projected into this packet, even though
+  standalone catalog and describe output keep them discoverable for diagnosis.
+
+  `runDataCapability.executionKind=workspace-cli-relative-argv` means every
+  packet command is relative to the workspace runtime lock; always
+  prefix its resolver-relative `argv`, `readArgv`, or `describeArgv` arguments with
+  `node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace --`; never
+  execute a packet token as a PATH-resolved global `tiangong-ai` binary.
 
   Review the returned `providerCoverage`, `limitCoverage`, and `contextView`
   independently. Provider gaps, intentional operation bounds, and the smaller

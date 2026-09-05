@@ -38,8 +38,8 @@ FIRMS Active Fire, OpenAQ Air Quality, Regulations.gov Comments,
 Regulations.gov Comment Details, Regulations.gov Attachments, USBR Project Records, USBR RISE, USGS Water IV, three Open-Meteo sources, and
 GDELT DOC, Events, GKG, and Mentions, plus Bluesky Cascades, YouTube Video
 Search, and YouTube Comments—are thin semantic Skills over the Tiangong CLI
-TypeScript 7 data runtime. Each candidate records only its stable capability and
-operation contract-major requirements in
+TypeScript 7 data runtime. Each candidate records its stable capability and
+operation contract-major requirements plus any operation feature it actually depends on in
 `references/tiangong-data-requirement.json`; the caller or workspace runtime
 lock chooses the actual CLI build. The agent uses that same resolved CLI for
 `data describe` and `data run`. These Skills contain no second provider

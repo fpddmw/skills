@@ -17,8 +17,8 @@ checkPaths:
   - "*-search/**"
   - "*-download/**"
   - tiangong-auto-research/**
-lastReviewedAt: 2026-09-02
-lastReviewedCommit: 002189f5ce1481423c85ea22b89da843c5dc3a39
+lastReviewedAt: 2026-09-05
+lastReviewedCommit: 24c5695ca3129bbe021e4b80d830742841e9011e
 ---
 
 # 原子数据 Skill 迁移实施计划
@@ -514,7 +514,8 @@ node --test scripts/tests/data-skill-install-smoke.test.mjs
 结构化阻断请求，不访问 AirNow、Bluesky、EPA EIS、FederalRegister.gov、GDELT、NASA
 FIRMS、OpenAQ、Open-Meteo、Regulations.gov、USBR、USGS WaterServices 或 YouTube。
 
-稳定 requirement 只在 Skill 所需的 capability/operation contract major 改变时生成；
+稳定 requirement 只在 Skill 所需的 capability/operation contract major 或
+`requiredFeatures` 改变时生成；
 普通 CLI patch/minor 发布无需改写 21 个文件：
 
 ```bash
@@ -525,6 +526,17 @@ node scripts/data-skill-binding.mjs generate \
   --cli-version X.Y.Z
 node scripts/data-skill-binding.mjs verify \
   --requirement airnow-hourly-obs-fetch/references/tiangong-data-requirement.json \
+  --cli-version X.Y.Z
+```
+
+若 Skill 依赖同一 contract major 中的特定行为，用分号分隔 operation、逗号分隔 feature：
+
+```bash
+node scripts/data-skill-binding.mjs generate \
+  --skill youtube-comments-fetch \
+  --capability youtube.public-content \
+  --operations fetch-comments \
+  --required-features fetch-comments=youtube.reply-strategy \
   --cli-version X.Y.Z
 ```
 

@@ -17,7 +17,8 @@ receipts.
    compatible capability and operation contract majors; it does not select a
    package build.
 3. Run `data describe` with that same CLI. Continue only when the capability
-   ID and required contract majors match, and copy the exact current
+   ID, required contract majors, and the
+   `open-meteo.series-all-null` operation feature match; then copy the exact current
    capability/operation versions from that response into the run request.
 4. Run the default static doctor. Do not add `--live` unless the user explicitly
    asks for a provider probe.

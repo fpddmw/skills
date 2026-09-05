@@ -75,6 +75,17 @@ atomic operation; use its summary, `provides`, `doesNotProvide`, and selection
 hints to choose a source, then inspect only the selected operation through the
 same workspace runtime lock used by the packet:
 
+Only capabilities whose catalog availability is `available` are projected;
+suspended capabilities are not projected into Auto Research. The standalone
+catalog retains them so operators can inspect the suspension reason and resume
+criteria without offering them to the Agent as executable evidence sources.
+
+The packet declares
+`runDataCapability.executionKind=workspace-cli-relative-argv`; always
+prefix its resolver-relative `argv`, `readArgv`, and `describeArgv` with the locked
+`node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace --` command.
+Do not execute their first token as a PATH-resolved global CLI.
+
 ```bash
 node "$AUTO_RESEARCH_CLI" --workspace /absolute/path/to/workspace -- \
   data describe <capability-id> --json

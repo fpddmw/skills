@@ -38,7 +38,7 @@ USBR Project Records、USBR RISE、USGS Water IV、三个 Open-Meteo 来源，�
 加上 Bluesky Cascades、YouTube Video Search 与 YouTube Comments，共二十一个 Skill 已
 收敛为 Tiangong CLI TypeScript 7 数据运行时之上的薄语义候选。每个候选只在
 `references/tiangong-data-requirement.json` 中记录稳定的 capability/operation
-contract major 要求；实际 CLI build 由调用方或 workspace runtime lock 选择。Agent
+contract major 要求，以及该 Skill 确实依赖的 operation feature；实际 CLI build 由调用方或 workspace runtime lock 选择。Agent
 使用同一已解析 CLI 运行 `data describe` 与 `data run`。这些 Skills 不再保留第二份
 provider connector 运行时，也不保存各自的 package lock。
 

@@ -17,7 +17,8 @@ limits, validation, partial results, and receipts.
    compatible capability and operation contract majors; it does not select a
    package build.
 3. Run `data describe` with that same CLI. Continue only when the capability
-   ID and required contract majors match, and copy the exact current
+   ID, required contract majors, and the `youtube.reply-strategy` operation
+   feature match; then copy the exact current
    capability/operation versions from that response into the run request.
 4. Ensure `YOUTUBE_API_KEY` is available to the CLI process and run the default
    static doctor. Never place the key in argv, request JSON, Skill files, logs,
